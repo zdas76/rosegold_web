@@ -100,9 +100,7 @@ const AddEmployeeForm = ({ setIsModalOpen }: { setIsModalOpen: any }) => {
         >
           <Input placeholder="Enter your working place" />
         </Form.Item>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Form.Item
           label="Date of Birth (DOB)"
           name={["dob"]}
