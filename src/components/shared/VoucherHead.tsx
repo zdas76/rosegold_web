@@ -5,7 +5,7 @@ type VoucherHeaderProps = {
     date: string;
     address: string;
 };
-import logo from "../../assets/royalbdlogo.png"
+const logo = "/logo.png";
 import dayjs from 'dayjs';
 
 const VoucherHeader: React.FC<VoucherHeaderProps> = ({ partyName, date, address }) => {
