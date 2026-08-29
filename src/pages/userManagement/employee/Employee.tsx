@@ -66,7 +66,6 @@ const Employee = () => {
             {/* display employes */}
             <div className="mt-4 bg-white p-4 rounded-md shadow pb-1">
                 <Table dataSource={tableData} loading={isFetching || isLoading} className="" size="small">
-                    <Column title="Photo" dataIndex="photo" key="photo" render={(photo: string) => <img src={`${imageBaseUrl}${photo}`} className="size-12 object-cover rounded-full" alt={"employee.name"} />} />
                     <Column title="Name" dataIndex="name" key="name" />
                     <Column title="Email" dataIndex="email" key="email" className="font-bold" />
                     <Column title="Role" dataIndex="role" key="role" render={(role) => <Tag>{role}</Tag>} />

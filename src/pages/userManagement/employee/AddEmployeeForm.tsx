@@ -2,7 +2,6 @@
 
 import { Form, Input, Button, DatePicker } from "antd";
 
-import { useState } from "react";
 import { useCreateEmployeeMutation } from "../../../redux/features/auth/authApi";
 import { getResponse } from "../../../utils/getResponse";
 
@@ -22,22 +21,16 @@ interface FormValues {
 }
 
 const AddEmployeeForm = ({ setIsModalOpen }: { setIsModalOpen: any }) => {
-  const [employeImage, setEmployeImage] = useState<File>();
   const [form] = Form.useForm();
   const [addEmployee, { isLoading }] = useCreateEmployeeMutation();
 
   const onFinish = async (values: FormValues) => {
-    const data = { ...values, employeeType: "employee" }
-    const formData: any = new FormData();
-    if (employeImage) {
-      formData.append("photo", employeImage);
-    }
-    formData.append("data", JSON.stringify(data));
-    const response = await addEmployee(formData);
+    const data = { ...values, employeeType: "employee" };
+    const response = await addEmployee(data);
     const res = getResponse(response);
     if (res?.success) {
       form.resetFields();
-      setIsModalOpen(false)
+      setIsModalOpen(false);
     }
   };
 
@@ -107,15 +100,6 @@ const AddEmployeeForm = ({ setIsModalOpen }: { setIsModalOpen: any }) => {
         >
           <Input placeholder="Enter your working place" />
         </Form.Item>
-
-        <div>
-          <label htmlFor="">Upload Image</label>
-          <input
-            className="p-1 mt-2 border-slate-300 cursor-pointer border rounded-md w-full"
-            type="file"
-            onChange={(e: any) => setEmployeImage(e.target.files[0])}
-          />
-        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
