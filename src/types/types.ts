@@ -407,6 +407,8 @@ export type TProductStockReport = {
   };
 };
 
+
+
 export type TRawMaterialStockReport = {
     rawMaterial: {
         id: number;

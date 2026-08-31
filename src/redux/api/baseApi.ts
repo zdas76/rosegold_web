@@ -35,7 +35,9 @@ export const baseApi = createApi({
     "logToRaw",
     "worker",
     "logOrderVoucher",
-    "production"
+    "production",
+    "packaging",
+
   ],
   endpoints: () => ({}),
 });

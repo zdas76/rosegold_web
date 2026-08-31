@@ -69,6 +69,7 @@ import SoapCreationForm from '../pages/store RMPM/production/SoapCreationForm';
 import DetergentCreationForm from '../pages/store RMPM/production/DetergentCreationForm';
 import KitchenbarCreationForm from '../pages/store RMPM/production/KitchenbarCreationForm';
 
+
 export const sideBarRoutes = [
     {
         key: "home",
@@ -602,4 +603,5 @@ export const sideBarRoutes = [
     //     icon: <SettingFilled />,
     //     label: <Link to="/dashboard/settings">Settings</Link>,
     // },
+
 ]
