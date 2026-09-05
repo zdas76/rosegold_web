@@ -1,9 +1,27 @@
-import React from 'react'
+import React from 'react';
+import { Tabs } from 'antd';
+import SoapPackaging from './soapPackaging/SoapPackaging';
+import DetergentPackaging from './detergentPackaging/DetergentPackaging';
 
-const Packaging = () => {
-    return (
-        <div>Packaging</div>
-    )
-}
+const Packaging: React.FC = () => {
+  const tabItems = [
+    {
+      key: 'soap',
+      label: 'Soap Packaging',
+      children: <SoapPackaging />,
+    },
+    {
+      key: 'detergent',
+      label: 'Detergent Powder Packaging',
+      children: <DetergentPackaging />,
+    },
+  ];
 
-export default Packaging
+  return (
+    <div>
+      <Tabs defaultActiveKey="soap" items={tabItems} />
+    </div>
+  );
+};
+
+export default Packaging;

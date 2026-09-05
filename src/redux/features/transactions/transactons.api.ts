@@ -5,7 +5,7 @@ const transactionApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
         getPillers: builder.query({
             query: () => ({
-                url: `/account_pillers`,
+                url: `/accounts_head`,
                 method: "GET"
             })
         }),
