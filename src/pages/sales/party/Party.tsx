@@ -1,43 +1,46 @@
-import { Input, Select, Table, Tag } from "antd"
-import { useDeletePartyMutation, useGetPartiesQuery } from "../../../redux/features/auth/authApi"
-import Column from "antd/es/table/Column"
-import { FaEdit, FaPlus, FaTrash } from "react-icons/fa"
-import CommonModal from "../../../components/modals/CommonModal"
-import { useEffect, useState } from "react"
-import { TParty } from "../../../types/types"
-import Swal from 'sweetalert2'
-import EditPartyForm from "./EditPartyForm.tsx"
-import { getResponse } from "../../../utils/getResponse"
-import AddSupplierForm from "./addPartyForm.tsx"
-import dayjs from "dayjs"
+import { Input, Select, Table, Tag } from "antd";
+import {
+  useDeletePartyMutation,
+  useGetPartiesQuery,
+} from "../../../redux/features/auth/authApi";
+import Column from "antd/es/table/Column";
+import { FaEdit, FaPlus, FaTrash } from "react-icons/fa";
+import CommonModal from "../../../components/modals/CommonModal";
+import { useEffect, useState } from "react";
+import { TParty } from "../../../types/types";
+import Swal from "sweetalert2";
+import EditPartyForm from "./EditPartyForm.tsx";
+import { getResponse } from "../../../utils/getResponse";
+import AddSupplierForm from "./addPartyForm.tsx";
+import dayjs from "dayjs";
 
 const { Search } = Input;
 
 const Party = () => {
-  const [deleteparty] = useDeletePartyMutation()
-  const [searchTerm, setSearchTerm] = useState("")
-  const [debouncedSearch, setDebouncedSearch] = useState("")
-  const [sortOrder, setSortOrder] = useState<string>("desc")
+  const [deleteparty] = useDeletePartyMutation();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [sortOrder, setSortOrder] = useState<string>("desc");
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm)
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [searchTerm])
+      setDebouncedSearch(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const { data, isLoading, isFetching } = useGetPartiesQuery({
     partyType: "PARTY",
     searchTerm: debouncedSearch,
     sortBy: "createdAt",
-    sortOrder: sortOrder
-  })
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [editModalData, setEditModalData] = useState<TParty | null>(null)
+    sortOrder: sortOrder,
+  });
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editModalData, setEditModalData] = useState<TParty | null>(null);
 
   const tableData = data?.data?.map((item: TParty, idx: number) => ({
     key: idx,
-    ...item
+    ...item,
   }));
 
   const handleDelete = (id: number) => {
@@ -48,14 +51,14 @@ const Party = () => {
       showCancelButton: true,
       confirmButtonColor: "#C58D2F",
       cancelButtonColor: "#d33",
-      confirmButtonText: "Yes, delete it!"
+      confirmButtonText: "Yes, delete it!",
     }).then(async (result) => {
       if (result.isConfirmed) {
         const res = await deleteparty(id);
         getResponse(res);
       }
     });
-  }
+  };
 
   return (
     <div>
@@ -76,8 +79,8 @@ const Party = () => {
               style={{ width: 120 }}
               onChange={(value) => setSortOrder(value)}
               options={[
-                { value: 'desc', label: 'Newest' },
-                { value: 'asc', label: 'Oldest' },
+                { value: "desc", label: "Newest" },
+                { value: "asc", label: "Oldest" },
               ]}
             />
             <CommonModal
@@ -89,28 +92,44 @@ const Party = () => {
                 <span className="flex items-center gap-1 justify-center">
                   <FaPlus size={10} /> <small>Create Party</small>
                 </span>
-              }>
+              }
+            >
               <AddSupplierForm setIsModalOpen={setIsAddModalOpen} />
             </CommonModal>
           </div>
         </div>
       </div>
       <div className="bg-white p-4 rounded-md shadow pb-1">
-        <Table dataSource={tableData} loading={isFetching || isLoading} size="small">
-          <Column title="Name" dataIndex="name" key="name" className="font-bold" />
+        <Table
+          dataSource={tableData}
+          loading={isFetching || isLoading}
+          size="small"
+        >
+          <Column
+            title="Name"
+            dataIndex="name"
+            key="name"
+            className="font-bold"
+          />
           <Column title="Contact" dataIndex="contactNo" key="contact" />
           <Column title="Address" dataIndex="address" key="address" />
           <Column
             title="Party Type"
             dataIndex="partyType"
             key="Type"
-            render={(type) => <Tag color={`${type == "VENDOR" ? "indigo" : "blue"}`}>{type}</Tag>}
+            render={(type) => (
+              <Tag color={`${type == "DISTRIBUTOR" ? "indigo" : "blue"}`}>
+                {type}
+              </Tag>
+            )}
           />
           <Column
             title="Create Date"
             dataIndex="createdAt"
             key="categoryName"
-            render={(timestamp: string) => <b>{dayjs(timestamp).format("DD-MMM-YYYY")}</b>}
+            render={(timestamp: string) => (
+              <b>{dayjs(timestamp).format("DD-MMM-YYYY")}</b>
+            )}
           />
           <Column
             title="Action"
@@ -120,12 +139,15 @@ const Party = () => {
                 <CommonModal
                   title="Edit Party"
                   isModalOpen={editModalData?.id === item.id}
-                  setIsModalOpen={(state: any) => setEditModalData(state ? item : null)}
+                  setIsModalOpen={(state: TParty | null) =>
+                    setEditModalData(state ? item : null)
+                  }
                   btnText={
                     <span className="flex items-center gap-1 justify-center">
                       <FaEdit size={10} /> Edit
                     </span>
-                  }>
+                  }
+                >
                   {editModalData && <EditPartyForm item={editModalData} />}
                 </CommonModal>
 
@@ -142,7 +164,7 @@ const Party = () => {
         </Table>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Party
+export default Party;

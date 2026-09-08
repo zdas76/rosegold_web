@@ -11,7 +11,7 @@ import Employee from '../pages/userManagement/employee/Employee';
 import RowMaterial from '../pages/inventory/rowMaterial/RowMaterial';
 import Settings from '../pages/Settings/Settings';
 import Unit from '../pages/unit/Unit';
-import PurchaseVoucher from '../pages/purchase/PurchaseVoucher';
+import PurchaseVoucher from '../pages/purchase/purchaseOrder/PurchaseVoucherProduct';
 import AccountsItem from '../pages/accounts_Item/AccountsItem';
 import SalesVoucher from '../pages/transactions/salesVoucher/SalesVoucher';
 import BankAccount from '../pages/bank/bank';
@@ -68,6 +68,7 @@ import GiftVoucher from '../pages/accounts/giftVoucher/GiftVoucher';
 import SoapCreationForm from '../pages/store RMPM/production/SoapCreationForm';
 import DetergentCreationForm from '../pages/store RMPM/production/DetergentCreationForm';
 import KitchenbarCreationForm from '../pages/store RMPM/production/KitchenbarCreationForm';
+import PurchaseOrderRM from '../pages/purchase/purchaseOrder/PurchaseVoucherRM';
 
 
 export const sideBarRoutes = [
@@ -141,11 +142,18 @@ export const sideBarRoutes = [
         label: "Purchase Department",
         children: [
             {
-                key: "Purchase_order",
+                key: "Purchase_order_Product",
                 icon: <BsHr />,
                 element: <PurchaseVoucher />,
                 path: "/dashboard/purchase",
-                label: <Link to={`/dashboard/purchase`}>Purchase Order</Link>
+                label: <Link to={`/dashboard/purchase`}>Purchase Order (P)</Link>
+            },
+            {
+                key: "Purchase_order_Raw_Material",
+                icon: <BsHr />,
+                element: <PurchaseOrderRM />,
+                path: "/dashboard/purchase-rm",
+                label: <Link to={`/dashboard/purchase-rm`}>Purchase Order (RM)</Link>
             },
             {
                 key: 'transactions_purchase',

@@ -6,7 +6,7 @@ import { Link } from "react-router";
 interface PostSubmitModalProps {
     isOpen: boolean;
     onClose: () => void;
-    voucherNo: string;
+    voucherNo?: string;
     onNewVoucher: () => void;
 }
 

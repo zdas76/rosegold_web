@@ -76,7 +76,7 @@ export type TParty = {
     name: string;
     contactNo: string;
     address: string;
-    partyType: "VENDOR" | "PARTY";
+    partyType: "VENDOR" | "PARTY" | "SUPPLIER" | "DISTRIBUTOR"; // Adjust based on possible party types
     openingAmount: number;
     openingDate: string;
 }

@@ -7,6 +7,8 @@ import { persistStore } from 'redux-persist';
 import logOrderReducer from './features/logAndGrade/logOrderSlice'
 import authReducer from './features/auth/authSlice';
 import logOrderVoucher from './features/logAndGrade/logOrderVoucherSlice'
+import purchaseOrderRMReducer from './features/purchaseOrder/purchaseOrderRMSlice'
+import purchaseCreditReducer from './features/purchaseOrder/purchaseCreditSlice'
 const persistConfig = {
     key: "auth",
     storage,
@@ -22,7 +24,9 @@ export const store = configureStore({
         [baseApi.reducerPath]: baseApi.reducer,
         auth: persistAuthReducer,
         logOrder: logOrderReducer,
-        logVoucher: logOrderPersist
+        logVoucher: logOrderPersist,
+        purchaseOrderRM: purchaseOrderRMReducer,
+        purchaseCredit: purchaseCreditReducer
     },
     middleware: (getDefaultMiddleware) => getDefaultMiddleware({
         serializableCheck: {
