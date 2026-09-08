@@ -17,7 +17,7 @@ import {
   EditOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
-import { useGetProductsQuery } from '../../../../redux/features/product/product.api';
+import { useGetProductsQuery, useGetProductStockReportQuery } from '../../../../redux/features/product/product.api';
 import { useGetPackagingsQuery, useCreatePackagingMutation, useDeletePackagingMutation } from '../../../../redux/features/packaging/packaging.api';
 import { getResponse } from '../../../../utils/getResponse';
 
@@ -26,9 +26,12 @@ const SoapPackaging: React.FC = () => {
   const [isSubmitting] = React.useState(false);
 
   const { data: productsData } = useGetProductsQuery({});
+  const { data: stockData } = useGetProductStockReportQuery({});
   const { data: packagingsData, isLoading: isListLoading } = useGetPackagingsQuery({});
   const [createPackaging] = useCreatePackagingMutation();
   const [deletePackaging] = useDeletePackagingMutation();
+
+  const selectedProductId = Form.useWatch('productId', form);
 
   const productOptions = productsData?.data
     ?.filter((item: { name: string }) => item.name.toLowerCase().includes('soap'))
@@ -37,12 +40,20 @@ const SoapPackaging: React.FC = () => {
       label: item.name,
     })) || [];
 
-  const noOfCartons = Form.useWatch('noOfCartons', form) || 0;
-  const packsPerCarton = Form.useWatch('packsPerCarton', form) || 0;
+  const selectedProductStock = stockData?.data?.find(
+    (item: any) => item.product?.id === selectedProductId
+  );
+  const stockQty = selectedProductStock
+    ? (selectedProductStock.product?.quantity ?? 0) +
+    (selectedProductStock.total?._sum?.quantityAdd ?? 0) -
+    (selectedProductStock.total?._sum?.quantityLess ?? 0)
+    : null;
+
+  const totalPacks = Form.useWatch('totalPacks', form) || 0;
   const pcsPerPack = Form.useWatch('pcsPerPack', form) || 0;
 
-  const totalPacks = Number(noOfCartons) * Number(packsPerCarton);
-  const totalPcs = totalPacks * Number(pcsPerPack);
+  const totalPcs = Number(pcsPerPack) * Number(totalPacks);
+  const remainingQty = stockQty !== null ? stockQty - totalPcs : null;
 
   const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     setTimeout(() => e.currentTarget.select(), 0);
@@ -56,18 +67,21 @@ const SoapPackaging: React.FC = () => {
 
   const handleSubmit = async (values: any) => {
     try {
+      if (remainingQty !== null && remainingQty < 0) {
+        message.error('Cannot pack more than available stock!');
+        return;
+      }
       const payload = {
         type: 'soap',
         productId: values.productId,
         voucherNo: values.voucherNo,
         batchNo: values.batchNo,
         date: values.date.toISOString(),
-        noOfCartons: Number(values.noOfCartons),
-        packsPerCarton: Number(values.packsPerCarton),
+        totalPacks: Number(values.totalPacks),
         pcsPerPack: Number(values.pcsPerPack),
-        totalPacks,
         totalPcs,
       };
+      console.log('Soap Packaging Payload:', payload);
 
       const res = await createPackaging(payload);
       const result = getResponse(res);
@@ -96,7 +110,6 @@ const SoapPackaging: React.FC = () => {
     { title: 'Voucher No', dataIndex: 'voucherNo', key: 'voucherNo' },
     { title: 'Batch No', dataIndex: 'batchNo', key: 'batchNo' },
     { title: 'Date', dataIndex: 'date', key: 'date', render: (v: string) => v ? new Date(v).toLocaleDateString() : '-' },
-    { title: 'Cartons', dataIndex: 'noOfCartons', key: 'noOfCartons' },
     { title: 'Total Packs', dataIndex: 'totalPacks', key: 'totalPacks' },
     { title: 'Total Pcs', dataIndex: 'totalPcs', key: 'totalPcs' },
     {
@@ -119,22 +132,7 @@ const SoapPackaging: React.FC = () => {
       <h2 className="text-xl font-bold mb-4">Soap Packaging</h2>
 
       <Form form={form} onFinish={handleSubmit} layout="vertical">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Form.Item
-            name="productId"
-            label="Item Name"
-            rules={[{ required: true, message: 'Please select item' }]}
-          >
-            <Select
-              placeholder="Select item"
-              options={productOptions}
-              showSearch
-              filterOption={(input, option) =>
-                !!option?.label?.toString().toLowerCase().includes(input.toLowerCase())
-              }
-            />
-          </Form.Item>
-
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <Form.Item
             name="voucherNo"
             label="Voucher No"
@@ -154,8 +152,7 @@ const SoapPackaging: React.FC = () => {
           <Form.Item
             name="date"
             label="Date"
-            rules={[{ required: true, message: 'Please select date' }]}
-          >
+            rules={[{ required: true, message: 'Please select date' }]}>
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>
         </div>
@@ -164,6 +161,33 @@ const SoapPackaging: React.FC = () => {
         <div className="mb-5">
           <h3 className="font-semibold mb-2">Packaging Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <div className="flex items-end gap-2">
+                <Form.Item
+                  name="productId"
+                  label="Product"
+                  rules={[{ required: true, message: 'Please select product' }]}
+                  className="flex-1 !mb-0"
+                >
+                  <Select
+                    placeholder="Select product"
+                    options={productOptions}
+                    showSearch
+                    filterOption={(input, option) =>
+                      !!option?.label?.toString().toLowerCase().includes(input.toLowerCase())
+                    }
+                  />
+                </Form.Item>
+                {selectedProductId && remainingQty !== null && (
+                  <div className="border h-[32px] px-1 flex items-center rounded border-gray-300">
+                    <span className="font-bold text-gray-700 whitespace-nowrap">
+                      Q: <span className={remainingQty < 0 ? 'text-red-600' : 'text-blue-600'}>{remainingQty}</span>
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <Form.Item
               name="pcsPerPack"
               label="Pcs per Pack"
@@ -180,44 +204,30 @@ const SoapPackaging: React.FC = () => {
               />
             </Form.Item>
 
-            <Form.Item
-              name="packsPerCarton"
-              label="Packs per Carton"
-              rules={[{ required: true, message: 'Please enter packs' }]}
-            >
-              <InputNumber
-                min={0}
-                precision={0}
-                controls={false}
-                placeholder="e.g. 6"
-                style={{ width: '100%' }}
-                onFocus={handleInputFocus}
-                onKeyDown={handleNumberKeyDown}
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="noOfCartons"
-              label="No. of Cartons"
-              rules={[{ required: true, message: 'Please enter cartons' }]}>
-              <InputNumber
-                min={0}
-                precision={0}
-                controls={false}
-                placeholder="Enter cartons"
-                style={{ width: '100%' }}
-                onFocus={handleInputFocus}
-                onKeyDown={handleNumberKeyDown}
-              />
-            </Form.Item>
+            <div>
+              <Form.Item
+                name="totalPacks"
+                label="Total Packs"
+                rules={[{ required: true, message: 'Please enter total packs' }]}
+              >
+                <InputNumber
+                  min={0}
+                  precision={0}
+                  controls={false}
+                  placeholder="e.g. 6"
+                  style={{ width: '100%' }}
+                  onFocus={handleInputFocus}
+                  onKeyDown={handleNumberKeyDown}
+                />
+              </Form.Item>
+              {remainingQty !== null && remainingQty < 0 && (
+                <p className="text-red-500 text-xs">Cannot pack more than available stock!</p>
+              )}
+            </div>
           </div>
 
           {/* Auto Calculated Summary */}
-          <div className="mt-3 bg-gray-50 border rounded-lg p-4 grid grid-cols-2 gap-4">
-            <div>
-              <span className="text-sm text-gray-500">Total Packs</span>
-              <p className="text-xl font-bold">{totalPacks}</p>
-            </div>
+          <div className="mt-3 bg-gray-50 border rounded-lg p-4">
             <div>
               <span className="text-sm text-gray-500">Total Pcs</span>
               <p className="text-xl font-bold">{totalPcs}</p>
@@ -233,6 +243,7 @@ const SoapPackaging: React.FC = () => {
             size="large"
             icon={<PlusOutlined />}
             className="w-full md:w-auto"
+            disabled={remainingQty !== null && remainingQty < 0}
           >
             Save Soap Packaging
           </Button>
