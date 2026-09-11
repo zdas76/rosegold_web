@@ -313,7 +313,7 @@ const SoapCreationForm: React.FC = () => {
     <div className="p-1">
       <h2 className="text-xl font-bold mb-4">Soap Creation Form</h2>
       <Form form={form} onFinish={handleSubmit} layout="vertical">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <Form.Item name="voucherNo" label="Voucher No" rules={[{ required: true, message: 'Please enter voucher number' }]}>
             <Input placeholder="Enter voucher number" />
           </Form.Item>

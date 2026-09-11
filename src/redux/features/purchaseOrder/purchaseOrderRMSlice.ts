@@ -4,13 +4,12 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 
 export type TPurchaseOrderRMItem = {
     key: number;
-    itemType: "RAW_MATERIAL" | "PRODUCT";
-    rawOrProductId: number | null;
-    quantityAdd: number;
-    unitPrice: number | null;
-    discount: number;
-    debitAmount: number;
-    narration: string;
+    rawId?: number;
+    productId?: number;
+    itemName?: string;
+    unitPrice: number;
+    quantity: number;
+    amount?: number;
 };
 
 type TPurchaseOrderRMState = {
@@ -36,11 +35,8 @@ const purchaseOrderRMSlice = createSlice({
             const item = state.items.find((item) => item.key === key);
             if (item) {
                 (item as any)[field] = value;
-                if (field === "quantityAdd" || field === "unitPrice" || field === "discount") {
-                    item.debitAmount =
-                        field === "discount"
-                            ? (item.quantityAdd * (item.unitPrice ?? 0)) - value
-                            : (value * (field === "quantityAdd" ? (item.unitPrice ?? 0) : item.quantityAdd)) - item.discount;
+                if (field === "quantity" || field === "unitPrice") {
+                    item.amount = item.quantity * item.unitPrice;
                 }
             }
         },

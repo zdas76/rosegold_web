@@ -30,8 +30,8 @@ const AccountsItem = () => {
     const ledgerHead = ledger?.map((piller: TPiller) => {
         return {
             key: piller?.id,
-            value: piller?.pillerId,
-            label: piller?.pillerName
+            value: piller?.headId,
+            label: piller?.headName
         }
     })
     const [createAccountItem, { isLoading: isSubmitting }] = useCreateAccountItemMutation()
@@ -47,24 +47,7 @@ const AccountsItem = () => {
         }
     };
 
-    // delete category
-    // const handleDelete = (id: number) => {
-    //     Swal.fire({
-    //         title: "Are you sure?",
-    //         text: "You won't be able to revert this!",
-    //         icon: "warning",
-    //         showCancelButton: true,
-    //         confirmButtonColor: "#3085d6",
-    //         cancelButtonColor: "#d33",
-    //         confirmButtonText: "Yes, delete it!"
-    //     }).then(async (result) => {
-    //         if (result.isConfirmed) {
-    //             const data = await deleteCategory(id)
-    //             getResponse(data)
-    //         }
-    //     });
-    // }
-
+  
     return (
         <div>
             <div className="flex items-center justify-between">
@@ -90,7 +73,7 @@ const AccountsItem = () => {
                             </Form.Item>
                             <Form.Item
                                 label="Account Head"
-                                name="accountMainPillerId"
+                                name="accountHeadId"
                                 rules={[{ required: true, message: 'Please a Account head' }]}>
                                 <Select options={ledgerHead} placeholder="Select Accounts Head" />
                             </Form.Item>
@@ -115,9 +98,9 @@ const AccountsItem = () => {
                     <Column title="A.Item name" dataIndex="accountsItemName" className="font-bold" />
                     <Column
                         title="Account Head"
-                        dataIndex="accountsPiler"
+                        dataIndex="accountHead"
                         className="font-semibold"
-                        render={(_, record) => record.accountsPiler?.pillerName} />
+                        render={(_, record) => record.accountHead?.headName} />
                     <Column
                         title="Account Item"
                         dataIndex="accountsItemId"

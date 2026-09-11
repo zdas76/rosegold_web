@@ -13,8 +13,8 @@ const EditAccountsItem = ({ item, setModalOpen }: { item: TAccountsItem, setModa
     const ledgerHead = ledger?.map((piller: TPiller) => {
         return {
             key: piller?.id,
-            value: piller?.pillerId,
-            label: piller?.pillerName
+            value: piller?.headId,
+            label: piller?.headName
         }
     });
 
@@ -48,7 +48,7 @@ const EditAccountsItem = ({ item, setModalOpen }: { item: TAccountsItem, setModa
                 </Form.Item>
                 <Form.Item
                     label="Account Head"
-                    name={`accountMainPillerId`}
+                    name={`accountHeadId`}
                     rules={[{ required: true, message: 'Please a Account head' }]}>
                     <Select options={ledgerHead} />
                 </Form.Item>

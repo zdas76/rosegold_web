@@ -115,8 +115,8 @@ export type TRawMaterial = {
 
 export type TPiller = {
     id: number;
-    pillerName: string;
-    pillerId: string;
+    headName: string;
+    headId: string;
     createdAt: string;
     updatedAt: string;
 }

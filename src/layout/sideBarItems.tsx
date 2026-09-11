@@ -11,7 +11,7 @@ import Employee from '../pages/userManagement/employee/Employee';
 import RowMaterial from '../pages/inventory/rowMaterial/RowMaterial';
 import Settings from '../pages/Settings/Settings';
 import Unit from '../pages/unit/Unit';
-import PurchaseVoucher from '../pages/purchase/purchaseOrder/PurchaseVoucherProduct';
+import PurchaseVoucher from '../pages/purchase/purchaseOrder/PurchaseOrderProductList';
 import AccountsItem from '../pages/accounts_Item/AccountsItem';
 import SalesVoucher from '../pages/transactions/salesVoucher/SalesVoucher';
 import BankAccount from '../pages/bank/bank';
@@ -47,7 +47,8 @@ import VendorLedger from '../pages/reports/VendorLedger/VendorLedger';
 import EmployeeLedger from '../pages/reports/EmployeeLedger/EmployeeLedger';
 import { MaterialStockReport } from '../pages/inventory/rowMaterial/RawStockReport';
 import Party from '../pages/sales/party/Party';
-import PurchaseReceiveVoucher from '../pages/purchase/PurchaseReceiveVoucher';
+import PurchaseReceiveVoucher from '../pages/purchase/purchaseReceivedVoucher/PurchaseReceiveVoucherP';
+import PurchaseReceiveVoucherRM from '../pages/purchase/purchaseReceivedVoucher/PurchaseReceiveVoucherRM';
 import Supplier from '../pages/userManagement/supllier/Supplier';
 import Packaging from '../pages/store RMPM/packaging/Packaging';
 import RequestSendFG from '../pages/store RMPM/request send(FG)/RequestSendFG';
@@ -68,7 +69,7 @@ import GiftVoucher from '../pages/accounts/giftVoucher/GiftVoucher';
 import SoapCreationForm from '../pages/store RMPM/production/SoapCreationForm';
 import DetergentCreationForm from '../pages/store RMPM/production/DetergentCreationForm';
 import KitchenbarCreationForm from '../pages/store RMPM/production/KitchenbarCreationForm';
-import PurchaseOrderRM from '../pages/purchase/purchaseOrder/PurchaseVoucherRM';
+import PurchaseOrderRM from '../pages/purchase/purchaseOrder/PurchaseOrderRMList';
 
 
 export const sideBarRoutes = [
@@ -160,7 +161,14 @@ export const sideBarRoutes = [
                 path: "/dashboard/purchase-receive-voucher",
                 element: <PurchaseReceiveVoucher />,
                 icon: <BiPurchaseTag />,
-                label: <Link to="/dashboard/purchase-receive-voucher">Purchase Receive Voucher</Link>,
+                label: <Link to="/dashboard/purchase-receive-voucher">Purchase Receive Voucher (P)</Link>,
+            },
+            {
+                key: 'transactions_purchase_rm',
+                path: "/dashboard/purchase-receive-voucher-rm",
+                element: <PurchaseReceiveVoucherRM />,
+                icon: <BiPurchaseTag />,
+                label: <Link to="/dashboard/purchase-receive-voucher-rm">Purchase Receive Voucher (RM)</Link>,
             },
             // {
             //     key: 'purchase_vendor',

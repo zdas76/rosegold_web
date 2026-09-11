@@ -9,6 +9,12 @@ import authReducer from './features/auth/authSlice';
 import logOrderVoucher from './features/logAndGrade/logOrderVoucherSlice'
 import purchaseOrderRMReducer from './features/purchaseOrder/purchaseOrderRMSlice'
 import purchaseCreditReducer from './features/purchaseOrder/purchaseCreditSlice'
+import receiveVoucherDebitReducer from './features/purchaseReceiveVoucher/receiveVoucherDebitSlice'
+import receiveVoucherCreditReducer from './features/purchaseReceiveVoucher/receiveVoucherCreditSlice'
+import salesDebitReducer from './features/accountsSales/salesDebitSlice'
+import salesCreditReducer from './features/accountsSales/salesCreditSlice'
+import paymentVoucherDebitReducer from './features/paymentVoucher/paymentVoucherDebitSlice'
+import paymentVoucherCreditReducer from './features/paymentVoucher/paymentVoucherCreditSlice'
 const persistConfig = {
     key: "auth",
     storage,
@@ -26,7 +32,13 @@ export const store = configureStore({
         logOrder: logOrderReducer,
         logVoucher: logOrderPersist,
         purchaseOrderRM: purchaseOrderRMReducer,
-        purchaseCredit: purchaseCreditReducer
+        purchaseCredit: purchaseCreditReducer,
+        receiveVoucherDebit: receiveVoucherDebitReducer,
+        receiveVoucherCredit: receiveVoucherCreditReducer,
+        salesDebit: salesDebitReducer,
+        salesCredit: salesCreditReducer,
+        paymentVoucherDebit: paymentVoucherDebitReducer,
+        paymentVoucherCredit: paymentVoucherCreditReducer
     },
     middleware: (getDefaultMiddleware) => getDefaultMiddleware({
         serializableCheck: {
