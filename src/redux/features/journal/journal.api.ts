@@ -4,7 +4,7 @@ import { baseApi } from "../../api/baseApi";
 
 const journalApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
-        addPurchaseReceive: builder.mutation<void, TPurchaseVaouchar>({
+        addPurchaseReceive: builder.mutation({
             query: (data) => ({
                 url: '/journal/purchase',
                 method: 'POST',

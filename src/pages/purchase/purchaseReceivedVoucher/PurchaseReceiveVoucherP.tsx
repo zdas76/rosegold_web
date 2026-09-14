@@ -6,7 +6,7 @@ import dayjs from "dayjs";
 import { useGetAccountItemQuery } from "../../../redux/features/transactions/transactons.api";
 import { useGetProductsQuery } from "../../../redux/features/product/product.api";
 import { TAccountsItem, TBankAccount, TParty, TProduct } from "../../../types/types";
-import { useCreateReceiveVoucherMutation } from "../../../redux/features/journal/journal.api";
+import { useAddPurchaseReceiveMutation } from "../../../redux/features/journal/journal.api";
 import { getResponse } from "../../../utils/getResponse";
 import { useGetPartiesQuery } from "../../../redux/features/auth/authApi";
 import { generateInvoiceNumber } from "../../../utils/generateRandomNumber";
@@ -43,8 +43,9 @@ const PurchaseReceiveVoucherP: React.FC = () => {
   const [form] = Form.useForm();
   const [debitForm] = Form.useForm();
   const [creditForm] = Form.useForm();
-  const [partyType, setPartyType] = useState<string>("");
+  const [partyType, setPartyType] = useState<string>("SUPPLIER");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCreditLedgerName, setSelectedCreditLedgerName] = useState<string>("");
   const dispatch = useAppDispatch();
   const debitItems = useAppSelector((state) => state.receiveVoucherDebit.debitItems);
   const creditItemsRedux = useAppSelector((state) => state.receiveVoucherCredit.creditItems);
@@ -70,11 +71,12 @@ const PurchaseReceiveVoucherP: React.FC = () => {
     };
   });
   const [createReceviveVoucher, { isLoading: isSubmitting }] =
-    useCreateReceiveVoucherMutation();
+    useAddPurchaseReceiveMutation();
+
   const { data: productData, isLoading: isProductLoading } = useGetProductsQuery({});
 
   const { data: CreditAccountsData, isLoading: isCreditAccountsLoading } =
-    useGetAccountItemQuery({ accountMainPillerId: ["01", "02"] });
+    useGetAccountItemQuery({  });
 
   const debitTotal = debitItems?.reduce((total: number, item) => total + Number(item?.amount || 0), 0) ?? 0;
   const creditTotal = creditItemsRedux?.reduce((total: number, item) => total + Number(item?.amount || 0), 0) ?? 0;
@@ -120,6 +122,7 @@ const PurchaseReceiveVoucherP: React.FC = () => {
     });
   };
 
+
   const handleAddCreditItem = () => {
     creditForm.validateFields().then((values) => {
       const selected = creditItems?.find((item: TAccountsItem) => item?.id === values.accountsItemId);
@@ -128,29 +131,45 @@ const PurchaseReceiveVoucherP: React.FC = () => {
         accountsItemId: values.accountsItemId,
         accountsItemName: selected?.accountsItemName || "",
         amount: Number(values.amount) || 0,
+        bankId: values.bankAccountId || null,
         narration: values.narration || "",
       }));
       creditForm.resetFields();
+      setSelectedCreditLedgerName("");
     });
   };
 
   const onFinish = async (values: any) => {
-    const formattedDebitItems = debitItems.map((item) => ({
-      productId: item.productId,
-      qty: item.qty,
+    const subTotal = debitTotal;
+    const grandTotal = debitTotal;
+
+    const formattedItems = debitItems.map((item) => ({
+      key: item.key,
+      itemType: "PRODUCT",
+      rawOrProductId: item.productId,
+      quantityAdd: item.qty,
       unitPrice: item.unitPrice,
-      amount: item.amount,
+      discount: 0,
+      debitAmount: item.amount,
       narration: item.narration,
     }));
+
     const formattedCreditItems = creditItemsRedux.map((item) => ({
+      key: item.key,
       accountsItemId: item.accountsItemId,
+      balance: 0,
       amount: item.amount,
+      bankId: item.bankId || null,
       narration: item.narration,
     }));
+
     const res = await createReceviveVoucher({
-      ...values,
-   
-      debitItem: formattedDebitItems,
+      partyOrcustomerId: values.partyId,
+      date: values.date,
+      invoiceNo: values.invoiceNo,
+      subTotal,
+      grandTotal,
+      items: formattedItems,
       creditItem: formattedCreditItems,
     });
     const result = getResponse(res);
@@ -179,12 +198,12 @@ const PurchaseReceiveVoucherP: React.FC = () => {
         initialValues={{
           date: dayjs(new Date()),
         }}>
-        <div className="bg-white  p-4 rounded grid grid-cols-2 gap-4">
+        <div className="bg-white  p-4 rounded grid grid-cols-1 md:grid-cols-3 gap-4">
           <Form.Item
             name="partyId"
-            label="Party"
-            rules={[{ required: true, message: "Please select a party" }]}>
-            <Select placeholder="Select party" disabled={isLoading}>
+            label="Supplier"
+            rules={[{ required: true, message: "Please select a supplier" }]}>
+            <Select placeholder="Select supplier" disabled={isLoading}>
               {partyType &&
                 parties?.map((item: TParty) => (
                   <Option key={item?.id} value={item?.id}>
@@ -192,6 +211,12 @@ const PurchaseReceiveVoucherP: React.FC = () => {
                   </Option>
                 ))}
             </Select>
+          </Form.Item>
+          <Form.Item
+            name="invoiceNo"
+            label="Invoice No"
+            rules={[{ required: true, message: "Please enter invoice number" }]}>
+            <Input placeholder="Enter invoice number" />
           </Form.Item>
           <Form.Item
             name="date"
@@ -213,7 +238,7 @@ const PurchaseReceiveVoucherP: React.FC = () => {
               debitForm.setFieldsValue({ amount: qty * unitPrice });
             }
           }}>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
               <Form.Item name="productId" label="Product" rules={[{ required: true, message: "Required" }]}>
                 <Select
                   placeholder="Select product"
@@ -291,8 +316,15 @@ const PurchaseReceiveVoucherP: React.FC = () => {
           </Divider>
           <Form form={creditForm} layout="vertical" className="mb-3 px-3">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <Form.Item name="accountsItemId" label="Select Credit Item" rules={[{ required: true, message: "Required" }]}>
-                <Select placeholder="Select credit item">
+              <Form.Item name="accountsItemId" label="Ledger Head" rules={[{ required: true, message: "Required" }]}>
+                <Select
+                  placeholder="Select ledger head"
+                  onChange={(value) => {
+                    const selected = creditItems?.find((item: TAccountsItem) => item?.id === value);
+                    setSelectedCreditLedgerName(selected?.accountsItemName || "");
+                    creditForm.setFieldsValue({ bankAccountId: undefined });
+                  }}
+                >
                   {creditItems?.map((item: TAccountsItem) => (
                     <Option key={item?.id} value={item?.id}>
                       {item?.accountsItemName}
@@ -300,6 +332,17 @@ const PurchaseReceiveVoucherP: React.FC = () => {
                   ))}
                 </Select>
               </Form.Item>
+              {selectedCreditLedgerName?.toLowerCase() === "bank" && (
+                <Form.Item name="bankAccountId" label="Bank Account" rules={[{ required: true, message: "Required" }]}>
+                  <Select placeholder="Select bank account">
+                    {allBanks?.map((item: any) => (
+                      <Option key={item?.key} value={item?.value}>
+                        {item?.label}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              )}
               <Form.Item name="amount" label="Amount" rules={[{ required: true, message: "Required" }]}>
                 <Input type="number" placeholder="Amount" min={0} />
               </Form.Item>

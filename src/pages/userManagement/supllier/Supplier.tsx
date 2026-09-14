@@ -10,6 +10,7 @@ import { TParty } from "../../../types/types"
 import Swal from 'sweetalert2'
 import EditVendorForm from "./EditSupplierForm"
 import { getResponse } from "../../../utils/getResponse"
+import dayjs from "dayjs"
 
 const Supplier = () => {
   const [deleteparty] = useDeletePartyMutation()
@@ -76,7 +77,9 @@ const Supplier = () => {
             title="Create Date"
             dataIndex="createdAt"
             key="categoryName"
-            render={(timestamp: string) => <span>{new Date(timestamp).toLocaleString()}</span>}
+            render={(timestamp: string) => (
+              <span>{dayjs(timestamp).format("DD MMM YY")}</span>
+            )}
           />
           <Column
             title="Action"

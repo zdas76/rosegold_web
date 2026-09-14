@@ -154,7 +154,7 @@ export type TItems = {
     narration?: string;
 }
 export type TCreaditItem = {
-    key: number;
+    key?: number;
     selectedAccountitemName: string; // Note: "accoutnItemName" might be a typo, possibly meant to be "accountItemName"
     accountsItemId: number | null;
     balance: number;
@@ -171,12 +171,12 @@ export type costItem = {
 export type TPurchaseVaouchar = {
     key?: number | undefined;
     creditItem: TCreaditItem[];
-    discountAmount: number;
-    grandTotal: number;
+    discountAmount?: number;
+    grandTotal?: number;
     invoiceNo: string;
     item: TItems[];
     party: number;
-    payment_status: string;
+    payment_status?: string;
     data: any;
     subTotal: number
 };
