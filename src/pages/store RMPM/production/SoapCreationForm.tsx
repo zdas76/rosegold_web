@@ -98,7 +98,7 @@ const SoapCreationForm: React.FC = () => {
           m.name.trim().toLowerCase() === item.name.trim().toLowerCase()
         );
         if (matched && !item.rawMaterialId) {
-          const newRate = item.rate; // Keep it empty (null) initially so user can input it
+          const newRate = matched.unitPrice || matched.rate || null;
           const newQty = item.qty ?? 0;
           const newTotal = newRate != null ? Number((newQty * newRate).toFixed(2)) : 0;
           return {
@@ -139,7 +139,7 @@ const SoapCreationForm: React.FC = () => {
     if (selectedMaterial) {
       setRawMaterials(prev => prev.map(item => {
         if (item.si === si) {
-          const newRate = item.rate; // Do not auto-fill, let user input rate manually
+          const newRate = selectedMaterial.unitPrice || selectedMaterial.rate || null;
           const newQty = item.qty ?? 0;
           const newTotal = newRate != null ? Number((newQty * newRate).toFixed(2)) : 0;
           return {
@@ -200,6 +200,21 @@ const SoapCreationForm: React.FC = () => {
   const handleNumberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!/[\d.]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(e.key)) {
       e.preventDefault();
+    }
+  };
+
+  const handleQtyKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, currentSi: number) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const allQtyInputs = Array.from(document.querySelectorAll('.qty-cell .ant-input-number-input'));
+      const currentIndex = allQtyInputs.indexOf(e.target as HTMLInputElement);
+      if (currentIndex === -1) return;
+      const targetIndex = e.key === 'ArrowDown' ? currentIndex + 1 : currentIndex - 1;
+      if (targetIndex >= 0 && targetIndex < allQtyInputs.length) {
+        const targetInput = allQtyInputs[targetIndex] as HTMLInputElement;
+        targetInput.focus();
+        targetInput.select();
+      }
     }
   };
 
@@ -271,10 +286,12 @@ const SoapCreationForm: React.FC = () => {
           value={record.qty}
           onChange={(v) => handleQtyChange(record.si, v)}
           onFocus={handleInputFocus}
-          onKeyDown={handleNumberKeyDown}
+          onKeyDown={(e) => handleQtyKeyDown(e, record.si)}
           controls={false}
           style={{ width: '100%' }}
           precision={2}
+          keyboard={false}
+          className="qty-cell"
         />
       ),
     },

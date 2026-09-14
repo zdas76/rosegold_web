@@ -70,7 +70,20 @@ const journalApi = baseApi.injectEndpoints({
                 params,
             }),
         }),
+        getPurchaseOrderById: builder.query({
+            query: (id: number) => ({
+                url: `/purchase-order/${id}`,
+                method: 'GET',
+            }),
+        }),
+        updatePurchaseOrder: builder.mutation({
+            query: ({ id, data }: { id: number; data: any }) => ({
+                url: `/purchase-order/${id}`,
+                method: 'PATCH',
+                body: data,
+            }),
+        }),
     })
 })
 
-export const { useAddPurchaseReceiveMutation, useCreateSalesVoucherMutation, useCreateReceiveVoucherMutation, useAddContraVoucherMutation, useAddJournalVoucherMutation, useCreateMaterialSalesVoucherMutation, useAddPurchaseOrderMutation, useGetPurchaseOrdersQuery } = journalApi
+export const { useAddPurchaseReceiveMutation, useCreateSalesVoucherMutation, useCreateReceiveVoucherMutation, useAddContraVoucherMutation, useAddJournalVoucherMutation, useCreateMaterialSalesVoucherMutation, useAddPurchaseOrderMutation, useGetPurchaseOrdersQuery, useGetPurchaseOrderByIdQuery, useUpdatePurchaseOrderMutation } = journalApi

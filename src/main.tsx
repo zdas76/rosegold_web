@@ -17,6 +17,7 @@ import LogVoucherPrint from './pages/logManagement/logOrder/LogOrderVoucher'
 import RawMaterialsDetails from './pages/inventory/rowMaterial/RawMaterialsDetails'
 import ProductStockReportDetails from './pages/production/createProduction/ProductStockReportDetails'
 import CallanVoucher from './pages/sales/challan/CallanVoucher'
+import PurchaseOrderDetails from './pages/purchase/purchaseOrder/PurchaseOrderDetails'
 import { ConfigProvider } from 'antd'
 
 createRoot(document.getElementById('root')!).render(
@@ -79,6 +80,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/dashboard/log-order/logorder-voucher" element={<LogVoucherPrint />} />
               <Route path="/dashboard/row-material/:id" element={<RawMaterialsDetails />} />
               <Route path="/dashboard/product_stock_report/:productId" element={<ProductStockReportDetails />} />
+              <Route path="/dashboard/purchase-order/:id" element={<PurchaseOrderDetails />} />
             </Route>
             <Route path="/dashboard/sales/challan/:voucherNo" element={<CallanVoucher />} />
             <Route path="/dashboard/voucher-details/:voucherNo" element={<VoucherDetails />} />
