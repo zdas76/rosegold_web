@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Form, InputNumber, Input, Button, Table, Select, DatePicker, message } from 'antd';
 import { useGetRowMaterialsQuery } from '../../../redux/features/rowMaterials/rowMaterials.api';
 import { useGetProductsQuery } from '../../../redux/features/product/product.api';
 import { useCreateSoapProductionMutation } from '../../../redux/features/production/production.api';
 import { getResponse } from '../../../utils/getResponse';
+import { useGetLastRateQuery } from '../../../redux/features/inventory/InventoryApi';
 
 interface RawMaterialFromAPI {
   id: number;
@@ -84,12 +85,35 @@ const SoapCreationForm: React.FC = () => {
   const [rawMaterials, setRawMaterials] = useState<RawMaterialItem[]>(initialRawMaterials);
   const [grandTotal, setGrandTotal] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const { data: rawMaterialsData } = useGetRowMaterialsQuery({});
+  const { data: rawMaterialsData, isLoading: isRawMaterialsLoading } = useGetRowMaterialsQuery({});
   const { data: productsData } = useGetProductsQuery({});
   const [createSoapProduction] = useCreateSoapProductionMutation();
+  const [rmIds, setrmIds] = useState<number[]>([]);
+  const [manuallyEdited, setManuallyEdited] = useState<Set<number>>(new Set());
+  const { data: lastRate } = useGetLastRateQuery(rmIds, {
+    skip: rmIds.length === 0 || isRawMaterialsLoading,
+  });
+  // rawId -> unitPrice lookup from last rate response
+  const lastRateById = useMemo(() => {
+    const map = new Map<number, number>();
+    const rows = Array.isArray(lastRate?.data)
+      ? (lastRate.data as any[])
+      : Array.isArray((lastRate as any)?.data?.data)
+        ? ((lastRate as any).data.data as any[])
+        : Array.isArray(lastRate)
+          ? (lastRate as any[])
+          : [];
+    for (const r of rows) {
+      const id = r.rawId ?? r.rawMaterialId;
+      const price = r.unitPrice ?? r.rate ?? r.lastRate;
+      if (id != null && price != null) map.set(Number(id), Number(price));
+    }
+    return map;
+  }, [lastRate]);
 
   // Auto-select materials when backend data loads
+
+
   useEffect(() => {
     if (rawMaterialsData?.data) {
       setRawMaterials(prev => prev.map(item => {
@@ -98,7 +122,7 @@ const SoapCreationForm: React.FC = () => {
           m.name.trim().toLowerCase() === item.name.trim().toLowerCase()
         );
         if (matched && !item.rawMaterialId) {
-          const newRate = matched.unitPrice || matched.rate || null;
+          const newRate = matched.unitPrice ?? matched.rate ?? null;
           const newQty = item.qty ?? 0;
           const newTotal = newRate != null ? Number((newQty * newRate).toFixed(2)) : 0;
           return {
@@ -114,6 +138,34 @@ const SoapCreationForm: React.FC = () => {
       }));
     }
   }, [rawMaterialsData?.data]);
+
+  useEffect(() => {
+    if (lastRateById.size === 0) return;
+    setRawMaterials(prev => prev.map(item => {
+      if (!item.rawMaterialId || manuallyEdited.has(item.si)) return item;
+      const newRate = lastRateById.get(item.rawMaterialId);
+      if (newRate === undefined) return item;
+      const newQty = item.qty ?? 0;
+      return {
+        ...item,
+        rate: newRate,
+        total: Number((newQty * newRate).toFixed(2)),
+      };
+    }));
+  }, [lastRateById, manuallyEdited]);
+
+  useEffect(() => {
+    const ids = rawMaterials
+      .map(item => item.rawMaterialId)
+      .filter((id): id is number => id != null);
+    const uniqueIds = Array.from(new Set(ids));
+    setrmIds(prev => {
+      if (prev.length === uniqueIds.length && prev.every((id, i) => id === uniqueIds[i])) {
+        return prev;
+      }
+      return uniqueIds;
+    });
+  }, [rawMaterials]);
 
   const materialOptions = rawMaterialsData?.data?.map((item: RawMaterialFromAPI) => ({
     value: item.id,
@@ -137,9 +189,14 @@ const SoapCreationForm: React.FC = () => {
     }
     const selectedMaterial = rawMaterialsData?.data?.find((m: RawMaterialFromAPI) => m.id === value);
     if (selectedMaterial) {
+      setManuallyEdited(prev => {
+        const next = new Set(prev);
+        next.delete(si);
+        return next;
+      });
       setRawMaterials(prev => prev.map(item => {
         if (item.si === si) {
-          const newRate = selectedMaterial.unitPrice || selectedMaterial.rate || null;
+          const newRate = lastRateById.get(selectedMaterial.id) ?? selectedMaterial.unitPrice ?? selectedMaterial.rate ?? null;
           const newQty = item.qty ?? 0;
           const newTotal = newRate != null ? Number((newQty * newRate).toFixed(2)) : 0;
           return {
@@ -170,6 +227,7 @@ const SoapCreationForm: React.FC = () => {
   };
 
   const handleRateChange = (si: number, value: number | null) => {
+    setManuallyEdited(prev => new Set(prev).add(si));
     setRawMaterials(prev => prev.map(item => {
       if (item.si === si) {
         const newRate = value;

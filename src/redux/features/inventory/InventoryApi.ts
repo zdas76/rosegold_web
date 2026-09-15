@@ -17,8 +17,19 @@ const invertoryApi = baseApi.injectEndpoints({
                     method: "GET"
                 }
             }
-        })
-    })
+        }),
+        // get last rate of raw-material
+        getLastRate: builder.query({
+            query: (ids: number[]) => ({
+                url: "/inventory/lastRate",
+                method: "GET",
+                params: {
+                    ids: JSON.stringify(ids),
+                },
+            }),
+        }),
+    }),
+
 })
 
-export const { useGetInvertoryTotalQuery, useGetUnitQuery } = invertoryApi;
+export const { useGetInvertoryTotalQuery, useGetUnitQuery, useGetLastRateQuery } = invertoryApi;

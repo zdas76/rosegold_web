@@ -186,7 +186,7 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
   return (
     <div className="rounded-2xl">
       <div className="bg-white rounded-lg px-4 py-2 mb-3">
-        <h2 className="text-2xl font-semibold m-0">Purchase Received Voucher</h2>
+        <h2 className="text-2xl font-semibold m-0">Purchase Received Voucher - Raw Material</h2>
       </div>
       <Form
         form={form}
