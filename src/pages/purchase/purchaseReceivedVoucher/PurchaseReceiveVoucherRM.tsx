@@ -1,12 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
-import { Form, Input, Button, DatePicker, Select, Divider, Table } from "antd";
+import { Form, Input, Button, DatePicker, Select, Divider, Table, message } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import { toast } from "sonner";
 import dayjs from "dayjs";
 import { useGetAccountItemQuery } from "../../../redux/features/transactions/transactons.api";
 import { useGetRowMaterialsQuery } from "../../../redux/features/rowMaterials/rowMaterials.api";
 import { TAccountsItem, TBankAccount, TParty, TRawMaterial } from "../../../types/types";
-import { useAddPurchaseReceiveMutation } from "../../../redux/features/journal/journal.api";
+import {
+  useAddPurchaseReceiveMutation,
+  useLazyGetPurchaseOrderByOrderNoQuery,
+} from "../../../redux/features/journal/journal.api";
 import { getResponse } from "../../../utils/getResponse";
 import { useGetPartiesQuery } from "../../../redux/features/auth/authApi";
 import { generateInvoiceNumber } from "../../../utils/generateRandomNumber";
@@ -16,6 +20,7 @@ import Loading from "../../../components/shared/Loading";
 import { useAppDispatch, useAppSelector } from "../../../redux/hooks";
 import {
   addReceiveVoucherDebitItem,
+  setReceiveVoucherDebitItems,
   removeReceiveVoucherDebitItem,
   clearReceiveVoucherDebitItems,
 } from "../../../redux/features/purchaseReceiveVoucher/receiveVoucherDebitSlice";
@@ -46,9 +51,13 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
   const [partyType, setPartyType] = useState<string>("SUPPLIER");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCreditLedgerName, setSelectedCreditLedgerName] = useState<string>("");
+  const [searchRequisitionNo, setSearchRequisitionNo] = useState<string>("");
   const dispatch = useAppDispatch();
   const debitItems = useAppSelector((state) => state.receiveVoucherDebit.debitItems);
   const creditItemsRedux = useAppSelector((state) => state.receiveVoucherCredit.creditItems);
+
+  const [triggerGetPurchaseOrder, { isFetching: isSearchingRequisition }] =
+    useLazyGetPurchaseOrderByOrderNoQuery();
 
   const { data: party, isLoading } = useGetPartiesQuery({
     partyType: partyType,
@@ -89,10 +98,10 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
     return <Loading tip="Loading Received Voucher details..." />;
   }
 
-  const rawMaterialsMapped = rawMaterialData?.data?.map((item: TRawMaterial) => ({
+  const rawMaterialsMapped = rawMaterialData?.data?.map((item: any) => ({
     key: item?.id,
     value: item?.id,
-    label: item?.name,
+    label: item?.name || item?.rawMaterialName || "",
   }));
 
   const creditItems = CreditAccountsData?.data?.map((item: TAccountsItem) => ({
@@ -177,16 +186,193 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
 
   const handleNewVoucher = () => {
     form.resetFields();
-    const newVoucherno = generateInvoiceNumber("RV");
     dispatch(clearReceiveVoucherDebitItems());
     dispatch(clearReceiveVoucherCreditItems());
     setIsModalOpen(false);
   };
+  // handle requisition search
+  const handleRequistionSearch = async () => {
+    const requisitionNo = searchRequisitionNo || form.getFieldValue("requisitionNo");
+    console.log("Searching requisition:", requisitionNo);
+    if (!requisitionNo) {
+      toast.warning("Please enter a requisition number to search");
+      message.warning("Please enter a requisition number to search");
+      return;
+    }
+    try {
+      const res = await triggerGetPurchaseOrder(requisitionNo).unwrap();
+      console.log("Purchase Order Data:", res?.data);
+      if (res?.data) {
+        const orderItems =
+          (Array.isArray(res.data) ? res.data : null) ||
+          res.data.purchaseOrder ||
+          res.data.purchaseOrders ||
+          res.data.items ||
+          res.data.inventory ||
+          res.data.purchaseOrderItem ||
+          [];
+
+        const orderType = String(
+          res.data?.type ||
+          res.data?.orderType ||
+          res.data?.itemType ||
+          ""
+        ).toUpperCase();
+
+        const isProductByType = orderType.includes("PRODUCT");
+        const isRawByType = orderType.includes("RAW");
+
+        const hasProductItems = Array.isArray(orderItems) && orderItems.length > 0 && orderItems.some((item: any) =>
+          Boolean(
+            item?.productId ||
+            item?.product_id ||
+            item?.product ||
+            item?.Product ||
+            (item?.itemType && String(item.itemType).toUpperCase().includes("PRODUCT")) ||
+            (item?.type && String(item.type).toUpperCase().includes("PRODUCT"))
+          )
+        );
+
+        const hasRawItems = Array.isArray(orderItems) && orderItems.length > 0 && orderItems.some((item: any) =>
+          Boolean(
+            item?.rawId ||
+            item?.rawMaterialId ||
+            item?.raWMaterialId ||
+            item?.raw_material_id ||
+            item?.raWMaterial ||
+            item?.rawMaterial ||
+            item?.unit ||
+            (item?.itemType && String(item.itemType).toUpperCase().includes("RAW")) ||
+            (item?.type && String(item.type).toUpperCase().includes("RAW")) ||
+            rawMaterialsMapped?.some((rm: any) =>
+              (item?.rawId != null && (rm.value == item.rawId || String(rm.value) === String(item.rawId))) ||
+              (item?.itemName && rm.label?.trim().toLowerCase() === String(item.itemName).trim().toLowerCase())
+            )
+          )
+        );
+
+        const isProduct = isProductByType || hasProductItems || (!isRawByType && !hasRawItems);
+
+        if (isProduct) {
+          toast.warning(
+            "This requisition is for Product, not Raw Material. Auto form fill skipped."
+          );
+          message.warning(
+            "This requisition is for Product, not Raw Material. Auto form fill skipped."
+          );
+          return;
+        }
+
+        if (res.data.partyId) {
+          form.setFieldsValue({ partyId: res.data.partyId });
+        }
+        if (res.data.orderNo) {
+          form.setFieldsValue({ requisitionNo: res.data.orderNo });
+          setSearchRequisitionNo(res.data.orderNo);
+        }
+        if (res.data.date) {
+          form.setFieldsValue({ date: dayjs(res.data.date) });
+        }
+
+        if (Array.isArray(orderItems) && orderItems.length > 0) {
+          const mappedDebitItems = orderItems.map((item: any, index: number) => {
+            const rawMaterialId =
+              item?.rawId ??
+              item?.rawMaterialId ??
+              item?.raw_material_id ??
+              item?.raWMaterial?.id ??
+              item?.rawMaterial?.id ??
+              item?.rawOrProductId ??
+              null;
+
+            const nameFromItem =
+              item?.raWMaterial?.name ||
+              item?.rawMaterial?.name ||
+              item?.rawMaterialName ||
+              item?.itemName ||
+              item?.item_name ||
+              item?.name ||
+              "";
+
+            const matchedRM = rawMaterialsMapped?.find((rm: any) => {
+              if (
+                rawMaterialId != null &&
+                (rm.value == rawMaterialId || String(rm.value) === String(rawMaterialId))
+              ) {
+                return true;
+              }
+              if (
+                nameFromItem &&
+                rm.label &&
+                rm.label.trim().toLowerCase() === nameFromItem.trim().toLowerCase()
+              ) {
+                return true;
+              }
+              return false;
+            });
+
+            const resolvedRawMaterialId = rawMaterialId != null
+              ? Number(rawMaterialId)
+              : matchedRM?.value != null
+              ? Number(matchedRM.value)
+              : null;
+
+            const rawMaterialName = nameFromItem || matchedRM?.label || "";
+            const qty = Number(item?.quantity ?? item?.qty ?? 0);
+            const unitPrice = Number(item?.unitPrice ?? 0);
+            const amount = Number(
+              item?.amount !== undefined && item?.amount !== null && item?.amount !== 0
+                ? item.amount
+                : qty * unitPrice
+            );
+
+            return {
+              key: item?.id ? Number(item.id) : Date.now() + index,
+              rawMaterialId: resolvedRawMaterialId || null,
+              rawMaterialName: rawMaterialName,
+              qty,
+              unitPrice,
+              amount,
+              narration: item?.narration || "",
+            };
+          });
+          dispatch(setReceiveVoucherDebitItems(mappedDebitItems));
+        }
+        toast.success(res.message || "Purchase Order retrieved successfully");
+        message.success(res.message || "Purchase Order retrieved successfully");
+      } else {
+        toast.warning("No purchase order found with this requisition number");
+        message.warning("No purchase order found with this requisition number");
+      }
+    } catch (error: any) {
+      console.error("Error fetching purchase order:", error);
+      toast.error(error?.data?.message || "Failed to fetch purchase order");
+      message.error(error?.data?.message || "Failed to fetch purchase order");
+    }
+  };
 
   return (
     <div className="rounded-2xl">
-      <div className="bg-white rounded-lg px-4 py-2 mb-3">
-        <h2 className="text-2xl font-semibold m-0">Purchase Received Voucher - Raw Material</h2>
+      <div className="flex bg-white mb-2 shadow rounded items-center gap-2 justify-between">
+        <div className="rounded-lg px-4 py-2">
+          <h2 className="text-xl font-semibold m-0">Purchase Received Voucher - Raw Material</h2>
+        </div>
+        <div className="flex items-center gap-2 justify-center antdMargin0">
+          <Input
+            placeholder="Enter requisition number"
+            value={searchRequisitionNo}
+            onChange={(e) => setSearchRequisitionNo(e.target.value)}
+            onPressEnter={handleRequistionSearch}
+          />
+          <button
+            type="button"
+            disabled={isSearchingRequisition}
+            onClick={handleRequistionSearch}
+            className="bg-blue-500 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-1.5 px-4 rounded cursor-pointer"
+          >
+            {isSearchingRequisition ? "Searching..." : "Search"}
+          </button>
+        </div>
       </div>
       <Form
         form={form}
@@ -195,7 +381,7 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
         initialValues={{
           date: dayjs(new Date()),
         }}>
-        <div className="bg-white  p-4 rounded grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white  p-4 rounded grid grid-cols-1 md:grid-cols-4 gap-4 shadow">
           <Form.Item
             name="partyId"
             label="Supplier"
@@ -208,6 +394,12 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
                   </Option>
                 ))}
             </Select>
+          </Form.Item>
+          <Form.Item
+            name="requisitionNo"
+            label="Requisition No"
+            rules={[{ required: true, message: "Please enter requisition number" }]}>
+            <Input placeholder="Enter requisition number" />
           </Form.Item>
           <Form.Item
             name="invoiceNo"
@@ -224,18 +416,18 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
         </div>
 
         {/*-------------------------- Debit Items --------------------------------------------- */}
-        <div className="mb-5 bg-white shadow-md rounded-lg p-3 pt-0">
+        <div className="mb-5 bg-white shadow rounded-lg p-3 pt-0">
           <Divider orientation="left" style={{ paddingTop: "10px" }}>
             Debit Items
           </Divider>
-          <Form form={debitForm} layout="vertical" className="mb-3 px-3" onValuesChange={(changed, allValues) => {
+          <Form component="div" form={debitForm} layout="vertical" className="mb-3 px-3" onValuesChange={(changed, allValues) => {
             if (changed.qty !== undefined || changed.unitPrice !== undefined) {
               const qty = Number(allValues.qty) || 0;
               const unitPrice = Number(allValues.unitPrice) || 0;
               debitForm.setFieldsValue({ amount: qty * unitPrice });
             }
           }}>
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
               <Form.Item name="rawMaterialId" label="Raw Material" rules={[{ required: true, message: "Required" }]}>
                 <Select
                   placeholder="Select raw material"
@@ -250,9 +442,6 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
               </Form.Item>
               <Form.Item name="amount" label="Total">
                 <Input type="number" placeholder="Total" readOnly style={{ backgroundColor: "#f5f5f5" }} />
-              </Form.Item>
-              <Form.Item name="narration" label="Narration">
-                <Input placeholder="Narration (optional)" />
               </Form.Item>
               <Form.Item label=" ">
                 <Button onClick={handleAddDebitItem} icon={<PlusOutlined />} style={{ fontSize: "12px", background: "#2d1849", color: "white", width: "100%" }}>
@@ -269,6 +458,14 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
                 {
                   title: "Raw Material",
                   dataIndex: "rawMaterialName",
+                  render: (value: string, record: any) =>
+                    value ||
+                    record?.itemName ||
+                    rawMaterialsMapped?.find(
+                      (rm: any) =>
+                        String(rm.value) === String(record.rawMaterialId || record.rawOrProductId)
+                    )?.label ||
+                    "-",
                 },
                 {
                   title: "Qty",
@@ -307,11 +504,11 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
         </div>
 
         {/*-------------------------- Credit Items --------------------------------------------- */}
-        <div className="mb-5 bg-white shadow-md rounded-lg p-3 pt-0">
+        <div className="mb-5 bg-white shadow rounded-lg p-3 pt-0">
           <Divider orientation="left" style={{ paddingTop: "10px" }}>
             Credit Items
           </Divider>
-          <Form form={creditForm} layout="vertical" className="mb-3 px-3">
+          <Form component="div" form={creditForm} layout="vertical" className="mb-3 px-3">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <Form.Item name="accountsItemId" label="Ledger Head" rules={[{ required: true, message: "Required" }]}>
                 <Select

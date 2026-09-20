@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Form, InputNumber, Input, Button, Table, Select, DatePicker, message } from 'antd';
+import { DeleteOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import { useGetRowMaterialsQuery } from '../../../redux/features/rowMaterials/rowMaterials.api';
 import { useGetProductsQuery } from '../../../redux/features/product/product.api';
 import { useCreateDetergentProductionMutation } from '../../../redux/features/production/production.api';
@@ -243,6 +245,22 @@ const DetergentCreationForm: React.FC = () => {
     }, 0);
   };
 
+  const handleRemoveRow = (si: number) => {
+    setRawMaterials(prev => {
+      if (prev.length <= 1) {
+        message.warning('At least one row is required');
+        return prev;
+      }
+      const filtered = prev.filter(item => item.si !== si);
+      return filtered.map((item, index) => ({ ...item, si: index + 1 }));
+    });
+    setManuallyEdited(prev => {
+      const next = new Set(prev);
+      next.delete(si);
+      return next;
+    });
+  };
+
   useEffect(() => {
     const total = rawMaterials.reduce((sum, item) => sum + item.total, 0);
     setGrandTotal(Number(total.toFixed(2)));
@@ -380,12 +398,26 @@ const DetergentCreationForm: React.FC = () => {
         <span className="font-semibold">{Number(value || 0).toFixed(2)}</span>
       ),
     },
+    {
+      title: 'Action',
+      key: 'action',
+      width: 60,
+      render: (_: any, record: RawMaterialItem) => (
+        <Button
+          type="text"
+          danger
+          icon={<DeleteOutlined />}
+          onClick={() => handleRemoveRow(record.si)}
+          size="small"
+        />
+      ),
+    },
   ];
 
   return (
     <div className="p-1">
       <h2 className="text-xl font-bold mb-4">Detergent Creation Form</h2>
-      <Form form={form} onFinish={handleSubmit} layout="vertical">
+      <Form form={form} onFinish={handleSubmit} layout="vertical" initialValues={{ date: dayjs() }}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Form.Item name="voucherNo" label="Voucher No" rules={[{ required: true, message: 'Please enter voucher number' }]}>
             <Input placeholder="Enter voucher number" />

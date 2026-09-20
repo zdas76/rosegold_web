@@ -76,6 +76,13 @@ const journalApi = baseApi.injectEndpoints({
                 method: 'GET',
             }),
         }),
+        getPurchaseOrderByOrderNo: builder.query({
+            query: (orderNo: string) => ({
+                url: `/purchase-order/requisition/${encodeURIComponent(orderNo)}`,
+                method: 'GET',
+            }),
+        }),
+        // update purchase order
         updatePurchaseOrder: builder.mutation({
             query: ({ id, data }: { id: number; data: any }) => ({
                 url: `/purchase-order/${id}`,
@@ -86,4 +93,17 @@ const journalApi = baseApi.injectEndpoints({
     })
 })
 
-export const { useAddPurchaseReceiveMutation, useCreateSalesVoucherMutation, useCreateReceiveVoucherMutation, useAddContraVoucherMutation, useAddJournalVoucherMutation, useCreateMaterialSalesVoucherMutation, useAddPurchaseOrderMutation, useGetPurchaseOrdersQuery, useGetPurchaseOrderByIdQuery, useUpdatePurchaseOrderMutation } = journalApi
+export const {
+    useAddPurchaseReceiveMutation,
+    useCreateSalesVoucherMutation,
+    useCreateReceiveVoucherMutation,
+    useAddContraVoucherMutation,
+    useAddJournalVoucherMutation,
+    useCreateMaterialSalesVoucherMutation,
+    useAddPurchaseOrderMutation,
+    useGetPurchaseOrdersQuery,
+    useGetPurchaseOrderByIdQuery,
+    useGetPurchaseOrderByOrderNoQuery,
+    useLazyGetPurchaseOrderByOrderNoQuery,
+    useUpdatePurchaseOrderMutation,
+} = journalApi;

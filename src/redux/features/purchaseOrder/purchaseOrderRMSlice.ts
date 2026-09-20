@@ -7,9 +7,8 @@ export type TPurchaseOrderRMItem = {
     rawId?: number;
     productId?: number;
     itemName?: string;
-    unitPrice: number;
     quantity: number;
-    amount?: number;
+    unit?: string;
 };
 
 type TPurchaseOrderRMState = {
@@ -35,9 +34,6 @@ const purchaseOrderRMSlice = createSlice({
             const item = state.items.find((item) => item.key === key);
             if (item) {
                 (item as any)[field] = value;
-                if (field === "quantity" || field === "unitPrice") {
-                    item.amount = item.quantity * item.unitPrice;
-                }
             }
         },
         clearPurchaseOrderRMItems: (state) => {

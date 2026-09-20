@@ -59,6 +59,7 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -70,6 +71,7 @@
   background-color: #C58D2F !important;
   border-color: #C58D2F !important;
 }
+
 .ant-btn-primary:hover {
   background-color: #d49e3f !important;
   border-color: #d49e3f !important;
@@ -78,9 +80,11 @@
 .ant-menu-dark {
   background-color: #2d1849 !important;
 }
+
 .ant-menu-dark .ant-menu-item-selected {
   background-color: #C58D2F !important;
 }
+
 .ant-menu-dark .ant-menu-item:hover {
   background-color: rgba(197, 141, 47, 0.3) !important;
 }
@@ -89,7 +93,7 @@
   background: #2d1849 !important;
 }
 
-.ant-table-thead > tr > th {
+.ant-table-thead>tr>th {
   background-color: #f5f0fc !important;
   color: #4e2a7e !important;
   font-weight: 600 !important;
@@ -98,6 +102,7 @@
 .ant-pagination .ant-pagination-item-active {
   border-color: #C58D2F !important;
 }
+
 .ant-pagination .ant-pagination-item-active a {
   color: #C58D2F !important;
 }
@@ -111,6 +116,10 @@
   box-shadow: 0 0 0 2px rgba(197, 141, 47, 0.15) !important;
 }
 
+.antdMargin0 .ant-form-item {
+  margin-bottom: 0 !important;
+}
+
 .ant-form-item-explain-error {
   color: #dc2626 !important;
 }
@@ -119,12 +128,15 @@
   margin: 10px !important;
   padding: 10px !important;
 }
+
 .ant-form-item {
   margin-bottom: 20px !important;
 }
+
 .purchaseVoucher .ant-table-cell {
   padding-bottom: 0 !important;
 }
+
 .custom-margin-5px .ant-form-item {
   margin-bottom: 5px !important;
 }

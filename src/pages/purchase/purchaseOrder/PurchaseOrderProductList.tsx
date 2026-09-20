@@ -67,7 +67,7 @@ const PurchaseOrderProductList: React.FC = () => {
     return (
         <div className="mx-auto rounded">
             <div className="flex justify-between items-center bg-white rounded-lg px-4 py-2 mb-3">
-                <h2 className="text-xl font-bold m-0">Purchase Order - Product</h2>
+                <h2 className="text-xl font-bold m-0">Requisition - Product</h2>
                 <Button
                     type="primary"
                     icon={<PlusOutlined />}

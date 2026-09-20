@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Form, Input, Button, Select, DatePicker, Table, InputNumber } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import dayjs from "dayjs";
 import { useGetProductsQuery } from "../../../redux/features/product/product.api";
 import { TParty, TProduct } from "../../../types/types";
 import { useGetPartiesQuery } from "../../../redux/features/auth/authApi";
@@ -53,9 +54,7 @@ const PurchaseVoucherProduct: React.FC = () => {
                 key: Date.now(),
                 productId: values.productId,
                 itemName: selectedItem?.label || "",
-                quantity,
-                unitPrice,
-                amount: quantity * unitPrice,
+                quantity
             }));
             itemForm.resetFields();
             itemForm.setFieldsValue({ quantity: 1 });
@@ -86,7 +85,15 @@ const PurchaseVoucherProduct: React.FC = () => {
             <div className="bg-white rounded-lg px-4 py-2 mb-3">
                 <h2 className="text-xl font-bold m-0">Purchase Order - Product</h2>
             </div>
-            <Form size="middle" form={form} layout="vertical" onFinish={handleSubmit}>
+            <Form
+                size="middle"
+                form={form}
+                layout="vertical"
+                onFinish={handleSubmit}
+                initialValues={{
+                    date: dayjs(),
+                }}
+            >
                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 gap-4 bg-white px-3 py-2 pb-1 rounded-md shadow">
                     <Form.Item name="partyId" label="Select Supplier" rules={[{ required: true, message: "Please select a party" }]}>
                         <Select style={{ width: "100%" }} placeholder="Select Name" options={partyData} />
@@ -97,7 +104,7 @@ const PurchaseVoucherProduct: React.FC = () => {
                 </div>
                 <div className="bg-white px-3 py-2 pb-3 rounded-md shadow mt-4">
                     <h3 className="text-lg font-semibold mb-1">Items</h3>
-                    <Form form={itemForm} layout="vertical" className="mb-3">
+                    <Form component="div" form={itemForm} layout="vertical" className="mb-3">
                         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5 gap-3">
                             <Form.Item name="productId" label="Product" rules={[{ required: true, message: "Required" }]}>
                                 <Select placeholder="Select Name" options={productData} />

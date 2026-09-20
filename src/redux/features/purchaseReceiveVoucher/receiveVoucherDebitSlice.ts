@@ -29,6 +29,9 @@ const receiveVoucherDebitSlice = createSlice({
         addReceiveVoucherDebitItem: (state, action: PayloadAction<TReceiveVoucherDebitItem>) => {
             state.debitItems.push(action.payload);
         },
+        setReceiveVoucherDebitItems: (state, action: PayloadAction<TReceiveVoucherDebitItem[]>) => {
+            state.debitItems = action.payload;
+        },
         removeReceiveVoucherDebitItem: (state, action: PayloadAction<number>) => {
             state.debitItems = state.debitItems.filter((item) => item.key !== action.payload);
         },
@@ -47,6 +50,7 @@ const receiveVoucherDebitSlice = createSlice({
 
 export const {
     addReceiveVoucherDebitItem,
+    setReceiveVoucherDebitItems,
     removeReceiveVoucherDebitItem,
     updateReceiveVoucherDebitItem,
     clearReceiveVoucherDebitItems,

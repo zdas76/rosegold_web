@@ -1,4 +1,4 @@
-import { DatabaseFilled, DollarCircleFilled, HomeFilled, InsertRowRightOutlined, ProductFilled, ProductOutlined, SettingFilled, TransactionOutlined, UserAddOutlined, } from '@ant-design/icons';
+﻿import { DatabaseFilled, DollarCircleFilled, HomeFilled, InsertRowRightOutlined, ProductFilled, ProductOutlined, SettingFilled, TransactionOutlined, UserAddOutlined, } from '@ant-design/icons';
 import { MdAccountBalance, MdAccountBox, MdCreate, MdOutlineProductionQuantityLimits, MdPayments, MdRawOn, MdReport, MdRequestPage } from 'react-icons/md';
 import { Link } from 'react-router';
 import Home from '../pages/dashboardHome/Home';
@@ -9,6 +9,7 @@ import SubCategory from '../pages/category/SubCategory';
 import Vendors from '../pages/userManagement/vendor/Vendors';
 import Employee from '../pages/userManagement/employee/Employee';
 import RowMaterial from '../pages/inventory/rowMaterial/RowMaterial';
+import ProductionIngredient from '../pages/inventory/productionIngredient/ProductionIngredient';
 import Settings from '../pages/Settings/Settings';
 import Unit from '../pages/unit/Unit';
 import PurchaseVoucher from '../pages/purchase/purchaseOrder/PurchaseOrderProductList';
@@ -147,14 +148,14 @@ export const sideBarRoutes = [
                 icon: <BsHr />,
                 element: <PurchaseVoucher />,
                 path: "/dashboard/purchase",
-                label: <Link to={`/dashboard/purchase`}>Purchase Order (P)</Link>
+                label: <Link to={`/dashboard/purchase`}>Requisition Product</Link>
             },
             {
                 key: "Purchase_order_Raw_Material",
                 icon: <BsHr />,
                 element: <PurchaseOrderRM />,
                 path: "/dashboard/purchase-rm",
-                label: <Link to={`/dashboard/purchase-rm`}>Purchase Order (RM)</Link>
+                label: <Link to={`/dashboard/purchase-rm`}>Requisition RMPM</Link>
             },
             {
                 key: 'transactions_purchase',
@@ -478,6 +479,13 @@ export const sideBarRoutes = [
                         element: <Product />,
                         icon: <FaProductHunt />,
                         label: <Link to="/dashboard/raw-product">Products</Link>,
+                    },
+                    {
+                        key: "Master_data_ProductionIngredient",
+                        path: "/dashboard/production-ingredient",
+                        element: <ProductionIngredient />,
+                        icon: <FaProductHunt />,
+                        label: <Link to="/dashboard/production-ingredient">Production Ingredient</Link>,
                     },
                     // {
                     //     key: "Master_convert_Product",

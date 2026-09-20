@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Form, Input, Button, Select, DatePicker, Table, InputNumber, Modal } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
+import dayjs from "dayjs";
 import { useGetProductsQuery } from "../../../redux/features/product/product.api";
 import { TParty, TProduct } from "../../../types/types";
 import { useGetPartiesQuery } from "../../../redux/features/auth/authApi";
@@ -31,6 +32,13 @@ const PurchaseOrderProductModal: React.FC<Props> = ({ open, onClose }) => {
     const watchedQty = Form.useWatch("quantity", itemForm) || 0;
     const watchedUnitPrice = Form.useWatch("unitPrice", itemForm) || 0;
 
+
+    useEffect(() => {
+        if (open) {
+            form.setFieldsValue({ date: dayjs() });
+        }
+    }, [open, form]);
+
     const [addPurchaseOrder, { isLoading: isSubmitting }] = useAddPurchaseOrderMutation();
     const { data: party, isLoading: isPartiesLoading } = useGetPartiesQuery({});
     const { data: product, isLoading: isProductLoading } = useGetProductsQuery({});
@@ -54,9 +62,7 @@ const PurchaseOrderProductModal: React.FC<Props> = ({ open, onClose }) => {
                 key: Date.now(),
                 productId: values.productId,
                 itemName: selectedItem?.label || "",
-                quantity,
-                unitPrice,
-                amount: quantity * unitPrice,
+                quantity
             }));
             itemForm.resetFields();
             itemForm.setFieldsValue({ quantity: 1 });
@@ -92,17 +98,24 @@ const PurchaseOrderProductModal: React.FC<Props> = ({ open, onClose }) => {
     return (
         <>
             <Modal
-                title="Purchase Order - Product"
+                title="Requisition Order - Product"
                 open={open}
                 onCancel={handleClose}
                 footer={null}
                 width={900}
-                centered
-            >
+                centered>
                 {isPartiesLoading || isProductLoading ? (
                     <Loading tip="Loading..." />
                 ) : (
-                    <Form size="middle" form={form} layout="vertical" onFinish={handleSubmit}>
+                    <Form
+                        size="middle"
+                        form={form}
+                        layout="vertical"
+                        onFinish={handleSubmit}
+                        initialValues={{
+                            date: dayjs(),
+                        }}
+                    >
                         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4">
                             <Form.Item name="partyId" label="Select Supplier" rules={[{ required: true, message: "Please select a party" }]}>
                                 <Select style={{ width: "100%" }} placeholder="Select Name" options={partyData} />
@@ -116,19 +129,13 @@ const PurchaseOrderProductModal: React.FC<Props> = ({ open, onClose }) => {
                         </div>
                         <div>
                             <h3 className="text-lg font-semibold mb-1">Items</h3>
-                            <Form form={itemForm} layout="vertical" className="mb-3">
-                                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-6 gap-3">
+                            <Form component="div" form={itemForm} layout="vertical" className="mb-3">
+                                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3">
                                     <Form.Item name="productId" label="Product" rules={[{ required: true, message: "Required" }]}>
                                         <Select placeholder="Select Name" options={productData} />
                                     </Form.Item>
                                     <Form.Item name="quantity" label="Qty" initialValue={1}>
-                                        <InputNumber style={{ width: "100%" }} min={1} />
-                                    </Form.Item>
-                                    <Form.Item name="unitPrice" label="Unit Price" rules={[{ required: true, message: "Required" }]}>
-                                        <InputNumber style={{ width: "100%" }} min={0} placeholder="Unit price" />
-                                    </Form.Item>
-                                    <Form.Item label="Total">
-                                        <InputNumber style={{ width: "100%" }} value={watchedQty * watchedUnitPrice} readOnly />
+                                        <InputNumber style={{ width: "100%" }} min={1} addonAfter={`${""}`} />
                                     </Form.Item>
                                     <Form.Item label=" ">
                                         <Button onClick={handleAddItem} icon={<PlusOutlined />} style={{ fontSize: "12px", background: "#2d1849", color: "white", width: "100%" }}>
@@ -145,8 +152,6 @@ const PurchaseOrderProductModal: React.FC<Props> = ({ open, onClose }) => {
                                     columns={[
                                         { title: "Item Name", dataIndex: "itemName" },
                                         { title: "Quantity", dataIndex: "quantity" },
-                                        { title: "Unit Price", dataIndex: "unitPrice", render: (value: number) => value?.toFixed(2) },
-                                        { title: "Amount", dataIndex: "amount", render: (value: number) => <b>{value?.toFixed(2)}</b> },
                                         { title: "Actions", render: (_, record) => <Button type="link" icon={<DeleteOutlined />} onClick={() => removeItem(record.key)} danger /> },
                                     ]}
                                     pagination={false}
