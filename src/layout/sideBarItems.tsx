@@ -1,17 +1,16 @@
-﻿import { DatabaseFilled, DollarCircleFilled, HomeFilled, InsertRowRightOutlined, ProductFilled, ProductOutlined, SettingFilled, TransactionOutlined, UserAddOutlined, } from '@ant-design/icons';
+import { DatabaseFilled, DollarCircleFilled, HomeFilled, InsertRowRightOutlined, ProductFilled, ProductOutlined, SettingFilled, TransactionOutlined, UserAddOutlined, } from '@ant-design/icons';
 import { MdAccountBalance, MdAccountBox, MdCreate, MdOutlineProductionQuantityLimits, MdPayments, MdRawOn, MdReport, MdRequestPage } from 'react-icons/md';
 import { Link } from 'react-router';
 import Home from '../pages/dashboardHome/Home';
 import Product from '../pages/inventory/product/Product';
 import { BiCategory, BiCategoryAlt, BiPackage, BiParty, BiPurchaseTag, BiReceipt, BiStore, BiStoreAlt, BiUnite } from 'react-icons/bi';
-import Category from '../pages/category/Category';
-import SubCategory from '../pages/category/SubCategory';
+import Category from '../pages/masterData/category/Category';
+import SubCategory from '../pages/masterData/subCategory/SubCategory';
 import Vendors from '../pages/userManagement/vendor/Vendors';
 import Employee from '../pages/userManagement/employee/Employee';
 import RowMaterial from '../pages/inventory/rowMaterial/RowMaterial';
-import ProductionIngredient from '../pages/inventory/productionIngredient/ProductionIngredient';
 import Settings from '../pages/Settings/Settings';
-import Unit from '../pages/unit/Unit';
+import Unit from '../pages/masterData/unit/Unit';
 import PurchaseVoucher from '../pages/purchase/purchaseOrder/PurchaseOrderProductList';
 import AccountsItem from '../pages/accounts_Item/AccountsItem';
 import SalesVoucher from '../pages/transactions/salesVoucher/SalesVoucher';
@@ -71,6 +70,8 @@ import SoapCreationForm from '../pages/store RMPM/production/SoapCreationForm';
 import DetergentCreationForm from '../pages/store RMPM/production/DetergentCreationForm';
 import KitchenbarCreationForm from '../pages/store RMPM/production/KitchenbarCreationForm';
 import PurchaseOrderRM from '../pages/purchase/purchaseOrder/PurchaseOrderRMList';
+import ProductIngredient from '../pages/inventory/productionIngredient/ProductIngredient';
+import PackingMaterial from '../pages/inventory/packingMaterial/PackingMaterial';
 
 
 export const sideBarRoutes = [
@@ -482,11 +483,18 @@ export const sideBarRoutes = [
                     },
                     {
                         key: "Master_data_ProductionIngredient",
-                        path: "/dashboard/production-ingredient",
-                        element: <ProductionIngredient />,
+                        path: "/dashboard/product-ingredient",
+                        element: <ProductIngredient />,
                         icon: <FaProductHunt />,
-                        label: <Link to="/dashboard/production-ingredient">Production Ingredient</Link>,
+                        label: <Link to="/dashboard/product-ingredient">Product Ingredient</Link>,
                     },
+                        {
+                            key: "Master_data_PackingMaterial",
+                            path: "/dashboard/packing-material",
+                            element: <PackingMaterial />,
+                            icon: <FaProductHunt />,
+                            label: <Link to="/dashboard/packing-material">Packing Material</Link>,
+                        },
                     // {
                     //     key: "Master_convert_Product",
                     //     path: "/dashboard/log-to-row-material",
@@ -494,28 +502,28 @@ export const sideBarRoutes = [
                     //     icon: <FaProductHunt />,
                     //     label: <Link to="/dashboard/log-to-row-material">Convert Product</Link>,
                     // },
-                    {
-                        key: "Master_Data_Category",
-                        path: "/dashboard/category",
-                        element: <Category />,
-                        icon: <BiCategoryAlt />,
-                        label: <Link to="/dashboard/category">Category</Link>,
-                    },
-                    {
-                        key: "Master_Data_SubCategory",
-                        path: "/dashboard/sub_category",
-                        element: <SubCategory />,
-                        icon: <BiCategoryAlt />,
-                        label: <Link to="/dashboard/sub_category">Sub Category</Link>,
-                    },
-                    {
-                        key: "Master_Data_Unit",
-                        path: "/dashboard/unit",
-                        element: <Unit />,
-                        icon: <BiCategoryAlt />,
-                        label: <Link to="/dashboard/unit">Unit</Link>,
-                    }
                 ]
+            },
+            {
+                key: "Master_Data_Category",
+                path: "/dashboard/category",
+                element: <Category />,
+                icon: <BiCategoryAlt />,
+                label: <Link to="/dashboard/category">Category</Link>,
+            },
+            {
+                key: "Master_Data_SubCategory",
+                path: "/dashboard/sub_category",
+                element: <SubCategory />,
+                icon: <BiCategoryAlt />,
+                label: <Link to="/dashboard/sub_category">Sub Category</Link>,
+            },
+            {
+                key: "Master_Data_Unit",
+                path: "/dashboard/unit",
+                element: <Unit />,
+                icon: <BiCategoryAlt />,
+                label: <Link to="/dashboard/unit">Unit</Link>,
             },
             // {
             //     key: "Master_Data_Log",

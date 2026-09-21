@@ -1,36 +1,55 @@
-﻿import { baseApi } from "../../api/baseApi";
+import { baseApi } from "../../api/baseApi";
 
 export const productionIngredientApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
         createProductionIngredient: builder.mutation({
-            query: (data: { productionName: string; type?: string; rawMaterialIds?: number[] }) => ({
-                url: "/production-ingredient",
+            query: (data: {
+                productId: number;
+                rawMaterialIds: { rawId: number; ingredienteQty: number }[];
+                PackingMaterial?: any[];
+                packingMaterials?: any[];
+            }) => ({
+                url: "/product-ingradient",
                 method: "POST",
                 body: data,
             }),
-            invalidatesTags: ["rowMaterials"],
+            invalidatesTags: ["productIngradient", "rowMaterials"],
         }),
         getProductionIngredients: builder.query({
-            query: (type?: string) => ({
-                url: type ? `/production-ingredient?type=${type}` : "/production-ingredient",
+            query: (params?: any) => ({
+                url: "/product-ingradient",
+                method: "GET",
+                params,
+            }),
+            providesTags: ["productIngradient", "rowMaterials"],
+        }),
+        getProductIngredientById: builder.query({
+            query: (id: number) => ({
+                url: `/product-ingradient/${id}`,
                 method: "GET",
             }),
-            providesTags: ["rowMaterials"],
+            providesTags: ["productIngradient", "rowMaterials"],
         }),
         updateProductionIngredient: builder.mutation({
-            query: ({ id, ...data }: { id: number; productionName?: string; type?: string; rawMaterialIds?: number[] }) => ({
-                url: `/production-ingredient/${id}`,
+            query: ({ id, ...data }: {
+                id: number;
+                productId?: number;
+                rawMaterialIds?: { rawId: number; ingredienteQty: number }[];
+                PackingMaterial?: any[];
+                packingMaterials?: any[];
+            }) => ({
+                url: `/product-ingradient/${id}`,
                 method: "PUT",
                 body: data,
             }),
-            invalidatesTags: ["rowMaterials"],
+            invalidatesTags: ["productIngradient", "rowMaterials"],
         }),
         deleteProductionIngredient: builder.mutation({
             query: (id: number) => ({
-                url: `/production-ingredient/${id}`,
+                url: `/product-ingradient/${id}`,
                 method: "DELETE",
             }),
-            invalidatesTags: ["rowMaterials"],
+            invalidatesTags: ["productIngradient", "rowMaterials"],
         }),
     }),
 });
@@ -38,6 +57,7 @@ export const productionIngredientApi = baseApi.injectEndpoints({
 export const {
     useCreateProductionIngredientMutation,
     useGetProductionIngredientsQuery,
+    useGetProductIngredientByIdQuery,
     useUpdateProductionIngredientMutation,
     useDeleteProductionIngredientMutation,
 } = productionIngredientApi;

@@ -37,6 +37,8 @@ export const baseApi = createApi({
     "logOrderVoucher",
     "production",
     "packaging",
+    "productIngradient",
+    "packingMaterial",
   ],
   endpoints: () => ({}),
 });

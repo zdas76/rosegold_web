@@ -115,12 +115,28 @@ const DetergentCreationForm: React.FC = () => {
 
   // Auto-select materials when backend data loads
   useEffect(() => {
-    if (rawMaterialsData?.data) {
+    const dataList: RawMaterialFromAPI[] = Array.isArray(rawMaterialsData?.data)
+      ? rawMaterialsData.data
+      : Array.isArray((rawMaterialsData as any)?.data?.data)
+        ? (rawMaterialsData as any).data.data
+        : [];
+
+    if (dataList.length > 0) {
+      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
       setRawMaterials(prev => prev.map(item => {
         if (!item.name) return item; // Skip empty rows for auto-match
-        const matched = rawMaterialsData.data.find((m: RawMaterialFromAPI) =>
-          m.name.trim().toLowerCase() === item.name.trim().toLowerCase()
-        );
+        const itemLower = item.name.trim().toLowerCase();
+        const itemNorm = normalize(item.name);
+
+        const matched = dataList.find((m: RawMaterialFromAPI) => {
+          if (!m.name) return false;
+          const mLower = m.name.trim().toLowerCase();
+          if (mLower === itemLower) return true;
+          const mNorm = normalize(m.name);
+          return Boolean(mNorm && mNorm === itemNorm);
+        });
+
         if (matched && !item.rawMaterialId) {
           const newRate = matched.unitPrice ?? matched.rate ?? null;
           const newQty = item.qty ?? 0;
@@ -128,6 +144,7 @@ const DetergentCreationForm: React.FC = () => {
           return {
             ...item,
             rawMaterialId: matched.id,
+            name: matched.name,
             unit: matched.unit?.name || item.unit,
             unitId: matched.unitId,
             rate: newRate,
@@ -137,7 +154,7 @@ const DetergentCreationForm: React.FC = () => {
         return item;
       }));
     }
-  }, [rawMaterialsData?.data]);
+  }, [rawMaterialsData]);
 
   useEffect(() => {
     if (lastRateById.size === 0) return;
@@ -337,7 +354,7 @@ const DetergentCreationForm: React.FC = () => {
       render: (_: any, record: RawMaterialItem) => (
         <Select
           placeholder="Select Material"
-          value={record.rawMaterialId || undefined}
+          value={record.rawMaterialId || record.name || undefined}
           style={{ width: '100%' }}
           onChange={(v) => handleMaterialChange(record.si, v as number | null)}
           options={materialOptions}

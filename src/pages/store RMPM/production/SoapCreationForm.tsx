@@ -8,6 +8,7 @@ import { useGetProductsQuery } from '../../../redux/features/product/product.api
 import { useCreateSoapProductionMutation } from '../../../redux/features/production/production.api';
 import { getResponse } from '../../../utils/getResponse';
 import { useGetLastRateQuery } from '../../../redux/features/inventory/InventoryApi';
+import { generateInvoiceNumber } from '../../../utils/generateRandomNumber';
 
 interface RawMaterialFromAPI {
   id: number;
@@ -117,12 +118,28 @@ const SoapCreationForm: React.FC = () => {
 
 
   useEffect(() => {
-    if (rawMaterialsData?.data) {
+    const dataList: RawMaterialFromAPI[] = Array.isArray(rawMaterialsData?.data)
+      ? rawMaterialsData.data
+      : Array.isArray((rawMaterialsData as any)?.data?.data)
+        ? (rawMaterialsData as any).data.data
+        : [];
+
+    if (dataList.length > 0) {
+      const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
       setRawMaterials(prev => prev.map(item => {
         if (!item.name) return item; // Skip empty rows for auto-match
-        const matched = rawMaterialsData.data.find((m: RawMaterialFromAPI) =>
-          m.name.trim().toLowerCase() === item.name.trim().toLowerCase()
-        );
+        const itemLower = item.name.trim().toLowerCase();
+        const itemNorm = normalize(item.name);
+
+        const matched = dataList.find((m: RawMaterialFromAPI) => {
+          if (!m.name) return false;
+          const mLower = m.name.trim().toLowerCase();
+          if (mLower === itemLower) return true;
+          const mNorm = normalize(m.name);
+          return Boolean(mNorm && mNorm === itemNorm);
+        });
+
         if (matched && !item.rawMaterialId) {
           const newRate = matched.unitPrice ?? matched.rate ?? null;
           const newQty = item.qty ?? 0;
@@ -130,6 +147,7 @@ const SoapCreationForm: React.FC = () => {
           return {
             ...item,
             rawMaterialId: matched.id,
+            name: matched.name,
             unit: matched.unit?.name || item.unit,
             unitId: matched.unitId,
             rate: newRate,
@@ -139,7 +157,7 @@ const SoapCreationForm: React.FC = () => {
         return item;
       }));
     }
-  }, [rawMaterialsData?.data]);
+  }, [rawMaterialsData]);
 
   useEffect(() => {
     if (lastRateById.size === 0) return;
@@ -298,7 +316,7 @@ const SoapCreationForm: React.FC = () => {
     setIsSubmitting(true);
     try {
       const payload = {
-        voucherNo: values.voucherNo,
+        voucherNo: values.voucherNo || generateInvoiceNumber('SPV'),
         batchNo: values.batchNo,
         date: values.date.toISOString(),
         productId: values.productId,
@@ -339,7 +357,7 @@ const SoapCreationForm: React.FC = () => {
       render: (_: any, record: RawMaterialItem) => (
         <Select
           placeholder="Select Material"
-          value={record.rawMaterialId || undefined}
+          value={record.rawMaterialId || record.name || undefined}
           style={{ width: '100%' }}
           onChange={(v) => handleMaterialChange(record.si, v as number | null)}
           options={materialOptions}
@@ -420,14 +438,22 @@ const SoapCreationForm: React.FC = () => {
     <div className="p-1">
       <h2 className="text-xl font-bold mb-4">Soap Creation Form</h2>
       <Form form={form} onFinish={handleSubmit} layout="vertical" initialValues={{ date: dayjs() }}>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <Form.Item name="voucherNo" label="Voucher No" rules={[{ required: true, message: 'Please enter voucher number' }]}>
-            <Input placeholder="Enter voucher number" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Form.Item name="productId" label="Select Product" rules={[{ required: true, message: 'Please select product' }]}>
+            <Select
+              placeholder="Select product"
+              style={{ width: '100%' }}
+              options={productOptions}
+              showSearch
+              filterOption={(input, option) =>
+                !!option?.label?.toString().toLowerCase().includes(input.toLowerCase())
+              }
+            />
           </Form.Item>
-          <Form.Item name="batchNo" label="Batch No" rules={[{ required: true }]}>
+          <Form.Item name="batchNo" label="Batch No" rules={[{ required: true, message: 'Please enter batch number' }]}>
             <Input placeholder="Enter batch number" />
           </Form.Item>
-          <Form.Item name="date" label="Date" rules={[{ required: true }]}>
+          <Form.Item name="date" label="Date" rules={[{ required: true, message: 'Please select date' }]}>
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>
         </div>
@@ -452,18 +478,7 @@ const SoapCreationForm: React.FC = () => {
 
         <div className="mb-0">
           <h3 className="font-semibold mb-2">Finished Product</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Form.Item name="productId" label="Product" rules={[{ required: true, message: 'Please select product' }]}>
-              <Select
-                placeholder="Select product"
-                style={{ width: '100%' }}
-                options={productOptions}
-                showSearch
-                filterOption={(input, option) =>
-                  !!option?.label?.toString().toLowerCase().includes(input.toLowerCase())
-                }
-              />
-            </Form.Item>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Form.Item name="productQuantity" label="Quantity" rules={[{ required: true, message: 'Please enter quantity' }]}>
               <InputNumber
                 min={0}
