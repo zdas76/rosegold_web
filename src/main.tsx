@@ -18,6 +18,7 @@ import RawMaterialsDetails from './pages/inventory/rowMaterial/RawMaterialsDetai
 import ProductStockReportDetails from './pages/production/createProduction/ProductStockReportDetails'
 import CallanVoucher from './pages/sales/challan/CallanVoucher'
 import PurchaseOrderDetails from './pages/purchase/purchaseOrder/PurchaseOrderDetails'
+import ProductionCreationForm from './pages/store RMPM/production/ProductionCreationForm'
 import { ConfigProvider } from 'antd'
 
 createRoot(document.getElementById('root')!).render(
@@ -81,6 +82,9 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/dashboard/row-material/:id" element={<RawMaterialsDetails />} />
               <Route path="/dashboard/product_stock_report/:productId" element={<ProductStockReportDetails />} />
               <Route path="/dashboard/purchase-order/:id" element={<PurchaseOrderDetails />} />
+              <Route path="/dashboard/store_rmpm_production_soap" element={<ProductionCreationForm />} />
+              <Route path="/dashboard/store_rmpm_production_detergent" element={<ProductionCreationForm />} />
+              <Route path="/dashboard/store_rmpm_production_Kitchenbar" element={<ProductionCreationForm />} />
             </Route>
             <Route path="/dashboard/sales/challan/:voucherNo" element={<CallanVoucher />} />
             <Route path="/dashboard/voucher-details/:voucherNo" element={<VoucherDetails />} />

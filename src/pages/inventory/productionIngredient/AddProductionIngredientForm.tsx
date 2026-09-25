@@ -35,31 +35,10 @@ const AddProductionIngredientForm = ({
     })) || [];
 
     const onFinish = async (values: any) => {
-        const rawSelectedIds: number[] = values.rawMaterialIds || [];
-        const packingSelectedIds: number[] = values.packingMaterialIds || [];
-
-        const rawMaterialIds = rawSelectedIds.map((id: number) => ({
-            rawId: Number(id),
-            ingredienteQty: 0,
-        }));
-
-        const packingList = packingSelectedIds.map((id: number) => {
-            const pmObj = packingMaterialsData?.data?.find((p: any) => p.id === id);
-            return {
-                id: Number(id),
-                name: pmObj?.name || "",
-                unitId: pmObj?.unitId || 1,
-                ingredienteQty: 0,
-            };
-        });
-
         const payload = {
             productId: Number(values.productId),
-            rawMaterialIds,
-            rawMaterials: rawSelectedIds.map(Number),
-            PackingMaterial: packingList,
-            packingMaterials: packingList,
-            packingMaterialIds: packingSelectedIds.map(Number),
+            rawMaterials: (values.rawMaterials || []).map(Number),
+            packingMaterials: (values.packingMaterials || []).map(Number),
         };
 
         const res = await createIngredient(payload);
@@ -76,8 +55,8 @@ const AddProductionIngredientForm = ({
             layout="vertical"
             initialValues={{
                 productId: defaultProductId,
-                rawMaterialIds: [],
-                packingMaterialIds: [],
+                rawMaterials: [],
+                packingMaterials: [],
             }}
             onFinish={onFinish}
             className="p-1 max-h-[80vh] overflow-y-auto"
@@ -102,7 +81,7 @@ const AddProductionIngredientForm = ({
 
             <Form.Item
                 label="Select Raw Materials (Multi-Select)"
-                name="rawMaterialIds"
+                name="rawMaterials"
                 rules={[{ required: true, message: "Please select at least one raw material" }]}
             >
                 <Select
@@ -122,7 +101,7 @@ const AddProductionIngredientForm = ({
 
             <Form.Item
                 label="Select Packing Materials (Multi-Select)"
-                name="packingMaterialIds"
+                name="packingMaterials"
             >
                 <Select
                     mode="multiple"

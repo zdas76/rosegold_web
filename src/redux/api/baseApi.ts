@@ -39,6 +39,7 @@ export const baseApi = createApi({
     "packaging",
     "productIngradient",
     "packingMaterial",
+    "productionExpItem",
   ],
   endpoints: () => ({}),
 });

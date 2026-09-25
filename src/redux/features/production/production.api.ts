@@ -1,7 +1,18 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { baseApi } from "../../api/baseApi";
 
 const productionApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
+        createProduction: builder.mutation({
+            query: (data) => {
+                return {
+                    url: "/production",
+                    method: "POST",
+                    body: data
+                }
+            },
+            invalidatesTags: ["production"]
+        }),
         createSoapProduction: builder.mutation({
             query: (data) => {
                 return {
@@ -110,6 +121,7 @@ const productionApi = baseApi.injectEndpoints({
 })
 
 export const {
+    useCreateProductionMutation,
     useCreateSoapProductionMutation,
     useCreateKitchenbarProductionMutation,
     useCreateDetergentProductionMutation,

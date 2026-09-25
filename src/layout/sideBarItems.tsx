@@ -69,9 +69,11 @@ import GiftVoucher from '../pages/accounts/giftVoucher/GiftVoucher';
 import SoapCreationForm from '../pages/store RMPM/production/SoapCreationForm';
 import DetergentCreationForm from '../pages/store RMPM/production/DetergentCreationForm';
 import KitchenbarCreationForm from '../pages/store RMPM/production/KitchenbarCreationForm';
+import ProductionCreationForm from '../pages/store RMPM/production/ProductionCreationForm';
 import PurchaseOrderRM from '../pages/purchase/purchaseOrder/PurchaseOrderRMList';
 import ProductIngredient from '../pages/inventory/productionIngredient/ProductIngredient';
 import PackingMaterial from '../pages/inventory/packingMaterial/PackingMaterial';
+import ProductionExpItem from '../pages/inventory/productionExpItem/ProductionExpItem';
 
 
 export const sideBarRoutes = [
@@ -198,38 +200,17 @@ export const sideBarRoutes = [
                 key: "store_rmpm_production",
                 path: "/dashboard/store_rmpm_production",
                 icon: <MdOutlineProductionQuantityLimits />,
-                label: "Production",
-                children: [
-                    {
-                        key: "store_rmpm_production_soap",
-                        path: "/dashboard/store_rmpm_production_soap",
-                        icon: <MdOutlineProductionQuantityLimits />,
-                        element: <SoapCreationForm />,
-                        label: <Link to="/dashboard/store_rmpm_production_soap">Soap Creation</Link>
-                    },
-                    {
-                        key: "store_rmpm_production_detergent",
-                        path: "/dashboard/store_rmpm_production_detergent",
-                        icon: <MdOutlineProductionQuantityLimits />,
-                        element: <DetergentCreationForm />,
-                        label: <Link to="/dashboard/store_rmpm_production_detergent">Detergent Creation</Link>
-                    },
-                    {
-                        key: "store_rmpm_production_Kitchenbar",
-                        path: "/dashboard/store_rmpm_production_Kitchenbar",
-                        icon: <MdOutlineProductionQuantityLimits />,
-                        element: <KitchenbarCreationForm />,
-                        label: <Link to="/dashboard/store_rmpm_production_Kitchenbar">Kitchenbar Creation</Link>
-                    }
-                ]
+                element: <ProductionCreationForm />,
+                label: <Link to="/dashboard/store_rmpm_production">Production Creation</Link>,
             },
-            {
-                key: "store_rmpm_packaging",
-                path: "/dashboard/store_rmpm_packaging",
-                icon: <BiPackage />,
-                element: <Packaging />,
-                label: <Link to="/dashboard/store_rmpm_packaging">Packaging</Link>,
-            },
+
+            // {
+            //     key: "store_rmpm_packaging",
+            //     path: "/dashboard/store_rmpm_packaging",
+            //     icon: <BiPackage />,
+            //     element: <Packaging />,
+            //     label: <Link to="/dashboard/store_rmpm_packaging">Packaging</Link>,
+            // },
             {
                 key: "store_rmpm_request_sent_fg",
                 path: "/dashboard/store_rmpm_request_sent_fg",
@@ -481,6 +462,7 @@ export const sideBarRoutes = [
                         icon: <FaProductHunt />,
                         label: <Link to="/dashboard/raw-product">Products</Link>,
                     },
+
                     {
                         key: "Master_data_ProductionIngredient",
                         path: "/dashboard/product-ingredient",
@@ -488,13 +470,20 @@ export const sideBarRoutes = [
                         icon: <FaProductHunt />,
                         label: <Link to="/dashboard/product-ingredient">Product Ingredient</Link>,
                     },
-                        {
-                            key: "Master_data_PackingMaterial",
-                            path: "/dashboard/packing-material",
-                            element: <PackingMaterial />,
-                            icon: <FaProductHunt />,
-                            label: <Link to="/dashboard/packing-material">Packing Material</Link>,
-                        },
+                    {
+                        key: "Master_data_PackingMaterial",
+                        path: "/dashboard/packing-material",
+                        element: <PackingMaterial />,
+                        icon: <FaProductHunt />,
+                        label: <Link to="/dashboard/packing-material">Packing Material</Link>,
+                    },
+                    {
+                        key: "Master_data_ProductionExpItem",
+                        path: "/dashboard/production-exp-item",
+                        element: <ProductionExpItem />,
+                        icon: <FaProductHunt />,
+                        label: <Link to="/dashboard/production-exp-item">Production Exp Item</Link>,
+                    },
                     // {
                     //     key: "Master_convert_Product",
                     //     path: "/dashboard/log-to-row-material",

@@ -94,44 +94,45 @@ const ProductIngredient = () => {
         <div className="space-y-4">
             {/* Header */}
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
-                <div className="bg-white rounded-lg px-4 py-2 shadow-sm">
-                    <h1 className="font-bold text-lg md:text-xl m-0">Product Ingredient</h1>
-                </div>
-                <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full lg:w-auto">
-                    <Select
-                        showSearch
-                        allowClear
-                        placeholder="Select Product"
-                        value={selectedProductId}
-                        onChange={(val) => setSelectedProductId(val || null)}
-                        options={productOptions}
-                        loading={isProductsLoading}
-                        filterOption={(input, option) =>
-                            String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-                        }
-                        className="w-full sm:w-60"
-                    />
-                    <Input
-                        placeholder="Search material..."
-                        prefix={<SearchOutlined className="text-gray-400" />}
-                        value={searchText}
-                        onChange={(e) => setSearchText(e.target.value)}
-                        allowClear
-                        className="w-full sm:w-56"
-                    />
-                    <CommonModal
-                        title="Add Product Ingredient"
-                        btnClass="bg-slate-800 text-white hover:bg-slate-700 whitespace-nowrap"
-                        btnText="Add Ingredient"
-                        isModalOpen={isAddModalOpen}
-                        setIsModalOpen={setIsAddModalOpen}
-                    >
-                        <AddProductionIngredientForm
-                            defaultProductId={selectedProductId || undefined}
-                            setIsModalOpen={setIsAddModalOpen}
+                <div className="bg-white rounded-lg px-4 py-1 shadow-sm flex justify-between w-full">
+                    <h1 className="font-bold text-lg m-0">Product Ingredient</h1>
+                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full lg:w-auto">
+                        <Select
+                            showSearch
+                            allowClear
+                            placeholder="Select Product"
+                            value={selectedProductId}
+                            onChange={(val) => setSelectedProductId(val || null)}
+                            options={productOptions}
+                            loading={isProductsLoading}
+                            filterOption={(input, option) =>
+                                String(option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                            }
+                            className="w-full sm:w-60"
                         />
-                    </CommonModal>
+                        {/* <Input
+                            placeholder="Search material..."
+                            prefix={<SearchOutlined className="text-gray-400" />}
+                            value={searchText}
+                            onChange={(e) => setSearchText(e.target.value)}
+                            allowClear
+                            className="w-full sm:w-56"
+                        /> */}
+                        <CommonModal
+                            title="Add Product Ingredient"
+                            btnClass="bg-slate-800 text-white hover:bg-slate-700 whitespace-nowrap"
+                            btnText="Add Ingredient"
+                            isModalOpen={isAddModalOpen}
+                            setIsModalOpen={setIsAddModalOpen}
+                        >
+                            <AddProductionIngredientForm
+                                defaultProductId={selectedProductId || undefined}
+                                setIsModalOpen={setIsAddModalOpen}
+                            />
+                        </CommonModal>
+                    </div>
                 </div>
+
             </div>
 
             {/* Table */}

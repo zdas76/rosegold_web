@@ -438,3 +438,12 @@ export type TRawMaterialStockReport = {
         };
     };
 };
+
+export type TProductionExpItem = {
+    id: number;
+    expItemName: string;
+    unitRate: number;
+    createdAt?: string;
+    updatedAt?: string;
+};
+

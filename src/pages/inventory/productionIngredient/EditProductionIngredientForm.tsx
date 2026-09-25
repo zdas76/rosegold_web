@@ -37,44 +37,23 @@ const EditProductionIngredientForm = ({
 
     useEffect(() => {
         if (item) {
-            const rawMaterialIds = (item.rawMaterials || []).map((rm: any) => rm.id ?? rm.rawId);
-            const packingMaterialIds = (item.packingMaterials || []).map((pm: any) => pm.id ?? pm.packingMaterialId);
+            const rawMaterials = (item.rawMaterials || []).map((rm: any) => rm.id ?? rm.rawId);
+            const packingMaterials = (item.packingMaterials || []).map((pm: any) => pm.id ?? pm.packingMaterialId);
 
             form.setFieldsValue({
                 productId: item.productId || item.product?.id,
-                rawMaterialIds,
-                packingMaterialIds,
+                rawMaterials,
+                packingMaterials,
             });
         }
     }, [item, form]);
 
     const onFinish = async (values: any) => {
-        const rawSelectedIds: number[] = values.rawMaterialIds || [];
-        const packingSelectedIds: number[] = values.packingMaterialIds || [];
-
-        const rawMaterialIds = rawSelectedIds.map((id: number) => ({
-            rawId: Number(id),
-            ingredienteQty: 0,
-        }));
-
-        const packingList = packingSelectedIds.map((id: number) => {
-            const pmObj = packingMaterialsData?.data?.find((p: any) => p.id === id);
-            return {
-                id: Number(id),
-                name: pmObj?.name || "",
-                unitId: pmObj?.unitId || 1,
-                ingredienteQty: 0,
-            };
-        });
-
         const payload = {
             id: item.id,
             productId: Number(values.productId),
-            rawMaterialIds,
-            rawMaterials: rawSelectedIds.map(Number),
-            PackingMaterial: packingList,
-            packingMaterials: packingList,
-            packingMaterialIds: packingSelectedIds.map(Number),
+            rawMaterials: (values.rawMaterials || []).map(Number),
+            packingMaterials: (values.packingMaterials || []).map(Number),
         };
 
         const res = await updateIngredient(payload);
@@ -112,7 +91,7 @@ const EditProductionIngredientForm = ({
 
             <Form.Item
                 label="Select Raw Materials (Multi-Select)"
-                name="rawMaterialIds"
+                name="rawMaterials"
                 rules={[{ required: true, message: "Please select at least one raw material" }]}
             >
                 <Select
@@ -132,7 +111,7 @@ const EditProductionIngredientForm = ({
 
             <Form.Item
                 label="Select Packing Materials (Multi-Select)"
-                name="packingMaterialIds"
+                name="packingMaterials"
             >
                 <Select
                     mode="multiple"

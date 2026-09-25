@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { baseApi } from "../../api/baseApi";
 
 export const productionIngredientApi = baseApi.injectEndpoints({
@@ -5,9 +6,8 @@ export const productionIngredientApi = baseApi.injectEndpoints({
         createProductionIngredient: builder.mutation({
             query: (data: {
                 productId: number;
-                rawMaterialIds: { rawId: number; ingredienteQty: number }[];
-                PackingMaterial?: any[];
-                packingMaterials?: any[];
+                rawMaterials: number[];
+                packingMaterials?: number[];
             }) => ({
                 url: "/product-ingradient",
                 method: "POST",
@@ -34,9 +34,8 @@ export const productionIngredientApi = baseApi.injectEndpoints({
             query: ({ id, ...data }: {
                 id: number;
                 productId?: number;
-                rawMaterialIds?: { rawId: number; ingredienteQty: number }[];
-                PackingMaterial?: any[];
-                packingMaterials?: any[];
+                rawMaterials?: number[];
+                packingMaterials?: number[];
             }) => ({
                 url: `/product-ingradient/${id}`,
                 method: "PUT",
