@@ -88,34 +88,35 @@ const RowMaterial = () => {
     return (
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="bg-white rounded-lg px-4 py-2 shadow-sm">
-                    <h1 className="font-bold text-lg md:text-xl m-0">
+                <div className="bg-white rounded-lg px-4 py-2 shadow-sm flex justify-between w-full items-center">
+                    <h1 className="font-bold text-lg m-0">
                         {activeTab === "raw" ? "Raw Materials" : "Packing Materials"}
                     </h1>
+                    <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full lg:w-auto">
+                        {activeTab === "raw" ? (
+                            <CommonModal
+                                title="Add Raw Material"
+                                btnClass="px-4 bg-slate-800 text-white py-2 whitespace-nowrap"
+                                btnText="Add Raw Material"
+                                isModalOpen={isRawModalOpen}
+                                setIsModalOpen={setIsRawModalOpen}
+                            >
+                                <AddRowMaterialsForm setIsModalOpen={setIsRawModalOpen} />
+                            </CommonModal>
+                        ) : (
+                            <CommonModal
+                                title="Add Packing Material"
+                                btnClass="px-4 bg-slate-800 text-white py-2"
+                                btnText="Add Packing Material"
+                                isModalOpen={isPackingModalOpen}
+                                setIsModalOpen={setIsPackingModalOpen}
+                            >
+                                <AddPackingMaterialsForm setIsModalOpen={setIsPackingModalOpen} />
+                            </CommonModal>
+                        )}
+                    </div>
                 </div>
-                <div>
-                    {activeTab === "raw" ? (
-                        <CommonModal
-                            title="Add Raw Material"
-                            btnClass="px-4 bg-slate-800 text-white py-2"
-                            btnText="Add Raw Material"
-                            isModalOpen={isRawModalOpen}
-                            setIsModalOpen={setIsRawModalOpen}
-                        >
-                            <AddRowMaterialsForm setIsModalOpen={setIsRawModalOpen} />
-                        </CommonModal>
-                    ) : (
-                        <CommonModal
-                            title="Add Packing Material"
-                            btnClass="px-4 bg-slate-800 text-white py-2"
-                            btnText="Add Packing Material"
-                            isModalOpen={isPackingModalOpen}
-                            setIsModalOpen={setIsPackingModalOpen}
-                        >
-                            <AddPackingMaterialsForm setIsModalOpen={setIsPackingModalOpen} />
-                        </CommonModal>
-                    )}
-                </div>
+
             </div>
 
             <div className="bg-white p-4 rounded-md shadow-md">

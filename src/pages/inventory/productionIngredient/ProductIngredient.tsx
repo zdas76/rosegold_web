@@ -1,4 +1,4 @@
-﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useMemo } from "react";
 import { Table, Tag, Modal, Input, Select } from "antd";
 import Column from "antd/es/table/Column";
@@ -124,6 +124,8 @@ const ProductIngredient = () => {
                             btnText="Add Ingredient"
                             isModalOpen={isAddModalOpen}
                             setIsModalOpen={setIsAddModalOpen}
+                            modalWidth="850px"
+                            footer={null}
                         >
                             <AddProductionIngredientForm
                                 defaultProductId={selectedProductId || undefined}
@@ -188,6 +190,39 @@ const ProductIngredient = () => {
                         )}
                     />
                     <Column
+                        title="Production Expenses"
+                        dataIndex="ingredientExpneseItems"
+                        key="ingredientExpneseItems"
+                        render={(expItems: any[], record: any) => {
+                            const list = expItems || record.expenseItems || [];
+                            return (
+                                <div className="flex flex-wrap gap-1">
+                                    {list && list.length > 0 ? (
+                                        list.map((exp: any, idx: number) => {
+                                            const name =
+                                                exp.productionExpenseItem?.expItemName ||
+                                                exp.expItemName ||
+                                                `Expense #${exp.productionExpenssItemId || exp.id}`;
+                                            const qty = exp.quantity ?? exp.qty;
+                                            const rate = exp.productionExpenseItem?.unitRate ?? exp.unitRate;
+                                            const total = qty && rate ? Number((qty * rate).toFixed(2)) : null;
+
+                                            return (
+                                                <Tag key={exp.id || idx} color="orange">
+                                                    <span className="font-medium">{name}</span>
+                                                    {qty ? ` (Qty: ${qty}` : ""}
+                                                    {total !== null ? ` | Total: ${total}৳)` : qty ? ")" : ""}
+                                                </Tag>
+                                            );
+                                        })
+                                    ) : (
+                                        <span className="text-gray-400 text-xs">No expense items</span>
+                                    )}
+                                </div>
+                            );
+                        }}
+                    />
+                    <Column
                         title="Action"
                         key="action"
                         width={100}
@@ -221,6 +256,8 @@ const ProductIngredient = () => {
                 onCancel={() => setEditItem(null)}
                 footer={null}
                 destroyOnClose
+                width={850}
+                centered
             >
                 {editItem && (
                     <EditProductionIngredientForm

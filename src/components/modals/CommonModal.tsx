@@ -2,9 +2,27 @@
 import { ReactNode } from 'react';
 import { Button, Modal } from 'antd';
 
-const CommonModal = ({ children, btnText, isModalOpen, setIsModalOpen, title, btnClass, modalWidth }: { title: string; children: ReactNode; btnText: string | ReactNode; isModalOpen: boolean; setIsModalOpen: any; btnClass?: string; modalWidth?: string }) => {
-
-
+const CommonModal = ({
+    children,
+    btnText,
+    isModalOpen,
+    setIsModalOpen,
+    title,
+    btnClass,
+    modalWidth = '650px',
+    footer,
+    centered = true,
+}: {
+    title: string;
+    children: ReactNode;
+    btnText: string | ReactNode;
+    isModalOpen: boolean;
+    setIsModalOpen: any;
+    btnClass?: string;
+    modalWidth?: string | number;
+    footer?: ReactNode | null;
+    centered?: boolean;
+}) => {
     const showModal = () => {
         setIsModalOpen(true);
     };
@@ -22,10 +40,11 @@ const CommonModal = ({ children, btnText, isModalOpen, setIsModalOpen, title, bt
             <Modal
                 destroyOnClose
                 width={modalWidth}
+                centered={centered}
                 title={title || 'Basic Modal'}
                 open={isModalOpen}
                 onCancel={handleCancel}
-                footer={[
+                footer={footer !== undefined ? footer : [
                     <Button key="cancel" onClick={handleCancel}>
                         Cancel
                     </Button>,

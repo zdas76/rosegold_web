@@ -66,7 +66,7 @@ const ProductionExpItem = () => {
     return (
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="bg-white rounded-lg px-4 py-2 shadow-sm flex justify-between w-full">
+                <div className="bg-white rounded-lg px-4 py-2 shadow-sm flex justify-between w-full items-center">
                     <h1 className="font-bold text-lg m-0">Production Expense Items</h1>
                     <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full lg:w-auto">
                         <Input

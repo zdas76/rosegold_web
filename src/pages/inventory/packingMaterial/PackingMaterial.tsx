@@ -64,28 +64,29 @@ const PackingMaterial = () => {
     return (
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="bg-white rounded-lg px-4 py-2 shadow-sm">
+                <div className="bg-white rounded-lg px-4 py-2 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between">
                     <h1 className="font-bold text-lg md:text-xl m-0">Packing Materials</h1>
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                        <Input
+                            placeholder="Search packing material..."
+                            prefix={<SearchOutlined className="text-gray-400" />}
+                            value={searchText}
+                            onChange={(e) => setSearchText(e.target.value)}
+                            allowClear
+                            className="w-full sm:w-60"
+                        />
+                        <CommonModal
+                            title="Add Packing Material"
+                            btnClass="px-4 bg-slate-800 text-white py-2 whitespace-nowrap"
+                            btnText="Add Packing Material"
+                            isModalOpen={isModalOpen}
+                            setIsModalOpen={setIsModalOpen}
+                        >
+                            <AddPackingMaterialsForm setIsModalOpen={setIsModalOpen} />
+                        </CommonModal>
+                    </div>
                 </div>
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <Input
-                        placeholder="Search packing material..."
-                        prefix={<SearchOutlined className="text-gray-400" />}
-                        value={searchText}
-                        onChange={(e) => setSearchText(e.target.value)}
-                        allowClear
-                        className="w-full sm:w-60"
-                    />
-                    <CommonModal
-                        title="Add Packing Material"
-                        btnClass="px-4 bg-slate-800 text-white py-2 whitespace-nowrap"
-                        btnText="Add Packing Material"
-                        isModalOpen={isModalOpen}
-                        setIsModalOpen={setIsModalOpen}
-                    >
-                        <AddPackingMaterialsForm setIsModalOpen={setIsModalOpen} />
-                    </CommonModal>
-                </div>
+
             </div>
 
             <div className="bg-white p-4 rounded-md shadow-md">
