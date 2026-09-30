@@ -91,19 +91,20 @@ const AccountsReceivedVoucher: React.FC = () => {
     }));
 
     const handleAddDebitItem = () => {
-        debitForm.validateFields().then((values) => {
-            const selected = debitAccountsItems?.find((item: TAccountsItem) => item?.id === values.accountsItemId);
-            dispatch(addReceiveVoucherDebitItem({
-                key: Date.now(),
-                accountsItemId: values.accountsItemId,
-                accountsItemName: selected?.accountsItemName || "",
-                bankAccountId: values.bankAccountId || null,
-                amount: values.amount || 0,
-                narration: values.narration || "",
-            }));
-            debitForm.resetFields();
-            setSelectedDebitLedgerName("");
-        });
+        console.log("debitAccountsItems", debitAccountsItems)
+        // debitForm.validateFields().then((values) => {
+        //     const selected = debitAccountsItems?.find((item: TAccountsItem) => item?.id === values.accountsItemId);
+        //     dispatch(addReceiveVoucherDebitItem({
+        //         key: Date.now(),
+        //         accountsItemId: values.accountsItemId,
+        //         accountsItemName: selected?.accountsItemName || "",
+        //         bankAccountId: values.bankAccountId || null,
+        //         amount: values.amount || 0,
+        //         narration: values.narration || "",
+        //     }));
+        //     debitForm.resetFields();
+        //     setSelectedDebitLedgerName("");
+        // });
     };
 
     const handleAddCreditItem = () => {
