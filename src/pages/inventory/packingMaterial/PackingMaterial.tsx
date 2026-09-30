@@ -64,7 +64,7 @@ const PackingMaterial = () => {
     return (
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="bg-white rounded-lg px-4 py-2 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between">
+                <div className="bg-white rounded-lg px-4 py-2 shadow-sm flex w-full flex-row items-start sm:items-center justify-between">
                     <h1 className="font-bold text-lg md:text-xl m-0">Packing Materials</h1>
                     <div className="flex items-center gap-3 w-full sm:w-auto">
                         <Input
@@ -86,7 +86,6 @@ const PackingMaterial = () => {
                         </CommonModal>
                     </div>
                 </div>
-
             </div>
 
             <div className="bg-white p-4 rounded-md shadow-md">
@@ -95,8 +94,7 @@ const PackingMaterial = () => {
                     loading={isFetching || isLoading}
                     size="small"
                     bordered
-                    scroll={{ x: 700 }}
-                >
+                    scroll={{ x: 700 }}>
                     <Column title={<span className="font-bold">No</span>} dataIndex="index" key="index" width={60} align="center" />
                     <Column title={<span className="font-bold">Name</span>} dataIndex="name" key="name" className="font-semibold" />
                     <Column

@@ -859,7 +859,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({ formTitle = 
 
   return (
     <div className="p-4 bg-white rounded-lg shadow-sm space-y-4">
-      <div className="border-b pb-3">
+      <div className="border-b border-gray-100">
         <h2 className="text-xl font-bold text-gray-800 m-0">{formTitle}</h2>
       </div>
 
@@ -870,7 +870,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({ formTitle = 
         initialValues={{ date: dayjs() }}
       >
         {/* Top 3 required fields */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg border">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50/60 p-4 rounded-lg border border-slate-200/60">
           <Form.Item
             name="productId"
             label={<span className="font-semibold">Select Product</span>}
@@ -910,7 +910,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({ formTitle = 
           <h3 className="font-bold text-base mb-2 text-gray-800">Raw Materials</h3>
 
           {selectedProductId && (isIngredientsLoading || isIngredientsFetching) ? (
-            <div className="p-8 text-center bg-gray-50 rounded border">
+            <div className="p-8 text-center bg-slate-50/50 rounded border border-slate-200/60">
               <Spin tip="Loading product ingredients recipe..." />
             </div>
           ) : (
@@ -920,50 +920,59 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({ formTitle = 
                   type="info"
                   showIcon
                   message="No ingredients configured for this product. You can add raw materials manually below."
-                  className="mb-3"
+                  className="mb-3 border-sky-100 bg-sky-50/60"
                 />
               )}
-              <Table
-                dataSource={rawMaterials}
-                columns={columns}
-                rowKey="si"
-                pagination={false}
-                bordered
-                size="small"
-                scroll={{ x: 750 }}
-                summary={() => (
-                  <Table.Summary fixed>
-                    <Table.Summary.Row className="bg-amber-50/70 font-bold">
-                      <Table.Summary.Cell index={0} colSpan={3}>
-                        <Button
-                          type="primary"
-                          icon={<PlusOutlined />}
-                          onClick={handleAddRow}
-                          disabled={!selectedProductId}
-                        >
-                          Add Raw Material
-                        </Button>
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell index={1} colSpan={2} className="text-center font-bold text-slate-800">
-                        <span className="text-gray-600 mr-2 font-semibold">Total Qty:</span>
-                        <span className="text-sm font-bold text-slate-900">
-                          {totalQty.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      </Table.Summary.Cell>
-                      <Table.Summary.Cell index={2} colSpan={2} className="text-right pr-4 font-bold">
-                        <span className="text-gray-600 mr-2 font-semibold">Total Tk:</span>
-                        <span className="text-base font-extrabold text-amber-700">
-                          {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
-                        </span>
-                      </Table.Summary.Cell>
-                    </Table.Summary.Row>
-                  </Table.Summary>
-                )}
-              />
+              <div className="border border-slate-200/60 rounded-lg overflow-hidden">
+                <Table
+                  dataSource={rawMaterials}
+                  columns={columns}
+                  rowKey="si"
+                  pagination={false}
+                  bordered
+                  size="small"
+                  scroll={{ x: 750 }}
+                  summary={() => (
+                    <Table.Summary fixed>
+                      <Table.Summary.Row className="bg-amber-50/40 border-t border-amber-200/50 font-bold">
+                        <Table.Summary.Cell index={0} colSpan={3}>
+                          <Button
+                            type="primary"
+                            icon={<PlusOutlined />}
+                            onClick={handleAddRow}
+                            disabled={!selectedProductId}
+                            className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white shadow-xs"
+                          >
+                            Add Raw Material
+                          </Button>
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={1} colSpan={2} className="text-center font-bold text-slate-800">
+                          <span className="text-gray-500 mr-2 font-semibold">Total Qty:</span>
+                          <span className="text-sm font-bold text-slate-900">
+                            {totalQty.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </Table.Summary.Cell>
+                        <Table.Summary.Cell index={2} colSpan={2} className="text-right pr-4 font-bold">
+                          <span className="text-gray-500 mr-2 font-semibold">Total Tk:</span>
+                          <span className="text-base font-extrabold text-amber-700">
+                            {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
+                          </span>
+                        </Table.Summary.Cell>
+                      </Table.Summary.Row>
+                    </Table.Summary>
+                  )}
+                />
+              </div>
             </>
           )}
           <div className="mt-4 flex justify-end">
-            <button type="button" className="bg-blue-500 text-white px-4 py-1 rounded" onClick={() => { console.log('Form Values:', form.getFieldsValue(), { packingMaterials, rawMaterials }); }}>Save form</button>
+            <button
+              type="button"
+              className="bg-[#C58D2F] hover:bg-[#b07d28] text-white px-4 py-1.5 rounded transition-colors shadow-xs"
+              onClick={() => { console.log('Form Values:', form.getFieldsValue(), { packingMaterials, rawMaterials }); }}
+            >
+              Save form
+            </button>
           </div>
         </div>
 
@@ -971,46 +980,50 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({ formTitle = 
         <div className="mt-4">
           <h3 className="font-bold text-base mb-2 text-gray-800">Packing Materials</h3>
 
-          <Table
-            dataSource={packingMaterials}
-            columns={packingColumns}
-            rowKey="si"
-            pagination={false}
-            bordered
-            size="small"
-            scroll={{ x: 1050 }}
-            summary={() => (
-              <Table.Summary fixed>
-                <Table.Summary.Row className="bg-amber-50/70 font-bold">
-                  <Table.Summary.Cell index={0} colSpan={3}>
-                    <Button
-                      type="primary"
-                      icon={<PlusOutlined />}
-                      onClick={handleAddPackingRow}
-                      disabled={!selectedProductId}
-                    >
-                      Add Packing Material
-                    </Button>
-                  </Table.Summary.Cell>
-                  <Table.Summary.Cell index={1} colSpan={3} className="text-center font-bold text-slate-800">
-                    <span className="text-gray-600 mr-2 font-semibold">Total Qty:</span>
-                    <span className="text-sm font-bold text-slate-900">
-                      {totalPackingQty.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </Table.Summary.Cell>
-                  <Table.Summary.Cell index={2} colSpan={3} className="text-right pr-4 font-bold">
-                    <span className="text-gray-600 mr-2 font-semibold">Total Tk:</span>
-                    <span className="text-base font-extrabold text-amber-700">
-                      {totalPackingTk.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
-                    </span>
-                  </Table.Summary.Cell>
-                </Table.Summary.Row>
-              </Table.Summary>
-            )}
-          />
+          <div className="border border-slate-200/60 rounded-lg overflow-hidden">
+            <Table
+              dataSource={packingMaterials}
+              columns={packingColumns}
+              rowKey="si"
+              pagination={false}
+              bordered
+              size="small"
+              scroll={{ x: 1050 }}
+              summary={() => (
+                <Table.Summary fixed>
+                  <Table.Summary.Row className="bg-amber-50/40 border-t border-amber-200/50 font-bold">
+                    <Table.Summary.Cell index={0} colSpan={3}>
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={handleAddPackingRow}
+                        disabled={!selectedProductId}
+                        className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white shadow-xs"
+                      >
+                        Add Packing Material
+                      </Button>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={1} colSpan={3} className="text-center font-bold text-slate-800">
+                      <span className="text-gray-500 mr-2 font-semibold">Total Qty:</span>
+                      <span className="text-sm font-bold text-slate-900">
+                        {totalPackingQty.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={2} colSpan={3} className="text-right pr-4 font-bold">
+                      <span className="text-gray-500 mr-2 font-semibold">Total Tk:</span>
+                      <span className="text-base font-extrabold text-amber-700">
+                        {totalPackingTk.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
+                      </span>
+                    </Table.Summary.Cell>
+                  </Table.Summary.Row>
+                </Table.Summary>
+              )}
+            />
+          </div>
         </div>
+
         {/* Finished Product Section */}
-        <div className="bg-gray-50 p-4 rounded-lg border my-4">
+        <div className="bg-slate-50/60 p-4 rounded-lg border border-slate-200/60 my-4">
           <h3 className="font-bold text-base mb-3 text-gray-800">Finished Product</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Form.Item
@@ -1039,7 +1052,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({ formTitle = 
                 precision={2}
                 controls={false}
                 style={{ width: '100%' }}
-                className="bg-gray-100 font-bold text-gray-700"
+                className="bg-slate-100/80 font-bold text-gray-700 border-slate-200/60"
               />
             </Form.Item>
           </div>
@@ -1052,7 +1065,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({ formTitle = 
             htmlType="submit"
             loading={isSubmitting}
             size="large"
-            className="w-full md:w-auto px-8 bg-slate-800"
+            className="w-full md:w-auto px-8 bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white shadow-sm font-semibold"
           >
             {isSubmitting ? 'Saving...' : 'Save Production'}
           </Button>
