@@ -63,16 +63,25 @@ const ProductIngredient = () => {
                 if (!searchText.trim()) return true;
                 const search = searchText.toLowerCase();
                 const matchProduct = item.productName?.toLowerCase().includes(search);
-                const matchRaw = item.rawMaterials?.some((rm: any) =>
-                    rm.name?.toLowerCase().includes(search)
-                );
-                const matchPacking = item.packingMaterials?.some((pm: any) =>
-                    pm.name?.toLowerCase().includes(search)
-                );
-                const matchExp = (item.ingredientExpneseItems || item.expenseItems)?.some((exp: any) => {
+
+                const rawList = item.ingredientRawMaterials || item.rawMaterials || [];
+                const matchRaw = rawList.some((rm: any) => {
+                    const name = rm.rawMaterials?.name || rm.name;
+                    return name?.toLowerCase().includes(search);
+                });
+
+                const packList = item.ingredientPackingMaterial || item.packingMaterials || item.ingredientPackingMaterials || [];
+                const matchPacking = packList.some((pm: any) => {
+                    const name = pm.packingMaterial?.name || pm.name;
+                    return name?.toLowerCase().includes(search);
+                });
+
+                const expList = item.ingredientExpneseItems || item.expenseItems || [];
+                const matchExp = expList.some((exp: any) => {
                     const name = exp.productionExpenseItem?.expItemName || exp.expItemName;
                     return name?.toLowerCase().includes(search);
                 });
+
                 return matchProduct || matchRaw || matchPacking || matchExp;
             });
     }, [ingredientsData, productMap, searchText, selectedProductId]);
@@ -124,7 +133,7 @@ const ProductIngredient = () => {
                         /> */}
                         <CommonModal
                             title="Add Product Ingredient"
-                            btnClass="bg-slate-800 text-white hover:bg-slate-700 whitespace-nowrap"
+                            btnClass="bg-[#C58D2F] hover:bg-[#b07d28] text-white whitespace-nowrap font-medium"
                             btnText="Add Ingredient"
                             isModalOpen={isAddModalOpen}
                             setIsModalOpen={setIsAddModalOpen}
@@ -159,39 +168,53 @@ const ProductIngredient = () => {
                     />
                     <Column
                         title="Raw Materials"
-                        dataIndex="rawMaterials"
                         key="rawMaterials"
-                        render={(rawMaterials: any[]) => (
-                            <div className="flex flex-wrap gap-1">
-                                {rawMaterials && rawMaterials.length > 0 ? (
-                                    rawMaterials.map((rm) => (
-                                        <Tag key={rm.id} color="purple">
-                                            {rm.name} {rm.ingredienteQty ? `(${rm.ingredienteQty} ${rm.unit?.name || ""})` : ""}
-                                        </Tag>
-                                    ))
-                                ) : (
-                                    <span className="text-gray-400 text-xs">No raw materials</span>
-                                )}
-                            </div>
-                        )}
+                        render={(_: any, record: any) => {
+                            const rawMaterials = record.ingredientRawMaterials || record.rawMaterials || [];
+                            return (
+                                <div className="flex flex-wrap gap-1">
+                                    {rawMaterials && rawMaterials.length > 0 ? (
+                                        rawMaterials.map((rm: any, idx: number) => {
+                                            const name = rm.rawMaterials?.name || rm.name;
+                                            return (
+                                                <Tag key={rm.id || idx} color="purple">
+                                                    {name}
+                                                </Tag>
+                                            );
+                                        })
+                                    ) : (
+                                        <span className="text-gray-400 text-xs">No raw materials</span>
+                                    )}
+                                </div>
+                            );
+                        }}
                     />
                     <Column
                         title="Packing Materials"
-                        dataIndex="packingMaterials"
                         key="packingMaterials"
-                        render={(packingMaterials: any[]) => (
-                            <div className="flex flex-wrap gap-1">
-                                {packingMaterials && packingMaterials.length > 0 ? (
-                                    packingMaterials.map((pm) => (
-                                        <Tag key={pm.id} color="cyan">
-                                            {pm.name} {pm.ingredienteQty ? `(${pm.ingredienteQty} ${pm.unit?.name || ""})` : ""}
-                                        </Tag>
-                                    ))
-                                ) : (
-                                    <span className="text-gray-400 text-xs">No packing materials</span>
-                                )}
-                            </div>
-                        )}
+                        render={(_: any, record: any) => {
+                            const packingMaterials =
+                                record.ingredientPackingMaterial ||
+                                record.packingMaterials ||
+                                record.ingredientPackingMaterials ||
+                                [];
+                            return (
+                                <div className="flex flex-wrap gap-1">
+                                    {packingMaterials && packingMaterials.length > 0 ? (
+                                        packingMaterials.map((pm: any, idx: number) => {
+                                            const name = pm.packingMaterial?.name || pm.name;
+                                            return (
+                                                <Tag key={pm.id || idx} color="cyan">
+                                                    {name}
+                                                </Tag>
+                                            );
+                                        })
+                                    ) : (
+                                        <span className="text-gray-400 text-xs">No packing materials</span>
+                                    )}
+                                </div>
+                            );
+                        }}
                     />
                     <Column
                         title="Production Expenses"

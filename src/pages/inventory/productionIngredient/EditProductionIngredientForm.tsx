@@ -46,10 +46,18 @@ const EditProductionIngredientForm = ({
 
     useEffect(() => {
         if (item) {
-            const rawMaterials = (item.rawMaterials || []).map((rm: any) => rm.id ?? rm.rawId);
-            const packingMaterials = (item.packingMaterials || []).map((pm: any) => pm.id ?? pm.packingMaterialId);
-            const rawExpItems = item.ingredientExpneseItems || item.expenseItems || [];
-            const ingredientExpneseItems = rawExpItems
+            const rawList = item.ingredientRawMaterials || item.rawMaterials || [];
+            const rawMaterials = rawList
+                .map((rm: any) => rm.rawId ?? rm.rawMaterials?.id ?? rm.id)
+                .filter(Boolean);
+
+            const packList = item.ingredientPackingMaterial || item.packingMaterials || item.ingredientPackingMaterials || [];
+            const packingMaterials = packList
+                .map((pm: any) => pm.packingMaterialId ?? pm.packingMaterial?.id ?? pm.id)
+                .filter(Boolean);
+
+            const expList = item.ingredientExpneseItems || item.expenseItems || [];
+            const ingredientExpneseItems = expList
                 .map((exp: any) => exp.productionExpenssItemId ?? exp.productionExpenseItem?.id ?? exp.id)
                 .filter(Boolean);
 
