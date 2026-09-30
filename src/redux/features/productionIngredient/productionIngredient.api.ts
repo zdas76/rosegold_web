@@ -8,6 +8,7 @@ export const productionIngredientApi = baseApi.injectEndpoints({
                 productId: number;
                 rawMaterials: number[];
                 packingMaterials?: number[];
+                ingredientExpneseItems?: number[];
             }) => ({
                 url: "/product-ingradient",
                 method: "POST",
@@ -36,6 +37,7 @@ export const productionIngredientApi = baseApi.injectEndpoints({
                 productId?: number;
                 rawMaterials?: number[];
                 packingMaterials?: number[];
+                ingredientExpneseItems?: number[];
             }) => ({
                 url: `/product-ingradient/${id}`,
                 method: "PUT",

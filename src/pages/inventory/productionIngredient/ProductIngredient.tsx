@@ -69,7 +69,11 @@ const ProductIngredient = () => {
                 const matchPacking = item.packingMaterials?.some((pm: any) =>
                     pm.name?.toLowerCase().includes(search)
                 );
-                return matchProduct || matchRaw || matchPacking;
+                const matchExp = (item.ingredientExpneseItems || item.expenseItems)?.some((exp: any) => {
+                    const name = exp.productionExpenseItem?.expItemName || exp.expItemName;
+                    return name?.toLowerCase().includes(search);
+                });
+                return matchProduct || matchRaw || matchPacking || matchExp;
             });
     }, [ingredientsData, productMap, searchText, selectedProductId]);
 
@@ -203,15 +207,11 @@ const ProductIngredient = () => {
                                                 exp.productionExpenseItem?.expItemName ||
                                                 exp.expItemName ||
                                                 `Expense #${exp.productionExpenssItemId || exp.id}`;
-                                            const qty = exp.quantity ?? exp.qty;
                                             const rate = exp.productionExpenseItem?.unitRate ?? exp.unitRate;
-                                            const total = qty && rate ? Number((qty * rate).toFixed(2)) : null;
 
                                             return (
                                                 <Tag key={exp.id || idx} color="orange">
-                                                    <span className="font-medium">{name}</span>
-                                                    {qty ? ` (Qty: ${qty}` : ""}
-                                                    {total !== null ? ` | Total: ${total}৳)` : qty ? ")" : ""}
+                                                    {name} {rate ? `(${rate}৳)` : ""}
                                                 </Tag>
                                             );
                                         })
