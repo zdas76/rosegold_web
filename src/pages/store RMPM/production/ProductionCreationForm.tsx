@@ -1,53 +1,46 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useMemo } from 'react';
-import { Form, InputNumber, Input, Button, Table, Select, DatePicker, message, Spin, Alert, Tag } from 'antd';
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Table, Select, DatePicker, message, Spin, InputNumber } from 'antd';
+import { PlusOutlined, DeleteOutlined, ArrowRightOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import { useNavigate, useLocation } from 'react-router';
 import dayjs from 'dayjs';
 import { useGetRowMaterialsQuery } from '../../../redux/features/rowMaterials/rowMaterials.api';
 import { useGetProductsQuery } from '../../../redux/features/product/product.api';
-import { useGetPackingMaterialsQuery } from '../../../redux/features/packingMaterials/packingMaterials.api';
 import { useGetProductionIngredientsQuery } from '../../../redux/features/productionIngredient/productionIngredient.api';
-import { useCreateProductionMutation } from '../../../redux/features/production/production.api';
-import { useGetProductionExpItemsQuery } from '../../../redux/features/productionExpItem/productionExpItem.api';
+import {
+  useCreateProductionMutation,
+  type Production,
+} from '../../../redux/features/production/production.api';
 import { getResponse } from '../../../utils/getResponse';
-import { generateInvoiceNumber } from '../../../utils/generateRandomNumber';
 
-interface RawMaterialFromAPI {
-  id: number;
-  name: string;
-  unit?: { id: number; name: string };
-  unitId?: number;
-  rate?: number;
-  unitPrice?: number;
-  ingredienteRate?: number;
-  ingredienteQty?: number;
-}
-
-interface RawMaterialItem {
+export interface RawMaterialItem {
+  id?: number;
   si: number;
   rawMaterialId: number | null;
   name: string;
-  qty: number | null;
   unit: string;
-  unitId: number | null;
+  unitId?: number | null;
+  qty: number | null;
   rate: number | null;
   total: number;
 }
 
-interface PackingMaterialItem {
+export interface PackingMaterialItem {
+  id?: number;
   si: number;
   packingMaterialId: number | null;
   name: string;
-  qty: number | null;
   unit: string;
-  unitId: number | null;
+  unitId?: number | null;
+  qty: number | null;
   unitPrice: number | null;
   perUnitQty: number | null;
   perUnitCost: number | null;
   total: number;
 }
 
-interface ProductionExpenseItem {
+export interface ProductionExpenseItem {
+  id?: number;
   si: number;
   expenseItemId: number | null;
   name: string;
@@ -56,55 +49,35 @@ interface ProductionExpenseItem {
   total: number;
 }
 
-const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({ formTitle = "Production Creation Form" }) => {
+interface RawMaterialFromAPI {
+  id: number;
+  name: string;
+  unit?: { id: number; name: string };
+  unitId?: number;
+  ingredienteRate?: number;
+  unitPrice?: number;
+  rate?: number;
+}
+
+const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
+  formTitle = 'Production Creation Form',
+}) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [form] = Form.useForm();
-  const [rawMaterials, setRawMaterials] = useState<RawMaterialItem[]>([]);
-  const [packingMaterials, setPackingMaterials] = useState<PackingMaterialItem[]>([]);
-  const [productionExpenses, setProductionExpenses] = useState<ProductionExpenseItem[]>([]);
-  const [grandTotal, setGrandTotal] = useState(0);
+
+  const [existingProductionId, setExistingProductionId] = useState<number | null>(null);
+  const [rawMaterials, setRawMaterials] = useState<RawMaterialItem[]>([
+    { si: 1, rawMaterialId: null, name: '', unit: 'Kg', unitId: null, qty: null, rate: null, total: 0 },
+  ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const totalQty = useMemo(() => {
-    return Number(rawMaterials.reduce((sum, item) => sum + (Number(item.qty) || 0), 0).toFixed(2));
-  }, [rawMaterials]);
-
-  const totalPackingQty = useMemo(() => {
-    return Number(packingMaterials.reduce((sum, item) => sum + (Number(item.qty) || 0), 0).toFixed(2));
-  }, [packingMaterials]);
-
-  const totalPackingTk = useMemo(() => {
-    return Number(packingMaterials.reduce((sum, item) => sum + (Number(item.total) || 0), 0).toFixed(2));
-  }, [packingMaterials]);
-
-  const totalExpenseQty = useMemo(() => {
-    return Number(productionExpenses.reduce((sum, item) => sum + (Number(item.qty) || 0), 0).toFixed(2));
-  }, [productionExpenses]);
-
-  const totalExpenseTk = useMemo(() => {
-    return Number(productionExpenses.reduce((sum, item) => sum + (Number(item.total) || 0), 0).toFixed(2));
-  }, [productionExpenses]);
-
-  // Track already selected material IDs to prevent duplicate selection
-  const selectedRawMaterialIds = useMemo(() => {
-    return new Set(rawMaterials.map(item => item.rawMaterialId).filter(Boolean));
-  }, [rawMaterials]);
-
-  const selectedPackingMaterialIds = useMemo(() => {
-    return new Set(packingMaterials.map(item => item.packingMaterialId).filter(Boolean));
-  }, [packingMaterials]);
-
-  const selectedExpenseItemIds = useMemo(() => {
-    return new Set(productionExpenses.map(item => item.expenseItemId).filter(Boolean));
-  }, [productionExpenses]);
-
-  // Watch selected product
-  const selectedProductId = Form.useWatch('productId', form);
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   // Queries
   const { data: productsData, isLoading: isProductsLoading } = useGetProductsQuery({});
   const { data: allRawMaterialsData } = useGetRowMaterialsQuery({});
-  const { data: allPackingMaterialsData, isLoading: isPackingMaterialsLoading } = useGetPackingMaterialsQuery({});
-  const { data: allExpItemsData, isLoading: isExpItemsLoading } = useGetProductionExpItemsQuery({});
+  const selectedProductId = Form.useWatch('productId', form);
+
   const { data: ingredientsData, isLoading: isIngredientsLoading, isFetching: isIngredientsFetching } =
     useGetProductionIngredientsQuery(
       selectedProductId ? { productId: selectedProductId } : undefined,
@@ -113,7 +86,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({ formTitle = 
 
   const [createProduction] = useCreateProductionMutation();
 
-  // Options for products
+  // Product & Raw Material dropdown options
   const productOptions = useMemo(() => {
     return productsData?.data?.map((item: { id: number; name: string }) => ({
       value: item.id,
@@ -121,7 +94,6 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({ formTitle = 
     })) || [];
   }, [productsData]);
 
-  // Options for all raw materials dropdown
   const materialOptions = useMemo(() => {
     return allRawMaterialsData?.data?.map((item: RawMaterialFromAPI) => ({
       value: item.id,
@@ -132,243 +104,95 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({ formTitle = 
     })) || [];
   }, [allRawMaterialsData]);
 
-  // Options for all packing materials dropdown
-  const packingMaterialOptions = useMemo(() => {
-    const list = Array.isArray(allPackingMaterialsData?.data) ? allPackingMaterialsData.data : [];
-    return list.map((item: any) => ({
-      value: item.id,
-      label: item.name,
-      unit: item.unit?.name || 'Pcs',
-      unitPrice: item.unitPrice ?? item.rate ?? 0,
-      item,
-    }));
-  }, [allPackingMaterialsData]);
+  const selectedRawMaterialIds = useMemo(() => {
+    return new Set(rawMaterials.map(item => item.rawMaterialId).filter(Boolean));
+  }, [rawMaterials]);
 
-  // Options for all production expense items dropdown
-  const expenseOptions = useMemo(() => {
-    const list = Array.isArray(allExpItemsData?.data) ? allExpItemsData.data : [];
-    return list.map((item: any) => ({
-      value: item.id,
-      label: item.expItemName,
-      rate: item.unitRate ?? item.rate ?? null,
-    }));
-  }, [allExpItemsData]);
+  const totalQty = useMemo(() => {
+    return Number(rawMaterials.reduce((sum, item) => sum + (Number(item.qty) || 0), 0).toFixed(2));
+  }, [rawMaterials]);
 
-  // When selected product changes or ingredientsData loads, populate default raw materials & packing materials
+  const grandTotal = useMemo(() => {
+    return Number(rawMaterials.reduce((sum, item) => sum + (Number(item.total) || 0), 0).toFixed(2));
+  }, [rawMaterials]);
+
+  // Load existing production if passed via location.state
   useEffect(() => {
-    if (!selectedProductId) {
-      setRawMaterials([]);
-      setPackingMaterials([]);
-      setProductionExpenses([]);
-      return;
+    if (location.state?.production) {
+      const prod = location.state.production;
+      setExistingProductionId(prod.id);
+      form.setFieldsValue({
+        productId: prod.productinfo?.productId || prod.inventory?.find((inv: any) => inv.productId)?.productId,
+        batchNo: prod.batchNo,
+        date: prod.date ? dayjs(prod.date) : dayjs(),
+      });
+      const rawInvs = prod.inventory?.filter((inv: any) => inv.rawId || inv.raWMaterial) || [];
+      if (rawInvs.length > 0) {
+        setRawMaterials(
+          rawInvs.map((rm: any, idx: number) => {
+            const rawId = rm.rawId || rm.raWMaterial?.id;
+            const qty = rm.quantityLess ?? rm.quantity ?? 0;
+            const rate = rm.unitPrice ?? 0;
+            return {
+              id: rm.id,
+              si: idx + 1,
+              rawMaterialId: rawId,
+              name: rm.raWMaterial?.name || '',
+              unit: rm.raWMaterial?.unit?.name || 'Kg',
+              qty: qty > 0 ? qty : null,
+              rate: rate > 0 ? rate : null,
+              total: Number((qty * rate).toFixed(2)),
+            };
+          })
+        );
+      }
     }
+  }, [location.state, form]);
 
-    if (!ingredientsData) return;
+  // Auto-populate raw materials recipe when product is selected
+  useEffect(() => {
+    if (existingProductionId || !selectedProductId) return;
 
-    // Helper to safely extract list of recipe records
-    let rawList: any[] = [];
-    if (Array.isArray(ingredientsData?.data)) {
-      rawList = ingredientsData.data;
-    } else if (Array.isArray((ingredientsData as any)?.data?.data)) {
-      rawList = (ingredientsData as any).data.data;
-    } else if (Array.isArray(ingredientsData)) {
-      rawList = ingredientsData as any;
-    } else if (ingredientsData?.data && typeof ingredientsData.data === 'object') {
-      rawList = [ingredientsData.data];
-    } else if (ingredientsData && typeof ingredientsData === 'object') {
-      rawList = [ingredientsData];
-    }
+    const rawList = Array.isArray(ingredientsData?.data)
+      ? ingredientsData.data
+      : Array.isArray((ingredientsData as any)?.data?.data)
+      ? (ingredientsData as any).data.data
+      : [];
 
-    const matchedRecipe =
-      rawList.find((r: any) => Number(r.productId) === Number(selectedProductId)) ||
-      rawList[0];
-
-    const materials: any[] =
-      matchedRecipe?.ingredientRawMaterials ||
-      matchedRecipe?.rawMaterials ||
-      [];
-    const packing: any[] =
-      matchedRecipe?.ingredientPackingMaterial ||
-      matchedRecipe?.ingredientPackingMaterials ||
-      matchedRecipe?.packingMaterials ||
-      [];
-    const expItems: any[] =
-      matchedRecipe?.ingredientExpneseItems ||
-      matchedRecipe?.expenseItems ||
-      [];
+    const matched = rawList.find((r: any) => Number(r.productId) === Number(selectedProductId)) || rawList[0];
+    const materials = matched?.ingredientRawMaterial || matched?.ingredientRawMaterials || matched?.rawMaterials || [];
 
     if (materials.length > 0) {
       const initialItems: RawMaterialItem[] = materials.map((m: any, index: number) => {
         const rawId = m.rawId ?? m.rawMaterials?.id ?? m.id ?? m.rawMaterialId;
-        const foundMaterial = allRawMaterialsData?.data?.find(
-          (rm: any) => Number(rm.id) === Number(rawId)
-        );
-
-        const name = m.rawMaterials?.name ?? foundMaterial?.name ?? m.name ?? '';
-        const unit = m.rawMaterials?.unit?.name ?? foundMaterial?.unit?.name ?? m.unit?.name ?? 'Kg';
-        const unitId = m.rawMaterials?.unitId ?? foundMaterial?.unitId ?? m.unitId ?? null;
-
-        const rate =
-          m.rawMaterials?.unitPrice !== undefined && m.rawMaterials?.unitPrice !== null
-            ? Number(m.rawMaterials.unitPrice)
-            : m.ingredienteRate !== undefined && m.ingredienteRate !== null
-              ? Number(m.ingredienteRate)
-              : m.unitPrice !== undefined && m.unitPrice !== null
-                ? Number(m.unitPrice)
-                : foundMaterial?.ingredienteRate ?? foundMaterial?.unitPrice ?? foundMaterial?.rate ?? null;
-
-        const qty =
-          m.ingredienteQty !== undefined && m.ingredienteQty !== null
-            ? Number(m.ingredienteQty)
-            : m.quantity !== undefined && m.quantity !== null
-              ? Number(m.quantity)
-              : null;
-
+        const found = allRawMaterialsData?.data?.find((rm: any) => Number(rm.id) === Number(rawId));
+        const name = m.rawMaterials?.name ?? found?.name ?? m.name ?? '';
+        const unit = m.rawMaterials?.unit?.name ?? found?.unit?.name ?? m.unit?.name ?? 'Kg';
+        const unitId = m.rawMaterials?.unitId ?? found?.unitId ?? m.unitId ?? null;
+        const rate = m.rawMaterials?.unitPrice ?? m.ingredienteRate ?? m.unitPrice ?? found?.ingredienteRate ?? found?.unitPrice ?? found?.rate ?? null;
+        const qty = m.ingredienteQty ?? m.quantity ?? null;
         const total = qty != null && rate != null ? Number((qty * rate).toFixed(2)) : 0;
 
         return {
           si: index + 1,
           rawMaterialId: rawId,
           name,
-          qty,
           unit,
           unitId,
+          qty,
           rate,
           total,
         };
       });
-
       setRawMaterials(initialItems);
     } else {
-      // If product has no defined ingredient list, start with one empty row
       setRawMaterials([
-        {
-          si: 1,
-          rawMaterialId: null,
-          name: '',
-          qty: null,
-          unit: 'Kg',
-          unitId: null,
-          rate: null,
-          total: 0,
-        },
+        { si: 1, rawMaterialId: null, name: '', unit: 'Kg', unitId: null, qty: null, rate: null, total: 0 },
       ]);
     }
+  }, [selectedProductId, ingredientsData, allRawMaterialsData, existingProductionId]);
 
-    // Auto-populate packing materials from recipe if available
-    if (packing.length > 0) {
-      const currentProdQty = Number(form.getFieldValue('productQuantity')) || 0;
-      const initialPacking: PackingMaterialItem[] = packing.map((pm: any, index: number) => {
-        const pmId = pm.packingMaterialId ?? pm.packingMaterial?.id ?? pm.id ?? pm.packingMaterialId;
-        const packingList = Array.isArray(allPackingMaterialsData?.data) ? allPackingMaterialsData.data : [];
-        const foundPacking = packingList.find((p: any) => Number(p.id) === Number(pmId));
-
-        const name = pm.packingMaterial?.name ?? foundPacking?.name ?? pm.name ?? '';
-        const unit = pm.packingMaterial?.unit?.name ?? foundPacking?.unit?.name ?? pm.unit?.name ?? 'Pcs';
-        const unitId = pm.packingMaterial?.unitId ?? foundPacking?.unitId ?? pm.unit?.id ?? null;
-
-        const pmPrice =
-          pm.packingMaterial?.unitPrice !== undefined && pm.packingMaterial?.unitPrice !== null
-            ? Number(pm.packingMaterial.unitPrice)
-            : pm.unitPrice ??
-            pm.rate ??
-            foundPacking?.unitPrice ??
-            foundPacking?.rate ??
-            0;
-
-        const pmPerUnitQty =
-          pm.ingredienteQty !== undefined && pm.ingredienteQty !== null
-            ? Number(pm.ingredienteQty)
-            : pm.quantity !== undefined && pm.quantity !== null
-              ? Number(pm.quantity)
-              : pm.perUnitQty !== undefined && pm.perUnitQty !== null
-                ? Number(pm.perUnitQty)
-                : null;
-
-        const calculatedQty = pmPerUnitQty != null && currentProdQty > 0
-          ? Number((pmPerUnitQty * currentProdQty).toFixed(2))
-          : null;
-        const calculatedCost = pmPerUnitQty != null ? Number((pmPerUnitQty * pmPrice).toFixed(2)) : 0;
-        const total = calculatedQty != null ? Number((calculatedQty * pmPrice).toFixed(2)) : 0;
-
-        return {
-          si: index + 1,
-          packingMaterialId: pmId,
-          name,
-          unit,
-          unitId,
-          qty: calculatedQty,
-          unitPrice: pmPrice,
-          perUnitQty: pmPerUnitQty,
-          perUnitCost: calculatedCost,
-          total,
-        };
-      });
-      setPackingMaterials(initialPacking);
-    } else {
-      setPackingMaterials([
-        {
-          si: 1,
-          packingMaterialId: null,
-          name: '',
-          unit: 'Pcs',
-          unitId: null,
-          qty: null,
-          unitPrice: null,
-          perUnitQty: null,
-          perUnitCost: null,
-          total: 0,
-        },
-      ]);
-    }
-
-    // Auto-populate production expenses from recipe if available
-    if (expItems.length > 0) {
-      const expList = Array.isArray(allExpItemsData?.data) ? allExpItemsData.data : [];
-      const initialExpenses: ProductionExpenseItem[] = expItems.map((exp: any, index: number) => {
-        const expId = exp.productionExpenssItemId ?? exp.productionExpenseItem?.id ?? exp.id;
-        const foundExp = expList.find((e: any) => Number(e.id) === Number(expId));
-        const name = exp.productionExpenseItem?.expItemName ?? foundExp?.expItemName ?? exp.expItemName ?? '';
-        const rate =
-          exp.productionExpenseItem?.unitRate !== undefined && exp.productionExpenseItem?.unitRate !== null
-            ? Number(exp.productionExpenseItem.unitRate)
-            : exp.unitRate !== undefined && exp.unitRate !== null
-              ? Number(exp.unitRate)
-              : foundExp?.unitRate ?? foundExp?.rate ?? null;
-        const qty = exp.qty !== undefined && exp.qty !== null ? Number(exp.qty) : null;
-        const total = qty != null && rate != null ? Number((qty * rate).toFixed(2)) : 0;
-
-        return {
-          si: index + 1,
-          expenseItemId: expId,
-          name,
-          qty,
-          rate,
-          total,
-        };
-      });
-      setProductionExpenses(initialExpenses);
-    } else {
-      setProductionExpenses([
-        {
-          si: 1,
-          expenseItemId: null,
-          name: '',
-          qty: null,
-          rate: null,
-          total: 0,
-        },
-      ]);
-    }
-  }, [selectedProductId, ingredientsData, allRawMaterialsData, allPackingMaterialsData, allExpItemsData, form]);
-
-  // Recalculate grand total
-  useEffect(() => {
-    const total = rawMaterials.reduce((sum, item) => sum + (item.total || 0), 0);
-    setGrandTotal(Number(total.toFixed(2)));
-  }, [rawMaterials]);
-
-  // Handle Material Select change in a row
+  // Handlers for table rows
   const handleMaterialChange = (si: number, value: number | null) => {
     if (!value) {
       setRawMaterials(prev =>
@@ -381,24 +205,20 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({ formTitle = 
       return;
     }
 
-    const selectedMaterial = allRawMaterialsData?.data?.find((m: RawMaterialFromAPI) => m.id === value);
-    if (selectedMaterial) {
+    const selected = allRawMaterialsData?.data?.find((m: RawMaterialFromAPI) => m.id === value);
+    if (selected) {
       setRawMaterials(prev =>
         prev.map(item => {
           if (item.si === si) {
-            const newRate =
-              selectedMaterial.ingredienteRate ??
-              selectedMaterial.unitPrice ??
-              selectedMaterial.rate ??
-              null;
+            const newRate = selected.ingredienteRate ?? selected.unitPrice ?? selected.rate ?? null;
             const newQty = item.qty ?? 0;
             const newTotal = newRate != null ? Number((newQty * newRate).toFixed(2)) : 0;
             return {
               ...item,
-              rawMaterialId: selectedMaterial.id,
-              name: selectedMaterial.name,
-              unit: selectedMaterial.unit?.name || 'Kg',
-              unitId: selectedMaterial.unitId ?? null,
+              rawMaterialId: selected.id,
+              name: selected.name,
+              unit: selected.unit?.name || 'Kg',
+              unitId: selected.unitId ?? null,
               rate: newRate,
               total: newTotal,
             };
@@ -413,10 +233,9 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({ formTitle = 
     setRawMaterials(prev =>
       prev.map(item => {
         if (item.si === si) {
-          const newQty = value;
           const rate = item.rate || 0;
-          const newTotal = newQty != null ? Number((newQty * rate).toFixed(2)) : 0;
-          return { ...item, qty: newQty, total: newTotal };
+          const total = value != null ? Number((value * rate).toFixed(2)) : 0;
+          return { ...item, qty: value, total };
         }
         return item;
       })
@@ -427,10 +246,9 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({ formTitle = 
     setRawMaterials(prev =>
       prev.map(item => {
         if (item.si === si) {
-          const newRate = value;
           const qty = item.qty || 0;
-          const newTotal = newRate != null ? Number((qty * newRate).toFixed(2)) : 0;
-          return { ...item, rate: newRate, total: newTotal };
+          const total = value != null ? Number((qty * value).toFixed(2)) : 0;
+          return { ...item, rate: value, total };
         }
         return item;
       })
@@ -440,16 +258,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({ formTitle = 
   const handleAddRow = () => {
     setRawMaterials(prev => [
       ...prev,
-      {
-        si: prev.length + 1,
-        rawMaterialId: null,
-        name: '',
-        qty: null,
-        unit: 'Kg',
-        unitId: null,
-        rate: null,
-        total: 0,
-      },
+      { si: prev.length + 1, rawMaterialId: null, name: '', qty: null, unit: 'Kg', unitId: null, rate: null, total: 0 },
     ]);
   };
 
@@ -459,394 +268,86 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({ formTitle = 
         message.warning('At least one raw material row is required');
         return prev;
       }
-      const filtered = prev.filter(item => item.si !== si);
-      return filtered.map((item, index) => ({ ...item, si: index + 1 }));
+      return prev.filter(item => item.si !== si).map((item, idx) => ({ ...item, si: idx + 1 }));
     });
   };
 
-  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    setTimeout(() => {
-      e.currentTarget.select();
-    }, 0);
-  };
+  // Submit Step 1 and Navigate to Step 2
+  const handleSaveAndProceed = async () => {
+    setAttemptedSubmit(true);
 
-  const handleNumberKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!/[\d.]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(e.key)) {
-      e.preventDefault();
-    }
-  };
-
-  const productQuantity = Form.useWatch('productQuantity', form);
-  const unitCost =
-    (Number(productQuantity) || 0) > 0 ? Number((grandTotal / Number(productQuantity)).toFixed(2)) : 0;
-
-  // Sync packing materials whenever finished product quantity changes
-  useEffect(() => {
-    const prodQty = Number(productQuantity) || 0;
-    if (prodQty > 0) {
-      setPackingMaterials(prev =>
-        prev.map(item => {
-          if (item.perUnitQty != null) {
-            const newQty = Number((item.perUnitQty * prodQty).toFixed(2));
-            const price = item.unitPrice || 0;
-            const newTotal = Number((newQty * price).toFixed(2));
-            return { ...item, qty: newQty, total: newTotal };
-          }
-          return item;
-        })
-      );
-    }
-  }, [productQuantity]);
-
-  const handleAddPackingRow = () => {
-    setPackingMaterials(prev => [
-      ...prev,
-      {
-        si: prev.length + 1,
-        packingMaterialId: null,
-        name: '',
-        unit: 'Pcs',
-        unitId: null,
-        qty: null,
-        unitPrice: null,
-        perUnitQty: null,
-        perUnitCost: null,
-        total: 0,
-      },
-    ]);
-  };
-
-  const handleRemovePackingRow = (si: number) => {
-    setPackingMaterials(prev => {
-      if (prev.length <= 1) {
-        message.warning('At least one packing material row is required');
-        return prev;
-      }
-      const filtered = prev.filter(item => item.si !== si);
-      return filtered.map((item, index) => ({ ...item, si: index + 1 }));
-    });
-  };
-
-  const handlePackingMaterialChange = (si: number, materialId: number | null) => {
-    if (!materialId) {
-      setPackingMaterials(prev =>
-        prev.map(item =>
-          item.si === si
-            ? {
-              ...item,
-              packingMaterialId: null,
-              name: '',
-              unit: 'Pcs',
-              unitId: null,
-              qty: null,
-              unitPrice: null,
-              perUnitQty: null,
-              perUnitCost: null,
-              total: 0,
-            }
-            : item
-        )
-      );
-      return;
-    }
-
-    const chosen = packingMaterialOptions.find((opt: any) => opt.value === materialId);
-    const price = chosen?.unitPrice ?? 0;
-    const unit = chosen?.unit || 'Pcs';
-    const unitId = chosen?.item?.unitId ?? chosen?.item?.unit?.id ?? null;
-    const prodQty = Number(productQuantity) || 0;
-
-    setPackingMaterials(prev =>
-      prev.map(item => {
-        if (item.si === si) {
-          const perUnitQty = item.perUnitQty;
-          let qty = item.qty;
-          let perUnitCost = item.perUnitCost;
-
-          if (perUnitQty != null) {
-            perUnitCost = Number((perUnitQty * price).toFixed(2));
-            if (prodQty > 0) {
-              qty = Number((perUnitQty * prodQty).toFixed(2));
-            }
-          } else if (qty != null && prodQty > 0) {
-            const calculatedPerUnitQty = Number((qty / prodQty).toFixed(4));
-            perUnitCost = Number((calculatedPerUnitQty * price).toFixed(2));
-          }
-
-          const total = qty != null ? Number((qty * price).toFixed(2)) : 0;
-
-          return {
-            ...item,
-            packingMaterialId: materialId,
-            name: chosen?.label || '',
-            unit,
-            unitId,
-            unitPrice: price,
-            qty,
-            perUnitCost,
-            total,
-          };
-        }
-        return item;
-      })
-    );
-  };
-
-  const handlePackingQtyChange = (si: number, value: number | null) => {
-    const prodQty = Number(productQuantity) || 0;
-    setPackingMaterials(prev =>
-      prev.map(item => {
-        if (item.si === si) {
-          const newQty = value;
-          const price = item.unitPrice || 0;
-          const newTotal = newQty != null ? Number((newQty * price).toFixed(2)) : 0;
-          let perUnitQty = item.perUnitQty;
-          let perUnitCost = item.perUnitCost;
-
-          if (newQty != null && prodQty > 0) {
-            perUnitQty = Number((newQty / prodQty).toFixed(4));
-            perUnitCost = Number((perUnitQty * price).toFixed(2));
-          }
-
-          return {
-            ...item,
-            qty: newQty,
-            perUnitQty,
-            perUnitCost,
-            total: newTotal,
-          };
-        }
-        return item;
-      })
-    );
-  };
-
-  const handlePackingUnitPriceChange = (si: number, value: number | null) => {
-    setPackingMaterials(prev =>
-      prev.map(item => {
-        if (item.si === si) {
-          const newPrice = value;
-          const qty = item.qty || 0;
-          const perUnitQty = item.perUnitQty || 0;
-          const newTotal = newPrice != null ? Number((qty * newPrice).toFixed(2)) : 0;
-          const newCost = newPrice != null ? Number((perUnitQty * newPrice).toFixed(2)) : 0;
-
-          return {
-            ...item,
-            unitPrice: newPrice,
-            perUnitCost: newCost,
-            total: newTotal,
-          };
-        }
-        return item;
-      })
-    );
-  };
-
-  const handlePackingPerUnitQtyChange = (si: number, value: number | null) => {
-    const prodQty = Number(productQuantity) || 0;
-    setPackingMaterials(prev =>
-      prev.map(item => {
-        if (item.si === si) {
-          const newPerUnitQty = value;
-          const price = item.unitPrice || 0;
-          let qty = item.qty;
-          if (newPerUnitQty != null && prodQty > 0) {
-            qty = Number((newPerUnitQty * prodQty).toFixed(2));
-          }
-          const perUnitCost = newPerUnitQty != null ? Number((newPerUnitQty * price).toFixed(2)) : 0;
-          const total = qty != null ? Number((qty * price).toFixed(2)) : 0;
-
-          return {
-            ...item,
-            perUnitQty: newPerUnitQty,
-            qty,
-            perUnitCost,
-            total,
-          };
-        }
-        return item;
-      })
-    );
-  };
-
-  const handlePackingPerUnitCostChange = (si: number, value: number | null) => {
-    setPackingMaterials(prev =>
-      prev.map(item => {
-        if (item.si === si) {
-          return {
-            ...item,
-            perUnitCost: value,
-          };
-        }
-        return item;
-      })
-    );
-  };
-
-  const handleAddExpenseRow = () => {
-    setProductionExpenses(prev => [
-      ...prev,
-      {
-        si: prev.length + 1,
-        expenseItemId: null,
-        name: '',
-        qty: null,
-        rate: null,
-        total: 0,
-      },
-    ]);
-  };
-
-  const handleRemoveExpenseRow = (si: number) => {
-    setProductionExpenses(prev => {
-      if (prev.length <= 1) {
-        message.warning('At least one production expense row is required');
-        return prev;
-      }
-      const filtered = prev.filter(item => item.si !== si);
-      return filtered.map((item, index) => ({ ...item, si: index + 1 }));
-    });
-  };
-
-  const handleExpenseItemChange = (si: number, expenseId: number | null) => {
-    if (!expenseId) {
-      setProductionExpenses(prev =>
-        prev.map(item =>
-          item.si === si
-            ? {
-              ...item,
-              expenseItemId: null,
-              name: '',
-              qty: null,
-              rate: null,
-              total: 0,
-            }
-            : item
-        )
-      );
-      return;
-    }
-
-    const chosen = expenseOptions.find((opt: any) => opt.value === expenseId);
-    if (chosen) {
-      setProductionExpenses(prev =>
-        prev.map(item => {
-          if (item.si === si) {
-            const newRate = chosen.rate ?? item.rate ?? null;
-            const qty = item.qty || 0;
-            const newTotal = newRate != null && qty != null ? Number((qty * newRate).toFixed(2)) : 0;
-            return {
-              ...item,
-              expenseItemId: chosen.value,
-              name: chosen.label,
-              rate: newRate,
-              total: newTotal,
-            };
-          }
-          return item;
-        })
-      );
-    }
-  };
-
-  const handleExpenseQtyChange = (si: number, value: number | null) => {
-    setProductionExpenses(prev =>
-      prev.map(item => {
-        if (item.si === si) {
-          const newQty = value;
-          const rate = item.rate || 0;
-          const newTotal = newQty != null && rate != null ? Number((newQty * rate).toFixed(2)) : 0;
-          return { ...item, qty: newQty, total: newTotal };
-        }
-        return item;
-      })
-    );
-  };
-
-  const handleExpenseRateChange = (si: number, value: number | null) => {
-    setProductionExpenses(prev =>
-      prev.map(item => {
-        if (item.si === si) {
-          const newRate = value;
-          const qty = item.qty || 0;
-          const newTotal = newRate != null && qty != null ? Number((qty * newRate).toFixed(2)) : 0;
-          return { ...item, rate: newRate, total: newTotal };
-        }
-        return item;
-      })
-    );
-  };
-
-  const handleSubmit = async (values: any) => {
-    const validMaterials = rawMaterials.filter(item => item.rawMaterialId);
-    if (validMaterials.length === 0) {
-      message.error('Please select at least one valid raw material');
-      return;
-    }
-
-    setIsSubmitting(true);
     try {
-      const payload = {
-        voucherNo: values.voucherNo || generateInvoiceNumber('PRD'),
+      const values = await form.validateFields();
+      const validMaterials = rawMaterials.filter(item => item.rawMaterialId);
+
+      if (validMaterials.length === 0) {
+        message.error('Please select at least one valid Raw Material');
+        return;
+      }
+
+      const invalidQty = validMaterials.some(item => !item.qty || Number(item.qty) <= 0);
+      if (invalidQty) {
+        message.error('Please enter a valid Quantity (greater than 0) for all raw materials');
+        return;
+      }
+
+      const invalidRate = validMaterials.some(item => item.rate === null || Number(item.rate) < 0);
+      if (invalidRate) {
+        message.error('Please enter a valid Rate for all raw materials');
+        return;
+      }
+
+      setIsSubmitting(true);
+
+      const payload: Production & { id?: number } = {
+        ...(existingProductionId ? { id: existingProductionId } : {}),
+        date: values.date ? dayjs(values.date).toISOString() : dayjs().toISOString(),
         batchNo: values.batchNo,
-        date: values.date ? values.date.toISOString() : dayjs().toISOString(),
-        productId: Number(values.productId),
-        productQuantity: Number(values.productQuantity),
-        unitCost,
-        amount: grandTotal,
+        productinfo: {
+          productId: Number(values.productId),
+          quantity: 0,
+          unitPrice: 0,
+        },
         rawMaterials: validMaterials.map(item => ({
-          rawId: item.rawMaterialId,
-          quantity: item.qty || 0,
-          unitPrice: item.rate || 0,
-          amount: item.total || 0,
+          ...(item.id ? { id: item.id } : {}),
+          rawId: Number(item.rawMaterialId!),
+          quantity: Number(item.qty) || 0,
+          unitPrice: Number(item.rate) || 0,
         })),
-        packingMaterials: packingMaterials
-          .filter(item => item.packingMaterialId)
-          .map(item => ({
-            packingId: item.packingMaterialId,
-            quantity: item.qty || 0,
-            unitPrice: item.unitPrice || 0,
-            amount: item.total || 0,
-            perUnitQty: item.perUnitQty || 0,
-            perUnitCost: item.perUnitCost || 0,
-          })),
-        productionExpenses: productionExpenses
-          .filter(item => item.expenseItemId)
-          .map(item => ({
-            productionExpenssItemId: item.expenseItemId,
-            quantity: item.qty || 0,
-            unitPrice: item.rate || 0,
-            amount: item.total || 0,
-          })),
       };
 
       const res = await createProduction(payload);
       const result = getResponse(res);
+
       if (result?.success) {
-        message.success('Production created successfully');
-        form.resetFields();
-        form.setFieldsValue({ date: dayjs() });
-        setRawMaterials([]);
-        setPackingMaterials([]);
-        setProductionExpenses([]);
+        message.success('Step 1 (Raw Materials) saved successfully! Proceeding to Step 2.');
+        const savedProduction = result.data;
+        navigate('/dashboard/production-step-2', {
+          state: { production: savedProduction },
+        });
       }
-    } catch (error) {
-      message.error('An error occurred while creating production');
+    } catch (error: any) {
+      if (error?.errorFields) {
+        message.error('Please fill in all required fields (Product, Batch No, Date)');
+      } else {
+        message.error('An error occurred while saving Step 1');
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Raw Materials Columns
   const columns = [
-    { title: 'SI', dataIndex: 'si', key: 'si', width: 60, align: 'center' as const },
+    { title: 'SI', dataIndex: 'si', key: 'si', width: 55, align: 'center' as const },
     {
       title: 'Material Name',
       dataIndex: 'name',
       key: 'name',
-      width: 250,
+      width: 260,
       render: (_: any, record: RawMaterialItem) => (
         <Select
+          status={attemptedSubmit && !record.rawMaterialId ? 'error' : undefined}
           placeholder="Select Material"
           value={record.rawMaterialId || undefined}
           style={{ width: '100%' }}
@@ -866,44 +367,41 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({ formTitle = 
       title: 'Unit',
       dataIndex: 'unit',
       key: 'unit',
-      width: 90,
+      width: 80,
       align: 'center' as const,
       render: (unit: string) => <span className="text-gray-600 font-medium">{unit || 'Kg'}</span>,
     },
     {
-      title: 'Qty',
+      title: 'Quantity',
       dataIndex: 'qty',
       key: 'qty',
-      width: 130,
+      width: 140,
       render: (_: any, record: RawMaterialItem) => (
         <InputNumber
+          status={attemptedSubmit && (!record.qty || Number(record.qty) <= 0) ? 'error' : undefined}
           min={0}
           step={0.01}
           value={record.qty}
           onChange={v => handleQtyChange(record.si, v)}
-          onFocus={handleInputFocus}
-          onKeyDown={handleNumberKeyDown}
           controls={false}
           style={{ width: '100%' }}
           precision={2}
-          keyboard={false}
           placeholder="0.00"
         />
       ),
     },
     {
-      title: 'Rate (BDT)',
+      title: 'Unit Rate (BDT)',
       dataIndex: 'rate',
       key: 'rate',
-      width: 130,
+      width: 140,
       render: (_: any, record: RawMaterialItem) => (
         <InputNumber
+          status={attemptedSubmit && (record.rate == null || Number(record.rate) < 0) ? 'error' : undefined}
           min={0}
           step={0.01}
           value={record.rate}
           onChange={v => handleRateChange(record.si, v)}
-          onFocus={handleInputFocus}
-          onKeyDown={handleNumberKeyDown}
           controls={false}
           style={{ width: '100%' }}
           precision={2}
@@ -915,10 +413,10 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({ formTitle = 
       title: 'Total (BDT)',
       dataIndex: 'total',
       key: 'total',
-      width: 140,
+      width: 130,
       align: 'right' as const,
-      render: (value: number) => (
-        <span className="font-semibold text-gray-800">{Number(value || 0).toFixed(2)}</span>
+      render: (total: number) => (
+        <span className="font-bold text-gray-800">{Number(total || 0).toFixed(2)} ৳</span>
       ),
     },
     {
@@ -938,255 +436,32 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({ formTitle = 
     },
   ];
 
-  const packingColumns = [
-    { title: 'SI', dataIndex: 'si', key: 'si', width: 60, align: 'center' as const },
-    {
-      title: 'Packing Material',
-      dataIndex: 'name',
-      key: 'name',
-      width: 250,
-      render: (_: any, record: PackingMaterialItem) => (
-        <Select
-          placeholder="Select Packing Material"
-          value={record.packingMaterialId || undefined}
-          style={{ width: '100%' }}
-          onChange={v => handlePackingMaterialChange(record.si, v as number | null)}
-          options={packingMaterialOptions.map((opt: any) => ({
-            ...opt,
-            disabled: selectedPackingMaterialIds.has(opt.value) && opt.value !== record.packingMaterialId,
-          }))}
-          showSearch
-          filterOption={(input, option) =>
-            !!option?.label?.toString().toLowerCase().includes(input.toLowerCase())
-          }
-        />
-      ),
-    },
-    {
-      title: 'Unit',
-      dataIndex: 'unit',
-      key: 'unit',
-      width: 80,
-      align: 'center' as const,
-      render: (unit: string) => <span className="text-gray-600 font-medium">{unit || 'Pcs'}</span>,
-    },
-    {
-      title: 'Qty',
-      dataIndex: 'qty',
-      key: 'qty',
-      width: 140,
-      render: (_: any, record: PackingMaterialItem) => (
-        <InputNumber
-          min={0}
-          step={0.01}
-          value={record.qty}
-          onChange={v => handlePackingQtyChange(record.si, v)}
-          onFocus={handleInputFocus}
-          onKeyDown={handleNumberKeyDown}
-          controls={false}
-          addonAfter={record.unit || 'Unit'}
-          style={{ width: '100%' }}
-          precision={2}
-          placeholder="0.00"
-        />
-      ),
-    },
-    {
-      title: 'Unit Price (BDT)',
-      dataIndex: 'unitPrice',
-      key: 'unitPrice',
-      width: 130,
-      render: (_: any, record: PackingMaterialItem) => (
-        <InputNumber
-          min={0}
-          step={0.01}
-          value={record.unitPrice}
-          onChange={v => handlePackingUnitPriceChange(record.si, v)}
-          onFocus={handleInputFocus}
-          onKeyDown={handleNumberKeyDown}
-          controls={false}
-          style={{ width: '100%' }}
-          precision={2}
-          placeholder="0.00"
-        />
-      ),
-    },
-    {
-      title: 'Per Unit Qty',
-      dataIndex: 'perUnitQty',
-      key: 'perUnitQty',
-      width: 130,
-      render: (_: any, record: PackingMaterialItem) => (
-        <InputNumber
-          min={0}
-          step={0.0001}
-          value={record.perUnitQty}
-          onChange={v => handlePackingPerUnitQtyChange(record.si, v)}
-          onFocus={handleInputFocus}
-          onKeyDown={handleNumberKeyDown}
-          controls={false}
-          style={{ width: '100%' }}
-          precision={4}
-          placeholder="0.0000"
-        />
-      ),
-    },
-    {
-      title: 'Per Unit Cost (BDT)',
-      dataIndex: 'perUnitCost',
-      key: 'perUnitCost',
-      width: 140,
-      render: (_: any, record: PackingMaterialItem) => (
-        <InputNumber
-          min={0}
-          step={0.01}
-          value={record.perUnitCost}
-          onChange={v => handlePackingPerUnitCostChange(record.si, v)}
-          onFocus={handleInputFocus}
-          onKeyDown={handleNumberKeyDown}
-          controls={false}
-          style={{ width: '100%' }}
-          precision={2}
-          placeholder="0.00"
-        />
-      ),
-    },
-    {
-      title: 'Total (BDT)',
-      dataIndex: 'total',
-      key: 'total',
-      width: 130,
-      align: 'right' as const,
-      render: (value: number) => (
-        <span className="font-semibold text-gray-800">{Number(value || 0).toFixed(2)}</span>
-      ),
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      width: 60,
-      align: 'center' as const,
-      render: (_: any, record: PackingMaterialItem) => (
-        <Button
-          type="text"
-          danger
-          icon={<DeleteOutlined />}
-          onClick={() => handleRemovePackingRow(record.si)}
-          size="small"
-        />
-      ),
-    },
-  ];
-
-  const expenseColumns = [
-    { title: 'SI', dataIndex: 'si', key: 'si', width: 60, align: 'center' as const },
-    {
-      title: 'Expense Item Name',
-      dataIndex: 'name',
-      key: 'name',
-      width: 250,
-      render: (_: any, record: ProductionExpenseItem) => (
-        <Select
-          placeholder="Select Expense Item"
-          value={record.expenseItemId || undefined}
-          style={{ width: '100%' }}
-          onChange={v => handleExpenseItemChange(record.si, v as number | null)}
-          options={expenseOptions.map((opt: any) => ({
-            ...opt,
-            disabled: selectedExpenseItemIds.has(opt.value) && opt.value !== record.expenseItemId,
-          }))}
-          showSearch
-          filterOption={(input, option) =>
-            !!option?.label?.toString().toLowerCase().includes(input.toLowerCase())
-          }
-        />
-      ),
-    },
-    {
-      title: 'Qty',
-      dataIndex: 'qty',
-      key: 'qty',
-      width: 140,
-      render: (_: any, record: ProductionExpenseItem) => (
-        <InputNumber
-          min={0}
-          step={0.01}
-          value={record.qty}
-          onChange={v => handleExpenseQtyChange(record.si, v)}
-          onFocus={handleInputFocus}
-          onKeyDown={handleNumberKeyDown}
-          controls={false}
-          style={{ width: '100%' }}
-          precision={2}
-          placeholder="0.00"
-        />
-      ),
-    },
-    {
-      title: 'Rate (BDT)',
-      dataIndex: 'rate',
-      key: 'rate',
-      width: 140,
-      render: (_: any, record: ProductionExpenseItem) => (
-        <InputNumber
-          min={0}
-          step={0.01}
-          value={record.rate}
-          onChange={v => handleExpenseRateChange(record.si, v)}
-          onFocus={handleInputFocus}
-          onKeyDown={handleNumberKeyDown}
-          controls={false}
-          style={{ width: '100%' }}
-          precision={2}
-          placeholder="0.00"
-        />
-      ),
-    },
-    {
-      title: 'Total (BDT)',
-      dataIndex: 'total',
-      key: 'total',
-      width: 140,
-      align: 'right' as const,
-      render: (value: number) => (
-        <span className="font-semibold text-gray-800">{Number(value || 0).toFixed(2)}</span>
-      ),
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      width: 60,
-      align: 'center' as const,
-      render: (_: any, record: ProductionExpenseItem) => (
-        <Button
-          type="text"
-          danger
-          icon={<DeleteOutlined />}
-          onClick={() => handleRemoveExpenseRow(record.si)}
-          size="small"
-        />
-      ),
-    },
-  ];
-
   return (
     <div className="p-4 bg-white rounded-lg shadow-sm space-y-4">
-      <div className="border-b border-gray-100">
-        <h2 className="text-xl font-bold text-gray-800 m-0">{formTitle}</h2>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-gray-100 pb-3">
+        <div>
+          <h2 className="text-xl font-bold text-gray-800 m-0">{formTitle}</h2>
+          <span className="text-xs text-gray-500">
+            Step 1: Enter production info and raw materials, then proceed to Step 2 for packaging and expenses.
+          </span>
+        </div>
+
+        <Button
+          icon={<UnorderedListOutlined />}
+          onClick={() => navigate('/dashboard/production-voucher')}
+        >
+          Production Voucher
+        </Button>
       </div>
 
-      <Form
-        form={form}
-        onFinish={handleSubmit}
-        layout="vertical"
-        initialValues={{ date: dayjs() }}
-      >
+      <Form form={form} layout="vertical" initialValues={{ date: dayjs() }}>
         {/* Top 3 required fields */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50/60 p-4 rounded-lg border border-slate-200/60">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50/60 p-3 rounded-lg border border-slate-200/60">
           <Form.Item
             name="productId"
             label={<span className="font-semibold">Select Product</span>}
-            rules={[{ required: true, message: 'Please select product' }]}
+            rules={[{ required: true, message: 'Please select a product' }]}
           >
             <Select
               placeholder="Choose product..."
@@ -1218,214 +493,66 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({ formTitle = 
         </div>
 
         {/* Raw Materials Section */}
-        <div className="mt-2">
-          <h3 className="font-bold text-base mb-2 text-gray-800">Raw Materials</h3>
+        <div className="mt-4">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="font-bold text-base text-gray-800 m-0">Raw Materials</h3>
+            <span className="text-xs text-gray-500">Add raw materials used in this batch</span>
+          </div>
 
           {selectedProductId && (isIngredientsLoading || isIngredientsFetching) ? (
             <div className="p-8 text-center bg-slate-50/50 rounded border border-slate-200/60">
               <Spin tip="Loading product ingredients recipe..." />
             </div>
           ) : (
-            <>
-              {selectedProductId && rawMaterials.length === 0 && (
-                <Alert
-                  type="info"
-                  showIcon
-                  message="No ingredients configured for this product. You can add raw materials manually below."
-                  className="mb-3 border-sky-100 bg-sky-50/60"
-                />
-              )}
-              <div className="border border-slate-200/60 rounded-lg overflow-hidden">
-                <Table
-                  dataSource={rawMaterials}
-                  columns={columns}
-                  rowKey="si"
-                  pagination={false}
-                  bordered
-                  size="small"
-                  scroll={{ x: 750 }}
-                  summary={() => (
-                    <Table.Summary fixed>
-                      <Table.Summary.Row className="bg-amber-50/40 border-t border-amber-200/50 font-bold">
-                        <Table.Summary.Cell index={0} colSpan={3}>
-                          <Button
-                            type="primary"
-                            icon={<PlusOutlined />}
-                            onClick={handleAddRow}
-                            disabled={!selectedProductId}
-                            className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white shadow-xs"
-                          >
-                            Add Raw Material
-                          </Button>
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={1} colSpan={2} className="text-center font-bold text-slate-800">
-                          <span className="text-gray-500 mr-2 font-semibold">Total Qty:</span>
-                          <span className="text-sm font-bold text-slate-900">
-                            {totalQty.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </span>
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={2} colSpan={2} className="text-right pr-4 font-bold">
-                          <span className="text-gray-500 mr-2 font-semibold">Total Tk:</span>
-                          <span className="text-base font-extrabold text-amber-700">
-                            {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
-                          </span>
-                        </Table.Summary.Cell>
-                      </Table.Summary.Row>
-                    </Table.Summary>
-                  )}
-                />
-              </div>
-            </>
+            <div className="border border-slate-200/60 rounded-lg overflow-hidden">
+              <Table
+                dataSource={rawMaterials}
+                columns={columns}
+                rowKey="si"
+                pagination={false}
+                bordered
+                size="small"
+                scroll={{ x: 800 }}
+                summary={() => (
+                  <Table.Summary fixed>
+                    <Table.Summary.Row className="bg-amber-50/40 border-t border-amber-200/50 font-bold">
+                      <Table.Summary.Cell index={0} colSpan={3}>
+                        <Button
+                          type="primary"
+                          icon={<PlusOutlined />}
+                          onClick={handleAddRow}
+                          className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white shadow-xs"
+                        >
+                          Add Material
+                        </Button>
+                      </Table.Summary.Cell>
+                      <Table.Summary.Cell index={1} className="text-center font-bold text-slate-800">
+                        <span className="text-gray-500 mr-2 font-semibold">Total Qty:</span>
+                        <span className="text-sm font-bold text-slate-900">{totalQty.toFixed(2)}</span>
+                      </Table.Summary.Cell>
+                      <Table.Summary.Cell index={2} colSpan={3} className="text-right pr-4 font-bold">
+                        <span className="text-gray-500 mr-2 font-semibold">Grand Total:</span>
+                        <span className="text-base font-extrabold text-amber-700">{grandTotal.toFixed(2)} ৳</span>
+                      </Table.Summary.Cell>
+                    </Table.Summary.Row>
+                  </Table.Summary>
+                )}
+              />
+            </div>
           )}
-          <div className="mt-4 flex justify-end">
-            <button
-              type="button"
-              className="bg-[#C58D2F] hover:bg-[#b07d28] text-white px-4 py-1.5 rounded transition-colors shadow-xs"
-              onClick={() => { console.log('Form Values:', form.getFieldsValue(), { packingMaterials, rawMaterials }); }}
-            >
-              Save form
-            </button>
-          </div>
         </div>
 
-        {/* Packing Materials Section */}
-        <div className="mt-4">
-          <h3 className="font-bold text-base mb-2 text-gray-800">Packing Materials</h3>
-
-          <div className="border border-slate-200/60 rounded-lg overflow-hidden">
-            <Table
-              dataSource={packingMaterials}
-              columns={packingColumns}
-              rowKey="si"
-              pagination={false}
-              bordered
-              size="small"
-              scroll={{ x: 1050 }}
-              summary={() => (
-                <Table.Summary fixed>
-                  <Table.Summary.Row className="bg-amber-50/40 border-t border-amber-200/50 font-bold">
-                    <Table.Summary.Cell index={0} colSpan={3}>
-                      <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        onClick={handleAddPackingRow}
-                        disabled={!selectedProductId}
-                        className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white shadow-xs"
-                      >
-                        Add Packing Material
-                      </Button>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={1} colSpan={3} className="text-center font-bold text-slate-800">
-                      <span className="text-gray-500 mr-2 font-semibold">Total Qty:</span>
-                      <span className="text-sm font-bold text-slate-900">
-                        {totalPackingQty.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={2} colSpan={3} className="text-right pr-4 font-bold">
-                      <span className="text-gray-500 mr-2 font-semibold">Total Tk:</span>
-                      <span className="text-base font-extrabold text-amber-700">
-                        {totalPackingTk.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
-                      </span>
-                    </Table.Summary.Cell>
-                  </Table.Summary.Row>
-                </Table.Summary>
-              )}
-            />
-          </div>
-        </div>
-
-        {/* Production Expenses Section */}
-        <div className="mt-4">
-          <h3 className="font-bold text-base mb-2 text-gray-800">Production Expenses</h3>
-
-          <div className="border border-slate-200/60 rounded-lg overflow-hidden">
-            <Table
-              dataSource={productionExpenses}
-              columns={expenseColumns}
-              rowKey="si"
-              pagination={false}
-              bordered
-              size="small"
-              scroll={{ x: 750 }}
-              summary={() => (
-                <Table.Summary fixed>
-                  <Table.Summary.Row className="bg-amber-50/40 border-t border-amber-200/50 font-bold">
-                    <Table.Summary.Cell index={0} colSpan={2}>
-                      <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        onClick={handleAddExpenseRow}
-                        disabled={!selectedProductId}
-                        className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white shadow-xs"
-                      >
-                        Add Expense Item
-                      </Button>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={1} colSpan={1} className="text-center font-bold text-slate-800">
-                      <span className="text-gray-500 mr-2 font-semibold">Total Qty:</span>
-                      <span className="text-sm font-bold text-slate-900">
-                        {totalExpenseQty.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={2} colSpan={2} className="text-right pr-4 font-bold">
-                      <span className="text-gray-500 mr-2 font-semibold">Total Tk:</span>
-                      <span className="text-base font-extrabold text-amber-700">
-                        {totalExpenseTk.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
-                      </span>
-                    </Table.Summary.Cell>
-                  </Table.Summary.Row>
-                </Table.Summary>
-              )}
-            />
-          </div>
-        </div>
-
-        {/* Finished Product Section */}
-        <div className="bg-slate-50/60 p-4 rounded-lg border border-slate-200/60 my-4">
-          <h3 className="font-bold text-base mb-3 text-gray-800">Finished Product</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Form.Item
-              name="productQuantity"
-              label={<span className="font-semibold">Finished Product Quantity</span>}
-              rules={[{ required: true, message: 'Please enter finished quantity' }]}
-            >
-              <InputNumber
-                min={0.01}
-                step={1}
-                precision={2}
-                controls={false}
-                placeholder="Enter quantity"
-                style={{ width: '100%' }}
-                onFocus={handleInputFocus}
-                onKeyDown={handleNumberKeyDown}
-              />
-            </Form.Item>
-
-            <Form.Item
-              label={<span className="font-semibold">Calculated Unit Cost (BDT)</span>}
-            >
-              <InputNumber
-                value={unitCost}
-                disabled
-                precision={2}
-                controls={false}
-                style={{ width: '100%' }}
-                className="bg-slate-100/80 font-bold text-gray-700 border-slate-200/60"
-              />
-            </Form.Item>
-          </div>
-        </div>
-
-        {/* Submit */}
-        <div className="mt-4">
+        {/* Bottom Action Button */}
+        <div className="mt-4 flex justify-end gap-3 bg-slate-50/80 rounded-lg border py-2.5 px-4 border-slate-200/60">
           <Button
             type="primary"
-            htmlType="submit"
-            loading={isSubmitting}
             size="large"
-            className="w-full md:w-auto px-8 bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white shadow-sm font-semibold"
+            icon={<ArrowRightOutlined />}
+            loading={isSubmitting}
+            onClick={handleSaveAndProceed}
+            className="px-8 bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white shadow-sm font-semibold"
           >
-            {isSubmitting ? 'Saving...' : 'Save Production'}
+            {isSubmitting ? 'Saving...' : 'Save & Proceed to Step 2'}
           </Button>
         </div>
       </Form>

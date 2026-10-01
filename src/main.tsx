@@ -19,6 +19,8 @@ import ProductStockReportDetails from './pages/production/createProduction/Produ
 import CallanVoucher from './pages/sales/challan/CallanVoucher'
 import PurchaseOrderDetails from './pages/purchase/purchaseOrder/PurchaseOrderDetails'
 import ProductionCreationForm from './pages/store RMPM/production/ProductionCreationForm'
+import ProductionVoucher from './pages/store RMPM/production/ProductionVoucher'
+import ProductionStep2Page from './pages/store RMPM/production/ProductionStep2Page'
 import { ConfigProvider } from 'antd'
 
 createRoot(document.getElementById('root')!).render(
@@ -85,6 +87,10 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/dashboard/store_rmpm_production_soap" element={<ProductionCreationForm />} />
               <Route path="/dashboard/store_rmpm_production_detergent" element={<ProductionCreationForm />} />
               <Route path="/dashboard/store_rmpm_production_Kitchenbar" element={<ProductionCreationForm />} />
+              <Route path="/dashboard/production-voucher" element={<ProductionVoucher />} />
+              <Route path="/dashboard/store_rmpm_production_voucher" element={<ProductionVoucher />} />
+              <Route path="/dashboard/production-step-2" element={<ProductionStep2Page />} />
+              <Route path="/dashboard/production-step-2/:id" element={<ProductionStep2Page />} />
             </Route>
             <Route path="/dashboard/sales/challan/:voucherNo" element={<CallanVoucher />} />
             <Route path="/dashboard/voucher-details/:voucherNo" element={<VoucherDetails />} />

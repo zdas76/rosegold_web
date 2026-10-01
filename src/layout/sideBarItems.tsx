@@ -70,6 +70,7 @@ import SoapCreationForm from '../pages/store RMPM/production/SoapCreationForm';
 import DetergentCreationForm from '../pages/store RMPM/production/DetergentCreationForm';
 import KitchenbarCreationForm from '../pages/store RMPM/production/KitchenbarCreationForm';
 import ProductionCreationForm from '../pages/store RMPM/production/ProductionCreationForm';
+import ProductionVoucher from '../pages/store RMPM/production/ProductionVoucher';
 import PurchaseOrderRM from '../pages/purchase/purchaseOrder/PurchaseOrderRMList';
 import ProductIngredient from '../pages/inventory/productionIngredient/ProductIngredient';
 import PackingMaterial from '../pages/inventory/packingMaterial/PackingMaterial';
@@ -200,8 +201,15 @@ export const sideBarRoutes = [
                 key: "store_rmpm_production",
                 path: "/dashboard/store_rmpm_production",
                 icon: <MdOutlineProductionQuantityLimits />,
-                element: <ProductionCreationForm />,
+                element: <ProductionCreationForm formTitle="Production Creation" />,
                 label: <Link to="/dashboard/store_rmpm_production">Production Creation</Link>,
+            },
+            {
+                key: "store_rmpm_production_voucher",
+                path: "/dashboard/production-voucher",
+                icon: <LuReceiptText />,
+                element: <ProductionVoucher />,
+                label: <Link to="/dashboard/production-voucher">Production Voucher</Link>,
             },
 
             // {
