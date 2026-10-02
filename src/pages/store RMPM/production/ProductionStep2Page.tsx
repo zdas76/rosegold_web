@@ -23,6 +23,11 @@ import {
 import { getResponse } from '../../../utils/getResponse';
 import type { RawMaterialItem, PackingMaterialItem, ProductionExpenseItem } from './ProductionCreationForm';
 
+const roundToThree = (val: number | null | undefined): number | null => {
+  if (val == null || isNaN(Number(val))) return null;
+  return Math.round((Number(val) + Number.EPSILON) * 1000) / 1000;
+};
+
 const ProductionStep2Page: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -158,8 +163,14 @@ const ProductionStep2Page: React.FC = () => {
         const unitPrice = pm.unitPrice ?? foundPm?.unitPrice ?? 0;
         const qty = pm.Qty ?? pm.quantity ?? pm.quantityLess ?? 0;
         const total = pm.amount ?? (qty * unitPrice);
-        const perUnitQty = pm.perUnitQty ?? (prodQty > 0 && qty > 0 ? Math.floor((qty / prodQty) * 100) / 100 : null);
-        const perUnitCost = pm.perUnitCost ?? (prodQty > 0 && total > 0 ? Number((total / prodQty).toFixed(2)) : (perUnitQty ? Number((perUnitQty * unitPrice).toFixed(2)) : null));
+        const perUnitQty =
+          prodQty > 0 && qty > 0
+            ? roundToThree(qty / prodQty)
+            : (pm.perUnitQty != null ? roundToThree(pm.perUnitQty) : null);
+        const perUnitCost =
+          prodQty > 0 && total > 0
+            ? roundToThree(total / prodQty)
+            : (perUnitQty ? roundToThree(perUnitQty * unitPrice) : (pm.perUnitCost != null ? roundToThree(pm.perUnitCost) : null));
 
         return {
           id: pm.id,
@@ -199,8 +210,14 @@ const ProductionStep2Page: React.FC = () => {
           const pmPerUnitQty = pm.ingredienteQty ?? pm.quantity ?? pm.perUnitQty ?? null;
           const calculatedQty = pmPerUnitQty != null && prodQty > 0 ? Number((pmPerUnitQty * prodQty).toFixed(2)) : (pm.Qty ?? pm.quantity ?? null);
           const total = calculatedQty != null ? Number((calculatedQty * pmPrice).toFixed(2)) : 0;
-          const calculatedPerUnitQty = pmPerUnitQty != null ? Math.floor(pmPerUnitQty * 100) / 100 : (prodQty > 0 && calculatedQty != null ? Math.floor((calculatedQty / prodQty) * 100) / 100 : null);
-          const calculatedCost = prodQty > 0 && total > 0 ? Number((total / prodQty).toFixed(2)) : (calculatedPerUnitQty != null ? Number((calculatedPerUnitQty * pmPrice).toFixed(2)) : null);
+          const calculatedPerUnitQty =
+            prodQty > 0 && calculatedQty != null
+              ? roundToThree(calculatedQty / prodQty)
+              : (pmPerUnitQty != null ? roundToThree(pmPerUnitQty) : null);
+          const calculatedCost =
+            prodQty > 0 && total > 0
+              ? roundToThree(total / prodQty)
+              : (calculatedPerUnitQty != null ? roundToThree(calculatedPerUnitQty * pmPrice) : null);
 
           return {
             si: index + 1,
@@ -328,7 +345,7 @@ const ProductionStep2Page: React.FC = () => {
   }, [grandTotal, totalPackingTk, totalExpenseTk]);
 
   const unitCost =
-    (Number(productQuantity) || 0) > 0 ? Number((totalProductionCost / Number(productQuantity)).toFixed(2)) : 0;
+    (Number(productQuantity) || 0) > 0 ? roundToThree(totalProductionCost / Number(productQuantity)) ?? 0 : 0;
 
   // Sync packing materials whenever product quantity changes
   useEffect(() => {
@@ -339,12 +356,12 @@ const ProductionStep2Page: React.FC = () => {
           const qty = item.qty != null ? Number(item.qty) : null;
           const price = item.unitPrice != null ? Number(item.unitPrice) : 0;
           const total = qty != null ? Number((qty * price).toFixed(2)) : 0;
-          const perUnitQty = qty != null ? Math.floor((qty / prodQty) * 100) / 100 : (item.perUnitQty != null ? Math.floor(item.perUnitQty * 100) / 100 : null);
+          const perUnitQty = qty != null ? roundToThree(qty / prodQty) : (item.perUnitQty != null ? roundToThree(item.perUnitQty) : null);
           const perUnitCost =
             total > 0
-              ? Number((total / prodQty).toFixed(2))
+              ? roundToThree(total / prodQty)
               : perUnitQty != null && price > 0
-                ? Number((perUnitQty * price).toFixed(2))
+                ? roundToThree(perUnitQty * price)
                 : null;
           return { ...item, perUnitQty, perUnitCost, total };
         })
@@ -417,8 +434,8 @@ const ProductionStep2Page: React.FC = () => {
             let perUnitCost = null;
 
             if (qty != null && prodQty > 0) {
-              perUnitQty = Math.floor((qty / prodQty) * 100) / 100;
-              perUnitCost = Number((total / prodQty).toFixed(2));
+              perUnitQty = roundToThree(qty / prodQty);
+              perUnitCost = roundToThree(total / prodQty);
             } else if (perUnitQty != null) {
               if (prodQty > 0) {
                 const newQty = Number((perUnitQty * prodQty).toFixed(2));
@@ -431,11 +448,11 @@ const ProductionStep2Page: React.FC = () => {
                   unitPrice,
                   qty: newQty,
                   perUnitQty,
-                  perUnitCost: Number((newTotal / prodQty).toFixed(2)),
+                  perUnitCost: roundToThree(newTotal / prodQty),
                   total: newTotal,
                 };
               }
-              perUnitCost = Number((perUnitQty * unitPrice).toFixed(2));
+              perUnitCost = roundToThree(perUnitQty * unitPrice);
             }
 
             return {
@@ -467,8 +484,8 @@ const ProductionStep2Page: React.FC = () => {
           let perUnitQty = null;
           let perUnitCost = null;
           if (qty != null && prodQty > 0) {
-            perUnitQty = Math.floor((qty / prodQty) * 100) / 100;
-            perUnitCost = Number((total / prodQty).toFixed(2));
+            perUnitQty = roundToThree(qty / prodQty);
+            perUnitCost = roundToThree(total / prodQty);
           }
           return { ...item, qty, perUnitQty, perUnitCost, total };
         }
@@ -487,9 +504,9 @@ const ProductionStep2Page: React.FC = () => {
           const total = qty != null && newPrice != null ? Number((qty * newPrice).toFixed(2)) : 0;
           let perUnitCost = null;
           if (total > 0 && prodQty > 0) {
-            perUnitCost = Number((total / prodQty).toFixed(2));
+            perUnitCost = roundToThree(total / prodQty);
           } else if (item.perUnitQty != null && newPrice != null) {
-            perUnitCost = Number((item.perUnitQty * newPrice).toFixed(2));
+            perUnitCost = roundToThree(item.perUnitQty * newPrice);
           }
           return { ...item, unitPrice: newPrice, perUnitCost, total };
         }
@@ -503,7 +520,7 @@ const ProductionStep2Page: React.FC = () => {
     setPackingMaterials(prev =>
       prev.map(item => {
         if (item.si === si) {
-          const newPerUnitQty = value != null ? Math.floor(value * 100) / 100 : null;
+          const newPerUnitQty = value != null ? roundToThree(value) : null;
           const price = item.unitPrice || 0;
           let qty = item.qty;
           if (newPerUnitQty != null && prodQty > 0) {
@@ -512,9 +529,9 @@ const ProductionStep2Page: React.FC = () => {
           const total = qty != null ? Number((qty * price).toFixed(2)) : 0;
           const perUnitCost =
             total > 0 && prodQty > 0
-              ? Number((total / prodQty).toFixed(2))
+              ? roundToThree(total / prodQty)
               : newPerUnitQty != null
-                ? Number((newPerUnitQty * price).toFixed(2))
+                ? roundToThree(newPerUnitQty * price)
                 : null;
           return { ...item, perUnitQty: newPerUnitQty, qty, perUnitCost, total };
         }
@@ -525,7 +542,7 @@ const ProductionStep2Page: React.FC = () => {
 
   const handlePackingPerUnitCostChange = (si: number, value: number | null) => {
     setPackingMaterials(prev =>
-      prev.map(item => (item.si === si ? { ...item, perUnitCost: value } : item))
+      prev.map(item => (item.si === si ? { ...item, perUnitCost: value != null ? roundToThree(value) : null } : item))
     );
   };
 
@@ -875,15 +892,15 @@ const ProductionStep2Page: React.FC = () => {
       render: (_: any, record: PackingMaterialItem) => (
         <InputNumber
           min={0}
-          step={0.01}
+          step={0.001}
           value={record.perUnitQty}
           onChange={v => handlePackingPerUnitQtyChange(record.si, v)}
           onFocus={handleInputFocus}
           controls={false}
           keyboard={false}
           style={{ width: '100%' }}
-          precision={2}
-          placeholder="0.00"
+          precision={3}
+          placeholder="0.000"
         />
       ),
     },
@@ -895,15 +912,15 @@ const ProductionStep2Page: React.FC = () => {
       render: (_: any, record: PackingMaterialItem) => (
         <InputNumber
           min={0}
-          step={0.01}
+          step={0.001}
           value={record.perUnitCost}
           onChange={v => handlePackingPerUnitCostChange(record.si, v)}
           onFocus={handleInputFocus}
           controls={false}
           keyboard={false}
           style={{ width: '100%' }}
-          precision={2}
-          placeholder="0.00"
+          precision={3}
+          placeholder="0.000"
         />
       ),
     },
@@ -1262,7 +1279,7 @@ const ProductionStep2Page: React.FC = () => {
               <InputNumber
                 value={unitCost}
                 disabled
-                precision={2}
+                precision={3}
                 controls={false}
                 style={{ width: '100%' }}
                 className="bg-slate-100/80 font-bold text-gray-700 border-slate-200/60"
