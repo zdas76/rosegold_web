@@ -53,6 +53,7 @@ export type TrowMaterials = {
     status: "ACTIVE" | "DEACTIVE";
     description: string;
     itemType: string;
+    alertQuantity?: number;
 }
 
 export type TLogCategory = {

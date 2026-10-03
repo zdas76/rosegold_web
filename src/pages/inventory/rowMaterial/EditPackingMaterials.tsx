@@ -1,4 +1,4 @@
-﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Button, Form, FormProps, Input, InputNumber, Select } from 'antd';
 import { useUpdatePackingMaterialMutation } from '../../../redux/features/packingMaterials/packingMaterials.api';
 import { getResponse } from '../../../utils/getResponse';
@@ -21,6 +21,10 @@ const EditPackingMaterials = ({ item, setIsEditModal }: { setIsEditModal: any; i
                 quantity: Number(quantity) || 0,
                 unitPrice: Number(unitPrice) || 0,
                 amount: Number(((Number(quantity) || 0) * (Number(unitPrice) || 0)).toFixed(2)),
+                openingAmount: Number(((Number(quantity) || 0) * (Number(unitPrice) || 0)).toFixed(2)),
+                alertQuantity: values.alertQuantity !== undefined && values.alertQuantity !== null && values.alertQuantity !== ""
+                    ? Number(values.alertQuantity)
+                    : 0,
             }
         };
         const res = await updatePackingMaterial(data);
@@ -35,6 +39,7 @@ const EditPackingMaterials = ({ item, setIsEditModal }: { setIsEditModal: any; i
         unitId: item?.unitId,
         quantity: item?.quantity,
         unitPrice: item?.unitPrice,
+        alertQuantity: item?.alertQuantity ?? 0,
         description: item?.description,
     };
 
@@ -88,6 +93,15 @@ const EditPackingMaterials = ({ item, setIsEditModal }: { setIsEditModal: any; i
                             disabled
                             value={Number(((Number(quantity) || 0) * (Number(unitPrice) || 0)).toFixed(2))}
                             style={{ width: '100%' }}
+                        />
+                    </Form.Item>
+
+                    <Form.Item label="Alert Quantity" name="alertQuantity">
+                        <InputNumber
+                            type="number"
+                            min={0}
+                            style={{ width: '100%' }}
+                            placeholder="Alert quantity"
                         />
                     </Form.Item>
                 </div>

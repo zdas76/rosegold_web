@@ -114,6 +114,13 @@ const RowMaterial = () => {
                         dataIndex="quantity"
                     />
                     <Column
+                        title={<span className="font-bold">Alert Qty</span>}
+                        key="alertQuantity"
+                        className="font-semibold"
+                        dataIndex="alertQuantity"
+                        render={(val: any) => val ?? '-'}
+                    />
+                    <Column
                         title={<span className="font-bold">Opening Date</span>}
                         dataIndex="openingDate"
                         render={(openingDate: string) => openingDate ? <span>{dayjs(openingDate).format('DD-MMM-YYYY')}</span> : '-'}

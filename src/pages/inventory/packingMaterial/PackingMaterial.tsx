@@ -1,4 +1,4 @@
-﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { FaEdit, FaTrash } from "react-icons/fa";
 import { Table, Input } from 'antd';
 import Column from "antd/es/table/Column";
@@ -121,6 +121,13 @@ const PackingMaterial = () => {
                         key="quantity"
                         className="font-semibold"
                         dataIndex="quantity"
+                    />
+                    <Column
+                        title={<span className="font-bold">Alert Qty</span>}
+                        key="alertQuantity"
+                        className="font-semibold"
+                        dataIndex="alertQuantity"
+                        render={(val: any) => val ?? '-'}
                     />
                     <Column
                         title={<span className="font-bold">Opening Date</span>}

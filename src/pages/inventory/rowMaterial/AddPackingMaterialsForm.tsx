@@ -1,4 +1,4 @@
-﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Form, Input, Button, InputNumber, DatePicker, Select } from "antd";
 import { useCreatePackingMaterialMutation } from "../../../redux/features/packingMaterials/packingMaterials.api";
 import { getResponse } from "../../../utils/getResponse";
@@ -19,8 +19,13 @@ const AddPackingMaterialsForm = ({ setIsModalOpen }: { setIsModalOpen: any }) =>
             quantity: Number(quantity) || 0,
             unitPrice: Number(unitPrice) || 0,
             amount: Number(((Number(quantity) || 0) * (Number(unitPrice) || 0)).toFixed(2)),
+            openingAmount: Number(((Number(quantity) || 0) * (Number(unitPrice) || 0)).toFixed(2)),
+            alertQuantity: values.alertQuantity !== undefined && values.alertQuantity !== null && values.alertQuantity !== ""
+                ? Number(values.alertQuantity)
+                : 0,
             ingredienteQty: values.ingredienteQty ? Number(values.ingredienteQty) : 0,
             date: values.date ? dayjs(values.date).toISOString() : dayjs().toISOString(),
+            openingDate: values.date ? dayjs(values.date).toISOString() : dayjs().toISOString(),
         };
         const res = await addPackingMaterial(data);
         const response = getResponse(res);
@@ -87,6 +92,15 @@ const AddPackingMaterialsForm = ({ setIsModalOpen }: { setIsModalOpen: any }) =>
                         disabled
                         value={Number(((Number(quantity) || 0) * (Number(unitPrice) || 0)).toFixed(2))}
                         style={{ width: '100%' }}
+                    />
+                </Form.Item>
+
+                <Form.Item label="Alert Quantity" name="alertQuantity">
+                    <InputNumber
+                        type="number"
+                        min={0}
+                        style={{ width: '100%' }}
+                        placeholder="Alert quantity"
                     />
                 </Form.Item>
 

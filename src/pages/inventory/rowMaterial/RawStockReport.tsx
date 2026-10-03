@@ -74,12 +74,17 @@ export const MaterialStockReport = () => {
       const addQty = item.total?._sum?.quantityAdd || 0;
       const lessQty = item.total?._sum?.quantityLess || 0;
       const qtyBalance = addQty - lessQty;
-      const isLowStock = qtyBalance <= 10;
+      const rawAlert = (item.rawMaterial as any)?.alertQuantity ?? (item as any)?.alertQuantity;
+      const alertThreshold = rawAlert !== undefined && rawAlert !== null && rawAlert !== ""
+        ? Number(rawAlert)
+        : 10;
+      const isLowStock = qtyBalance <= alertThreshold;
 
       return {
         ...item.rawMaterial,
         total: item.total,
         qtyBalance,
+        alertQuantity: alertThreshold,
         isLowStock,
       };
     });

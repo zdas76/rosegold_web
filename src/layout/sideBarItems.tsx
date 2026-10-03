@@ -49,6 +49,7 @@ import { MaterialStockReport } from '../pages/inventory/rowMaterial/RawStockRepo
 import Party from '../pages/sales/party/Party';
 import PurchaseReceiveVoucher from '../pages/purchase/purchaseReceivedVoucher/PurchaseReceiveVoucherP';
 import PurchaseReceiveVoucherRM from '../pages/purchase/purchaseReceivedVoucher/PurchaseReceiveVoucherRM';
+import PurchasePackingMaterial from '../pages/purchase/purchasePackingMaterial/PurchasePackingMaterial';
 import Supplier from '../pages/userManagement/supllier/Supplier';
 import Packaging from '../pages/store RMPM/packaging/Packaging';
 import RequestSendFG from '../pages/store RMPM/request send(FG)/RequestSendFG';
@@ -162,18 +163,25 @@ export const sideBarRoutes = [
                 label: <Link to={`/dashboard/purchase-rm`}>Requisition RMPM</Link>
             },
             {
-                key: 'transactions_purchase',
+                key: 'purchase_p',
                 path: "/dashboard/purchase-receive-voucher",
                 element: <PurchaseReceiveVoucher />,
                 icon: <BiPurchaseTag />,
                 label: <Link to="/dashboard/purchase-receive-voucher">Purchase Receive Voucher (P)</Link>,
             },
             {
-                key: 'transactions_purchase_rm',
+                key: 'purchase_rm',
                 path: "/dashboard/purchase-receive-voucher-rm",
                 element: <PurchaseReceiveVoucherRM />,
                 icon: <BiPurchaseTag />,
                 label: <Link to="/dashboard/purchase-receive-voucher-rm">Purchase Receive Voucher (RM)</Link>,
+            },
+            {
+                key: 'purchase_packing_material',
+                path: "/dashboard/purchase-packing-material",
+                element: <PurchasePackingMaterial />,
+                icon: <BiPurchaseTag />,
+                label: <Link to="/dashboard/purchase-packing-material">Purchase Packing Material</Link>,
             },
             // {
             //     key: 'purchase_vendor',

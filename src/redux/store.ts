@@ -11,6 +11,8 @@ import purchaseOrderRMReducer from './features/purchaseOrder/purchaseOrderRMSlic
 import purchaseCreditReducer from './features/purchaseOrder/purchaseCreditSlice'
 import receiveVoucherDebitReducer from './features/purchaseReceiveVoucher/receiveVoucherDebitSlice'
 import receiveVoucherCreditReducer from './features/purchaseReceiveVoucher/receiveVoucherCreditSlice'
+import packingMaterialDebitReducer from './features/packingMaterials/packingMaterialDebitSlice'
+import packingMaterialCreditReducer from './features/packingMaterials/packingMaterialCreditSlice'
 import salesDebitReducer from './features/accountsSales/salesDebitSlice'
 import salesCreditReducer from './features/accountsSales/salesCreditSlice'
 import paymentVoucherDebitReducer from './features/paymentVoucher/paymentVoucherDebitSlice'
@@ -35,6 +37,8 @@ export const store = configureStore({
         purchaseCredit: purchaseCreditReducer,
         receiveVoucherDebit: receiveVoucherDebitReducer,
         receiveVoucherCredit: receiveVoucherCreditReducer,
+        packingMaterialDebit: packingMaterialDebitReducer,
+        packingMaterialCredit: packingMaterialCreditReducer,
         salesDebit: salesDebitReducer,
         salesCredit: salesCreditReducer,
         paymentVoucherDebit: paymentVoucherDebitReducer,

@@ -17,7 +17,10 @@ const AddRowMaterialsForm = ({ setIsModalOpen }: { setIsModalOpen: any }) => {
     const onFinish = async (values: any) => {
         const data = {
             ...values,
-            amount: Number((Number(quantity) * Number(unitPrice)).toFixed(2)),
+            alertQuantity: values.alertQuantity !== undefined && values.alertQuantity !== null && values.alertQuantity !== ""
+                ? Number(values.alertQuantity)
+                : 0,
+            amount: Number((Number(quantity || 0) * Number(unitPrice || 0)).toFixed(2)),
         }
         const res = await addRowMaterials(data);
         const response = getResponse(res)
@@ -48,7 +51,7 @@ const AddRowMaterialsForm = ({ setIsModalOpen }: { setIsModalOpen: any }) => {
                 <Form.Item
                     label="Unit"
                     name="unitId"
-                    rules={[{ required: true, message: "Please enter a name" }]}
+                    rules={[{ required: true, message: "Please select a unit" }]}
                 >
                     <Select options={allUnits} placeholder="select unit" />
                 </Form.Item>
@@ -62,11 +65,15 @@ const AddRowMaterialsForm = ({ setIsModalOpen }: { setIsModalOpen: any }) => {
                 </Form.Item>
 
                 <Form.Item label="Amount" rules={[{ required: true }]}>
-                    <InputNumber type="number" disabled value={Number((quantity! * unitPrice!).toFixed(2))} style={{ width: '100%' }} />
+                    <InputNumber type="number" disabled value={Number(((quantity || 0) * (unitPrice || 0)).toFixed(2))} style={{ width: '100%' }} />
                 </Form.Item>
 
                 <Form.Item label="Date" name="date" rules={[{ required: true }]}>
                     <DatePicker style={{ width: '100%' }} />
+                </Form.Item>
+
+                <Form.Item label="Alert Quantity" name="alertQuantity">
+                    <InputNumber min={0} placeholder="Enter alert quantity" style={{ width: '100%' }} />
                 </Form.Item>
             </div>
 

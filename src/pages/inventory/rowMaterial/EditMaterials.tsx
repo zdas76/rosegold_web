@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Button, DatePicker, Form, FormProps, Input, InputNumber, Select } from 'antd';
 import { TRawMaterial } from '../../../types/types';
 import { useUpdateRowMaterialMutation } from '../../../redux/features/rowMaterials/rowMaterials.api';
@@ -18,6 +19,9 @@ const EditRowMaterials = ({ item, setIsEditModal }: { setIsEditModal: any; item:
         const data = {
             ...values,
             id: item?.id,
+            alertQuantity: values.alertQuantity !== undefined && values.alertQuantity !== null && values.alertQuantity !== ""
+                ? Number(values.alertQuantity)
+                : 0,
             amount: Number((Number(quantity) * Number(unitPrice)).toFixed(2)),
         }
         const res = await updateRowMaterial(data)
@@ -29,6 +33,7 @@ const EditRowMaterials = ({ item, setIsEditModal }: { setIsEditModal: any; item:
 
     const initialValues = {
         ...item,
+        alertQuantity: item?.alertQuantity ?? 0,
         date: item?.openingDate ? dayjs(item.openingDate) : null
     }
 
@@ -69,6 +74,10 @@ const EditRowMaterials = ({ item, setIsEditModal }: { setIsEditModal: any; item:
 
                     <Form.Item label="Amount" rules={[{ required: true }]}>
                         <InputNumber type="number" disabled value={Number((Number(quantity) * Number(unitPrice)).toFixed(2))} style={{ width: '100%' }} />
+                    </Form.Item>
+
+                    <Form.Item label="Alert Quantity" name="alertQuantity">
+                        <InputNumber min={0} placeholder="Enter alert quantity" style={{ width: '100%' }} />
                     </Form.Item>
                 </div>
 
