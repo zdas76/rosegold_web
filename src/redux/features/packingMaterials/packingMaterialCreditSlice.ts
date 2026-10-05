@@ -8,6 +8,7 @@ export type TPackingMaterialCreditItem = {
     accountsItemName: string;
     amount: number;
     bankId?: number | null;
+    checkOrRTGS?: string;
     narration: string;
 };
 

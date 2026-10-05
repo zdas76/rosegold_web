@@ -98,6 +98,7 @@ export type TProduct = {
     minPrice: number;
     color: string;
     size: string; // If size has fixed values, use: 'Small' | 'Medium' | 'Large'
+    alertQuantity?: number;
     isDeleted: boolean;
     status: 'ACTIVE' | 'INACTIVE'; // Assuming only these two statuses exist
     createdAt: string; // ISO date string

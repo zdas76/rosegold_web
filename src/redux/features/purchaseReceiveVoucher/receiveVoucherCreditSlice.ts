@@ -8,6 +8,7 @@ export type TReceiveVoucherCreditItem = {
     accountsItemName: string;
     amount: number;
     bankId?: number | null;
+    checkOrRTGS?: string;
     narration: string;
 };
 

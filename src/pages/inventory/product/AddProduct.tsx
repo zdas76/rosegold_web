@@ -22,6 +22,9 @@ const AddProduct = ({ setIsModalOpen }: { setIsModalOpen: any }) => {
     const onFinish = async (values: any) => {
         const data = {
             ...values,
+            alertQuantity: values.alertQuantity !== undefined && values.alertQuantity !== null && values.alertQuantity !== ""
+                ? Number(values.alertQuantity)
+                : 0,
             initialStock: {
                 quantity: values?.quantity,
                 amount: Number((unitPrice! * quantity!).toFixed(2)),
@@ -37,9 +40,8 @@ const AddProduct = ({ setIsModalOpen }: { setIsModalOpen: any }) => {
             setIsModalOpen(false)
         }
     };
-
     return (
-        <div className='max-h-[600px] overflow-y-auto'>
+        <div className='max-h-[600px] overflow-y-auto pr-2'>
             <Form
                 form={form}
                 name="productForm"
@@ -57,8 +59,8 @@ const AddProduct = ({ setIsModalOpen }: { setIsModalOpen: any }) => {
                     <Form.Item
                         label="Unit"
                         name="unitId"
-                        rules={[{ required: true, message: 'Please select a sub category!' }]}>
-                        <Select placeholder="Select a sub category">
+                        rules={[{ required: true, message: 'Please select a unit!' }]}>
+                        <Select placeholder="Select a unit">
                             {allUnits?.map((item: TUnit) => (
                                 <Option key={item?.id} value={item?.id}>{item?.label}</Option>
                             ))}
@@ -96,15 +98,21 @@ const AddProduct = ({ setIsModalOpen }: { setIsModalOpen: any }) => {
                         <InputNumber type="number" min={0} style={{ width: '100%' }} onChange={(value) => setUnitPrice(value)} disabled={!quantity} />
                     </Form.Item>
 
-                    <Form.Item label="Initial Total Amount" rules={[{ required: true }]}>
-                        <InputNumber type="number" min={0} readOnly style={{ width: '100%', color: "black" }} value={Number((unitPrice! * quantity!).toFixed(2))} />
-                    </Form.Item>
+                    <div className='col-span-2 grid grid-cols-3 gap-x-4'>
+                        <Form.Item label="Initial Total Amount" rules={[{ required: true }]} style={{ width: '100%' }}>
+                            <InputNumber type="number" min={0} readOnly style={{ width: '100%', color: "black" }} value={Number((unitPrice! * quantity!).toFixed(2))} />
+                        </Form.Item>
 
-                    <Form.Item label="Date" name="date" rules={[{ required: true }]} initialValue={dayjs()}>
-                        <DatePicker style={{ width: '100%' }} />
-                    </Form.Item>
+                        <Form.Item label="Date" name="date" rules={[{ required: true }]} initialValue={dayjs()} style={{ width: '100%' }}>
+                            <DatePicker style={{ width: '100%' }} />
+                        </Form.Item>
+
+                        <Form.Item label="Alert Quantity" name="alertQuantity" style={{ width: '100%' }}>
+                            <InputNumber min={0} placeholder="Enter alert quantity" style={{ width: '100%' }} />
+                        </Form.Item>
+                    </div>
                 </div>
-                <Form.Item className='absolute bottom-0'>
+                <Form.Item className='mt-4'>
                     <Button type="primary" htmlType="submit" loading={isLoading}>
                         {isLoading ? "Submitting..." : "Submit"}
                     </Button>

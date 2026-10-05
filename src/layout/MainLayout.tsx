@@ -44,7 +44,7 @@ const MainLayout: React.FC = () => {
             });
         }
     }, [isOnline]);
-    
+
     return (
         <>
             <Layout style={{ height: "100vh" }}>
@@ -100,7 +100,7 @@ const MainLayout: React.FC = () => {
                         style={{
                             margin: 0,
                             minHeight: 280,
-                            background: "#f7f7f7",
+                            background: "#f7f8ffff",
                             borderRadius: borderRadiusLG,
                         }}>
                         <Outlet />

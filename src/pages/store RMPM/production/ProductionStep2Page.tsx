@@ -22,6 +22,8 @@ import {
 } from '../../../redux/features/production/production.api';
 import { getResponse } from '../../../utils/getResponse';
 import type { RawMaterialItem, PackingMaterialItem, ProductionExpenseItem } from './ProductionCreationForm';
+import CombinedProductsSection from './production step2/CombinedProductsSection';
+import FinalizationSummary from './production step2/FinalizationSummary';
 
 const roundToThree = (val: number | null | undefined): number | null => {
   if (val == null || isNaN(Number(val))) return null;
@@ -39,6 +41,9 @@ const ProductionStep2Page: React.FC = () => {
   const [rawMaterials, setRawMaterials] = useState<RawMaterialItem[]>([]);
   const [packingMaterials, setPackingMaterials] = useState<PackingMaterialItem[]>([]);
   const [productionExpenses, setProductionExpenses] = useState<ProductionExpenseItem[]>([]);
+  const [combinedProducts, setCombinedProducts] = useState<any[]>([]);
+  const [combinedForm] = Form.useForm();
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
@@ -339,6 +344,9 @@ const ProductionStep2Page: React.FC = () => {
   }, [productionExpenses]);
 
   const productQuantity = Form.useWatch('productQuantity', form);
+  const combinedQtyPerPack = Form.useWatch('qtyPerPack', combinedForm);
+  const combinedNumberOfCartoon = Form.useWatch('numberOfCartoon', combinedForm);
+  const currentCombinedTotalQty = (combinedQtyPerPack || 0) * (combinedNumberOfCartoon || 0);
 
   const totalProductionCost = useMemo(() => {
     return Number((grandTotal + totalPackingTk + totalExpenseTk).toFixed(2));
@@ -1098,39 +1106,35 @@ const ProductionStep2Page: React.FC = () => {
         </Button>
       </div>
 
-      <Form form={form} layout="vertical">
+      <Form form={form} layout="vertical" className="space-y-4">
         {/* Step 1 Summary Banner */}
-        <div className="bg-amber-50/60 p-4 rounded-lg border border-amber-200/60 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-6">
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-xl border border-amber-200/50 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 w-full items-center">
             <div>
-              <span className="text-xs text-gray-500 block uppercase font-medium">Product</span>
+              <span className="text-xs text-amber-600/80 block uppercase font-bold tracking-wider mb-1">Product</span>
               <span className="font-bold text-gray-800 text-base">{productName}</span>
             </div>
             <div>
-              <span className="text-xs text-gray-500 block uppercase font-medium">Batch No</span>
+              <span className="text-xs text-amber-600/80 block uppercase font-bold tracking-wider mb-1">Batch No</span>
               <span className="font-semibold text-gray-800">{productionData.batchNo || '-'}</span>
             </div>
             <div>
-              <span className="text-xs text-gray-500 block uppercase font-medium">Date</span>
+              <span className="text-xs text-amber-600/80 block uppercase font-bold tracking-wider mb-1">Date</span>
               <span className="font-semibold text-gray-800">
-                {productionData.date ? dayjs(productionData.date).format('DD-MMM-YYYY') : '-'}
+                {productionData.date ? dayjs(productionData.date).format('DD MMM, YYYY') : '-'}
               </span>
             </div>
             <div>
-              <span className="text-xs text-gray-500 block uppercase font-medium">Raw Materials Cost (Locked)</span>
-              <span className="font-bold text-amber-700">
+              <span className="text-xs text-amber-600/80 block uppercase font-bold tracking-wider mb-1">Raw Material Cost</span>
+              <span className="font-bold text-amber-700 text-base">
                 {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
               </span>
             </div>
-            <div>
-              <span className="text-xs text-gray-500 block uppercase font-medium">Raw Materials Per Unit Cost</span>
-              <span className="inline-block bg-amber-600 text-white font-extrabold text-xs px-2 py-0.5 rounded shadow-xs mt-0.5">
-                {rawMaterialUnitCost.toFixed(3)} ৳
-              </span>
+            <div className="flex justify-end">
+              <Tag color="orange" className="font-bold text-sm py-1 px-3 rounded-full border-none shadow-sm m-0">
+                Production #{productionData.id}
+              </Tag>
             </div>
-            <Tag color="success" className="font-semibold text-sm py-0.5 px-2">
-              Production #{productionData.id}
-            </Tag>
           </div>
         </div>
 
@@ -1172,20 +1176,7 @@ const ProductionStep2Page: React.FC = () => {
                           {grandTotal.toFixed(2)} ৳
                         </Table.Summary.Cell>
                       </Table.Summary.Row>
-                      <Table.Summary.Row className="bg-amber-100/70 font-semibold border-t border-amber-300 text-xs">
-                        <Table.Summary.Cell index={0} colSpan={4} className="pl-3 py-1 text-slate-800">
-                          <span className="font-bold text-amber-950 mr-1.5">Raw Materials Per Unit Cost:</span>
-                          <span className="text-[11px] text-slate-500 font-normal">
-                            ({grandTotal.toFixed(2)} ৳ ÷ {Number(productQuantity) > 0 ? Number(productQuantity) : 'Finished Qty'})
-                          </span>
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={1} />
-                        <Table.Summary.Cell index={2} className="text-right pr-3 py-1">
-                          <span className="inline-block bg-amber-600 text-white font-extrabold px-2 py-0.5 rounded text-xs shadow-xs">
-                            {rawMaterialUnitCost.toFixed(3)} ৳
-                          </span>
-                        </Table.Summary.Cell>
-                      </Table.Summary.Row>
+
                     </Table.Summary>
                   )}
                 />
@@ -1193,26 +1184,21 @@ const ProductionStep2Page: React.FC = () => {
             },
           ]}
         />
-        <div className="mt-1.5 py-1 px-3 bg-amber-50/90 border border-amber-300 border-l-4 border-l-amber-600 rounded flex flex-wrap items-center justify-between gap-1.5 text-xs">
-          <div className="flex items-center gap-1.5 text-slate-700 flex-wrap">
-            <span className="font-bold text-amber-950">Raw Materials Total Cost:</span>
-            <span className="font-bold text-slate-900">{grandTotal.toFixed(2)} ৳</span>
-            <span className="text-[11px] text-slate-500">
-              (÷ {Number(productQuantity) > 0 ? Number(productQuantity) : 'Finished Qty'})
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="font-semibold text-amber-950">Per Unit Cost:</span>
-            <span className="bg-amber-600 text-white font-extrabold px-2 py-0.5 rounded text-xs tracking-wide shadow-xs">
-              {rawMaterialUnitCost.toFixed(3)} ৳
-            </span>
-          </div>
-        </div>
 
         {/* Production Expenses Section */}
-        <div className="mt-4">
-          <h3 className="font-bold text-base mb-2 text-gray-800">Production Expense Items</h3>
-          <div className="border border-slate-200/60 rounded-lg overflow-hidden">
+        <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-lg text-gray-800 m-0">Production Expenses</h3>
+            <Button
+              type="dashed"
+              icon={<PlusOutlined />}
+              onClick={handleAddExpenseRow}
+              className="text-blue-600 border-blue-200 hover:border-blue-400 hover:text-blue-700 font-medium rounded-lg"
+            >
+              Add Expense
+            </Button>
+          </div>
+          <div className="rounded-lg overflow-hidden border border-gray-200/60">
             <Table
               className="expense-materials-table"
               dataSource={productionExpenses}
@@ -1225,16 +1211,7 @@ const ProductionStep2Page: React.FC = () => {
               summary={() => (
                 <Table.Summary fixed>
                   <Table.Summary.Row className="bg-amber-50/40 border-t border-amber-200/50 font-bold">
-                    <Table.Summary.Cell index={0} colSpan={2}>
-                      <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        onClick={handleAddExpenseRow}
-                        className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white shadow-xs"
-                      >
-                        Add Expense Item
-                      </Button>
-                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={0} colSpan={2} />
                     <Table.Summary.Cell index={1} className="text-center font-bold text-slate-800">
                       <span className="text-gray-500 mr-2 font-semibold">Total Qty/Duration:</span>
                       <span className="text-sm font-bold text-slate-900">
@@ -1248,44 +1225,28 @@ const ProductionStep2Page: React.FC = () => {
                       </span>
                     </Table.Summary.Cell>
                   </Table.Summary.Row>
-                  <Table.Summary.Row className="bg-blue-100/70 font-semibold border-t border-blue-300 text-xs">
-                    <Table.Summary.Cell index={0} colSpan={4} className="pl-3 py-1 text-slate-800">
-                      <span className="font-bold text-blue-950 mr-1.5">Per Unit Cost (Raw + Expense):</span>
-                      <span className="text-[11px] text-slate-500 font-normal">
-                        ({grandTotal.toFixed(2)} ৳ + {totalExpenseTk.toFixed(2)} ৳) ÷ {Number(productQuantity) > 0 ? Number(productQuantity) : 'Finished Qty'}
-                      </span>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={1} colSpan={2} className="text-right pr-3 py-1">
-                      <span className="inline-block bg-blue-600 text-white font-extrabold px-2 py-0.5 rounded text-xs shadow-xs">
-                        {expenseStageUnitCost.toFixed(3)} ৳
-                      </span>
-                    </Table.Summary.Cell>
-                  </Table.Summary.Row>
+
                 </Table.Summary>
               )}
             />
           </div>
-          <div className="mt-1.5 py-1 px-3 bg-blue-50/90 border border-blue-300 border-l-4 border-l-blue-600 rounded flex flex-wrap items-center justify-between gap-1.5 text-xs">
-            <div className="flex items-center gap-1.5 text-slate-700 flex-wrap">
-              <span className="font-bold text-blue-950">Cumulative Cost (Raw + Expense):</span>
-              <span className="font-bold text-slate-900">{(grandTotal + totalExpenseTk).toFixed(2)} ৳</span>
-              <span className="text-[11px] text-slate-500">
-                ({grandTotal.toFixed(2)} + {totalExpenseTk.toFixed(2)}) ÷ {Number(productQuantity) > 0 ? Number(productQuantity) : 'Finished Qty'}
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-blue-950">Per Unit Cost:</span>
-              <span className="bg-blue-600 text-white font-extrabold px-2 py-0.5 rounded text-xs tracking-wide shadow-xs">
-                {expenseStageUnitCost.toFixed(3)} ৳
-              </span>
-            </div>
-          </div>
+
         </div>
 
         {/* Packing Materials Section */}
-        <div className="mt-6">
-          <h3 className="font-bold text-base mb-2 text-gray-800">Packing Materials</h3>
-          <div className="border border-slate-200/60 rounded-lg overflow-hidden">
+        <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-lg text-gray-800 m-0">Packing Materials</h3>
+            <Button
+              type="dashed"
+              icon={<PlusOutlined />}
+              onClick={handleAddPackingRow}
+              className="text-emerald-600 border-emerald-200 hover:border-emerald-400 hover:text-emerald-700 font-medium rounded-lg"
+            >
+              Add Material
+            </Button>
+          </div>
+          <div className="rounded-lg overflow-hidden border border-gray-200/60">
             <Table
               className="packing-materials-table"
               dataSource={packingMaterials}
@@ -1298,16 +1259,7 @@ const ProductionStep2Page: React.FC = () => {
               summary={() => (
                 <Table.Summary fixed>
                   <Table.Summary.Row className="bg-amber-50/40 border-t border-amber-200/50 font-bold">
-                    <Table.Summary.Cell index={0} colSpan={3}>
-                      <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        onClick={handleAddPackingRow}
-                        className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white shadow-xs"
-                      >
-                        Add Packing Material
-                      </Button>
-                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={0} colSpan={3} />
                     <Table.Summary.Cell index={1} colSpan={3} className="text-center font-bold text-slate-800">
                       <span className="text-gray-500 mr-2 font-semibold">Total Qty:</span>
                       <span className="text-sm font-bold text-slate-900">
@@ -1321,104 +1273,45 @@ const ProductionStep2Page: React.FC = () => {
                       </span>
                     </Table.Summary.Cell>
                   </Table.Summary.Row>
-                  <Table.Summary.Row className="bg-emerald-100/70 font-semibold border-t border-emerald-300 text-xs">
-                    <Table.Summary.Cell index={0} colSpan={5} className="pl-3 py-1 text-slate-800">
-                      <span className="font-bold text-emerald-950 mr-1.5">Final Per Unit Cost (Raw + Expense + Packing):</span>
-                      <span className="text-[11px] text-slate-500 font-normal">
-                        ({(grandTotal + totalExpenseTk).toFixed(2)} ৳ + {totalPackingTk.toFixed(2)} ৳) ÷ {Number(productQuantity) > 0 ? Number(productQuantity) : 'Finished Qty'}
-                      </span>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={1} colSpan={4} className="text-right pr-3 py-1">
-                      <span className="inline-block bg-emerald-600 text-white font-extrabold px-2.5 py-0.5 rounded text-xs shadow-xs">
-                        {packingStageUnitCost.toFixed(3)} ৳
-                      </span>
-                    </Table.Summary.Cell>
-                  </Table.Summary.Row>
+
                 </Table.Summary>
               )}
             />
           </div>
-          <div className="mt-1.5 py-1 px-3 bg-emerald-50/90 border border-emerald-300 border-l-4 border-l-emerald-600 rounded flex flex-wrap items-center justify-between gap-1.5 text-xs">
-            <div className="flex items-center gap-1.5 text-slate-700 flex-wrap">
-              <span className="font-bold text-emerald-950">Total Production Cost (Raw + Expense + Packing):</span>
-              <span className="font-bold text-slate-900">{(grandTotal + totalExpenseTk + totalPackingTk).toFixed(2)} ৳</span>
-              <span className="text-[11px] text-slate-500">
-                ({(grandTotal + totalExpenseTk).toFixed(2)} + {totalPackingTk.toFixed(2)}) ÷ {Number(productQuantity) > 0 ? Number(productQuantity) : 'Finished Qty'}
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-emerald-950">Final Per Unit Cost:</span>
-              <span className="bg-emerald-600 text-white font-extrabold px-2.5 py-0.5 rounded text-xs tracking-wide shadow-xs">
-                {packingStageUnitCost.toFixed(3)} ৳
-              </span>
-            </div>
-          </div>
         </div>
 
-        {/* Finished Product Quantity & Unit Cost Summary */}
-        <div className="mt-6 p-4 bg-slate-50/80 rounded-lg border border-slate-200/60">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Form.Item
-              name="productQuantity"
-              label={<span className="font-semibold">Finished Product Quantity</span>}
-              rules={[{ required: true, message: 'Please enter finished quantity' }]}
-            >
-              <InputNumber
-                min={0.01}
-                step={1}
-                precision={2}
-                controls={false}
-                placeholder="Enter quantity"
-                style={{ width: '100%' }}
-                onFocus={handleInputFocus}
-              />
-            </Form.Item>
+      {/* Finished Product Quantity & Unit Cost Summary */}
+      <FinalizationSummary
+        handleInputFocus={handleInputFocus}
+        unitCost={unitCost}
+        grandTotal={grandTotal}
+        rawMaterialUnitCost={rawMaterialUnitCost}
+        totalExpenseTk={totalExpenseTk}
+        expenseStageUnitCost={expenseStageUnitCost}
+        totalPackingTk={totalPackingTk}
+        packingStageUnitCost={packingStageUnitCost}
+        totalProductionCost={totalProductionCost}
+      />
+      </Form>
 
-            <Form.Item label={<span className="font-semibold">Calculated Unit Cost (BDT)</span>}>
-              <InputNumber
-                value={unitCost}
-                disabled
-                precision={3}
-                controls={false}
-                style={{ width: '100%' }}
-                className="bg-slate-100/80 font-bold text-gray-700 border-slate-200/60"
-              />
-            </Form.Item>
-          </div>
+      {/* Combined Products Section */}
+      <CombinedProductsSection 
+        combinedForm={combinedForm}
+        combinedProducts={combinedProducts}
+        setCombinedProducts={setCombinedProducts}
+        productsData={productsData}
+        productQuantity={productQuantity}
+        currentCombinedTotalQty={currentCombinedTotalQty}
+      />
 
-          {/* Breakdown summary */}
-          <div className="mt-3 p-3 bg-white rounded border border-slate-200/60 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-            <div>
-              <span className="text-xs text-gray-500 block">Raw Materials</span>
-              <span className="font-bold text-slate-800">{grandTotal.toFixed(2)} ৳</span>
-              <span className="text-[11px] text-blue-600 block mt-0.5 font-medium">Per Unit: {rawMaterialUnitCost.toFixed(3)} ৳</span>
-            </div>
-            <div>
-              <span className="text-xs text-gray-500 block">Production Expenses</span>
-              <span className="font-bold text-slate-800">{totalExpenseTk.toFixed(2)} ৳</span>
-              <span className="text-[11px] text-blue-600 block mt-0.5 font-medium">Cumulative Unit: {expenseStageUnitCost.toFixed(3)} ৳</span>
-            </div>
-            <div>
-              <span className="text-xs text-gray-500 block">Packing Materials</span>
-              <span className="font-bold text-slate-800">{totalPackingTk.toFixed(2)} ৳</span>
-              <span className="text-[11px] text-blue-600 block mt-0.5 font-medium">Final Unit: {packingStageUnitCost.toFixed(3)} ৳</span>
-            </div>
-            <div>
-              <span className="text-xs text-gray-500 block">Grand Total Cost</span>
-              <span className="font-extrabold text-amber-700">{totalProductionCost.toFixed(2)} ৳</span>
-              <span className="text-[11px] text-amber-700 block mt-0.5 font-bold">Unit Cost: {unitCost.toFixed(3)} ৳</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 bg-slate-50/80 rounded-lg border py-2 px-4 border-slate-200/60">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-gray-100">
           <Button
             onClick={() => navigate('/dashboard/production-voucher')}
             icon={<ArrowLeftOutlined />}
             size="large"
+            className="rounded-lg font-medium hover:bg-gray-50 border-gray-200"
           >
-            Back to Production Voucher
+            Back to Voucher
           </Button>
 
           <Button
@@ -1427,12 +1320,11 @@ const ProductionStep2Page: React.FC = () => {
             loading={isSubmitting}
             size="large"
             icon={<CheckCircleOutlined />}
-            className="px-8 bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white shadow-sm font-semibold"
+            className="px-10 rounded-lg bg-gradient-to-r from-[#C58D2F] to-[#b07d28] hover:from-[#b07d28] hover:to-[#96691e] border-none text-white shadow-md font-bold text-base"
           >
-            {isSubmitting ? 'Saving...' : 'Complete & Save Production'}
+            {isSubmitting ? 'Saving...' : 'Complete & Save'}
           </Button>
         </div>
-      </Form>
     </div>
   );
 };

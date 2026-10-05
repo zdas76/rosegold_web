@@ -24,6 +24,7 @@ const EdiitProduct = ({ item, setIsEditModal }: { item: TProduct | any, setIsEdi
             setUnitPrice(item?.unitPrice || 0)
             form.setFieldsValue({
                 ...item,
+                alertQuantity: item?.alertQuantity ?? 0,
                 date: item?.openingDate ? dayjs(item?.openingDate) : undefined
             })
         }
@@ -32,6 +33,9 @@ const EdiitProduct = ({ item, setIsEditModal }: { item: TProduct | any, setIsEdi
     const onFinish = async (values: any) => {
         const data = {
             ...values,
+            alertQuantity: values.alertQuantity !== undefined && values.alertQuantity !== null && values.alertQuantity !== ""
+                ? Number(values.alertQuantity)
+                : 0,
             initialStock: {
                 quantity: values?.quantity,
                 amount: Number((unitPrice! * quantity!).toFixed(2)),
@@ -58,6 +62,7 @@ const EdiitProduct = ({ item, setIsEditModal }: { item: TProduct | any, setIsEdi
                 onFinish={onFinish}
                 initialValues={{
                     ...item,
+                    alertQuantity: item?.alertQuantity ?? 0,
                     date: item?.openingDate ? dayjs(item?.openingDate) : undefined
                 }}>
                 <div className='grid grid-cols-2 gap-x-4'>
@@ -103,7 +108,7 @@ const EdiitProduct = ({ item, setIsEditModal }: { item: TProduct | any, setIsEdi
                     </Form.Item>
 
                     <Form.Item label="Initial Quantity" name="quantity" rules={[{ required: true }]}>
-                        <InputNumber 
+                        <InputNumber
                             type="number"
                             min={0}
                             onChange={(value) => setQuantity(Number(Number(value).toFixed(2)))}
@@ -115,25 +120,35 @@ const EdiitProduct = ({ item, setIsEditModal }: { item: TProduct | any, setIsEdi
                         <InputNumber
                             type="number"
                             min={0}
-                            style={{ width: '100%' }} 
+                            style={{ width: '100%' }}
                             onChange={(value) => setUnitPrice(Number(value))}
-                            disabled={!quantity} 
+                            disabled={!quantity}
                         />
                     </Form.Item>
 
-                    <Form.Item label="Initial Total Amount">
-                        <InputNumber
-                            type="number"
-                            min={0}
-                            readOnly
-                            style={{ width: '100%', color: "black" }}
-                            value={Number((unitPrice! * quantity!).toFixed(2))}
-                        />
-                    </Form.Item>
+                    <div className='col-span-2 grid grid-cols-3 gap-x-4'>
+                        <Form.Item label="Initial Total Amount">
+                            <InputNumber
+                                type="number"
+                                min={0}
+                                readOnly
+                                style={{ width: '100%', color: "black" }}
+                                value={Number((unitPrice! * quantity!).toFixed(2))}
+                            />
+                        </Form.Item>
 
-                    <Form.Item label="Date" name="date" rules={[{ required: true }]}>
-                        <DatePicker style={{ width: '100%' }} />
-                    </Form.Item>
+                        <Form.Item label="Date" name="date" rules={[{ required: true }]}>
+                            <DatePicker style={{ width: '100%' }} />
+                        </Form.Item>
+
+                        <Form.Item label="Alert Quantity" name="alertQuantity">
+                            <InputNumber
+                                min={0}
+                                placeholder="Enter alert quantity"
+                                style={{ width: '100%' }}
+                            />
+                        </Form.Item>
+                    </div>
                 </div>
 
                 <Form.Item>

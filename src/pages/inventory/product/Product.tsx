@@ -68,12 +68,13 @@ const Product = () => {
                         </span>
                     }} />
                     <Column title="Opening Quantity" dataIndex="quantity" className="" />
-                     <Column title="Opening Amount" dataIndex="amount" className="" />
+                    <Column title="Alert Qty" dataIndex="alertQuantity" render={(val: any) => val ?? '-'} />
+                    <Column title="Opening Amount" dataIndex="amount" className="" />
                     <Column title="Status" dataIndex="status" className="" />
 
                     <Column title="Action" render={(item) => {
                         return <div className="flex gap-4">
-                            <CommonModal btnText={<><FaEdit />Edit</>} isModalOpen={isEditModal?.id === item?.id} setIsModalOpen={(state: any) => setIsEditModal(state ? item : null)} title="Edit Category">
+                            <CommonModal btnText={<><FaEdit />Edit</>} isModalOpen={isEditModal?.id === item?.id} setIsModalOpen={(state: any) => setIsEditModal(state ? item : null)} title="Edit Product">
                                 <EdiitProduct item={item} setIsEditModal={setIsEditModal} />
                             </CommonModal>
                             <button onClick={() => handleDelete(item?.id)} className="hover:text-white cursor-pointer flex items-center gap-1 bg-gray-300 p-1 px-2 rounded hover:bg-slate-500"><FaTrash />Delete</button>

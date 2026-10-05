@@ -156,8 +156,8 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
     const rawList = Array.isArray(ingredientsData?.data)
       ? ingredientsData.data
       : Array.isArray((ingredientsData as any)?.data?.data)
-      ? (ingredientsData as any).data.data
-      : [];
+        ? (ingredientsData as any).data.data
+        : [];
 
     const matched = rawList.find((r: any) => Number(r.productId) === Number(selectedProductId)) || rawList[0];
     const materials = matched?.ingredientRawMaterial || matched?.ingredientRawMaterials || matched?.rawMaterials || [];
@@ -457,7 +457,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
 
       <Form form={form} layout="vertical" initialValues={{ date: dayjs() }}>
         {/* Top 3 required fields */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50/60 p-3 rounded-lg border border-slate-200/60">
+        <div className="grid grid-cols-1 gap-4 bg-slate-50/60 p-3 rounded-lg border border-slate-200/60">
           <Form.Item
             name="productId"
             label={<span className="font-semibold">Select Product</span>}
@@ -474,15 +474,6 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
               }
             />
           </Form.Item>
-
-          <Form.Item
-            name="batchNo"
-            label={<span className="font-semibold">Batch No</span>}
-            rules={[{ required: true, message: 'Please enter batch number' }]}
-          >
-            <Input placeholder="e.g. BATCH-2026-01" />
-          </Form.Item>
-
           <Form.Item
             name="date"
             label={<span className="font-semibold">Date</span>}
@@ -552,7 +543,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
             onClick={handleSaveAndProceed}
             className="px-8 bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white shadow-sm font-semibold"
           >
-            {isSubmitting ? 'Saving...' : 'Save & Proceed to Step 2'}
+            {isSubmitting ? 'Saving...' : 'Save & Proceed'}
           </Button>
         </div>
       </Form>
