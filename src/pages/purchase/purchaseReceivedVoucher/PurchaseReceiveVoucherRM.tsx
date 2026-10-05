@@ -44,10 +44,19 @@ export type TCreditItem = {
   narration?: string;
   id?: number; // Optional field for existing items
 };
+export type TExpenseItem = {
+  key?: number;
+  expItemId: number;
+  expItemName: string;
+  amount: number;
+  narration?: string;
+};
 const PurchaseReceiveVoucherRM: React.FC = () => {
   const [form] = Form.useForm();
   const [debitForm] = Form.useForm();
   const [creditForm] = Form.useForm();
+  const [expenseForm] = Form.useForm();
+  const [expenseItems, setExpenseItems] = useState<TExpenseItem[]>([]);
   const [partyType, setPartyType] = useState<string>("SUPPLIER");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCreditLedgerName, setSelectedCreditLedgerName] = useState<string>("");
@@ -86,7 +95,13 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
   const { data: CreditAccountsData, isLoading: isCreditAccountsLoading } =
     useGetAccountItemQuery({});
 
+  const { data: expItemsData, isLoading: isExpItemsLoading } =
+    useGetAccountItemQuery({});
+
   const debitTotal = debitItems?.reduce((total: number, item) => total + Number(item?.amount || 0), 0) ?? 0;
+  const debitTotalQty = debitItems?.reduce((total: number, item) => total + Number(item?.qty || 0), 0) ?? 0;
+  const expenseTotal = expenseItems?.reduce((total: number, item) => total + Number(item?.amount || 0), 0) ?? 0;
+  const totalDebit = debitTotal + expenseTotal;
   const creditTotal = creditItemsRedux?.reduce((total: number, item) => total + Number(item?.amount || 0), 0) ?? 0;
 
   if (
@@ -110,6 +125,33 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
     value: item.id,
     label: item.accountsItemName,
   }));
+
+  const expItemsMapped = expItemsData?.data?.map((item: TAccountsItem) => ({
+    key: item.id,
+    value: item.id,
+    label: item.accountsItemName,
+  }));
+
+  const handleAddExpenseItem = () => {
+    expenseForm.validateFields().then((values) => {
+      const selected = expItemsMapped?.find((item: any) => item?.value === values.expItemId);
+      setExpenseItems((prev) => [
+        ...prev,
+        {
+          key: Date.now(),
+          expItemId: values.expItemId,
+          expItemName: selected?.label || "Expense",
+          amount: Number(values.expenseAmount) || 0,
+          narration: values.narration || "",
+        },
+      ]);
+      expenseForm.resetFields();
+    });
+  };
+
+  const handleRemoveExpenseItem = (key: number | undefined) => {
+    setExpenseItems((prev) => prev.filter((item) => item.key !== key));
+  };
 
   const handleAddDebitItem = () => {
     debitForm.validateFields().then((values) => {
@@ -138,6 +180,7 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
         accountsItemName: selected?.accountsItemName || "",
         amount: Number(values.amount) || 0,
         bankId: values.bankAccountId || null,
+        checkOrRTGS: values.checkOrRTGS || "",
         narration: values.narration || "",
       }));
       creditForm.resetFields();
@@ -146,8 +189,8 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
   };
 
   const onFinish = async (values: any) => {
-    const subTotal = debitTotal;
-    const grandTotal = debitTotal;
+    const subTotal = totalDebit;
+    const grandTotal = totalDebit;
 
     const formattedItems = debitItems.map((item) => ({
       key: item.key,
@@ -166,6 +209,7 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
       balance: 0,
       amount: item.amount,
       bankId: item.bankId || null,
+      checkOrRTGS: item.checkOrRTGS || "",
       narration: item.narration,
     }));
 
@@ -176,6 +220,7 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
       subTotal,
       grandTotal,
       items: formattedItems,
+      expenseItems: expenseItems,
       creditItem: formattedCreditItems,
     });
     const result = getResponse(res);
@@ -186,6 +231,8 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
 
   const handleNewVoucher = () => {
     form.resetFields();
+    expenseForm.resetFields();
+    setExpenseItems([]);
     dispatch(clearReceiveVoucherDebitItems());
     dispatch(clearReceiveVoucherCreditItems());
     setIsModalOpen(false);
@@ -314,8 +361,8 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
             const resolvedRawMaterialId = rawMaterialId != null
               ? Number(rawMaterialId)
               : matchedRM?.value != null
-              ? Number(matchedRM.value)
-              : null;
+                ? Number(matchedRM.value)
+                : null;
 
             const rawMaterialName = nameFromItem || matchedRM?.label || "";
             const qty = Number(item?.quantity ?? item?.qty ?? 0);
@@ -431,7 +478,10 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
               <Form.Item name="rawMaterialId" label="Raw Material" rules={[{ required: true, message: "Required" }]}>
                 <Select
                   placeholder="Select raw material"
-                  options={rawMaterialsMapped}
+                  options={rawMaterialsMapped?.map((opt: any) => ({
+                    ...opt,
+                    disabled: debitItems?.some((di: any) => String(di.rawMaterialId) === String(opt.value))
+                  }))}
                 />
               </Form.Item>
               <Form.Item name="qty" label="Qty" rules={[{ required: true, message: "Required" }]}>
@@ -482,6 +532,25 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
                   render: (value: number) => value?.toFixed(2),
                 },
                 {
+                  title: "Adjusted Unit R.",
+                  key: "adjustedUnitR",
+                  render: (_, record) => {
+                    if (debitTotalQty === 0) return Number(record.unitPrice).toFixed(2);
+                    const expPerUnit = expenseTotal / debitTotalQty;
+                    return (Number(record.unitPrice) + expPerUnit).toFixed(2);
+                  }
+                },
+                {
+                  title: "Ad. Total",
+                  key: "adTotal",
+                  render: (_, record) => {
+                    if (debitTotalQty === 0) return Number(record.amount).toFixed(2);
+                    const expPerUnit = expenseTotal / debitTotalQty;
+                    const adjUnitPrice = Number(record.unitPrice) + expPerUnit;
+                    return (Number(record.qty) * adjUnitPrice).toFixed(2);
+                  }
+                },
+                {
                   title: "Narration",
                   dataIndex: "narration",
                 },
@@ -498,8 +567,85 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
               pagination={false}
             />
           )}
+          <div className="flex justify-between items-center font-bold mt-2 text-base">
+            <div>Total Qty: {debitTotalQty}</div>
+            <div>Total Debit: {debitTotal.toFixed(2)}</div>
+          </div>
+        </div>
+
+        {/*-------------------------- Expense Items --------------------------------------------- */}
+        <div className="mb-5 bg-white shadow-md rounded-lg p-3 pt-0">
+          <Divider orientation="left" style={{ paddingTop: "10px" }}>
+            Expense
+          </Divider>
+          <Form component="div" form={expenseForm} layout="vertical" className="mb-3 px-3">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <Form.Item
+                name="expItemId"
+                label="Select exp item"
+                rules={[{ required: true, message: "Required" }]}
+              >
+                <Select
+                  placeholder="Select exp item"
+                  showSearch
+                  optionFilterProp="label"
+                  options={expItemsMapped}
+                />
+              </Form.Item>
+              <Form.Item
+                name="expenseAmount"
+                label="Amount"
+                rules={[{ required: true, message: "Required" }]}
+              >
+                <Input type="number" placeholder="Amount" min={0} />
+              </Form.Item>
+              <Form.Item name="narration" label="Narration">
+                <Input placeholder="Narration (optional)" />
+              </Form.Item>
+              <Form.Item label=" ">
+                <Button
+                  onClick={handleAddExpenseItem}
+                  icon={<PlusOutlined />}
+                  style={{ fontSize: "12px", background: "#2d1849", color: "white", width: "100%" }}
+                >
+                  Add
+                </Button>
+              </Form.Item>
+            </div>
+          </Form>
+          {expenseItems.length > 0 && (
+            <Table
+              dataSource={expenseItems}
+              rowKey="key"
+              columns={[
+                {
+                  title: "Exp Item",
+                  dataIndex: "expItemName",
+                },
+                {
+                  title: "Amount",
+                  dataIndex: "amount",
+                  render: (value: number) => Number(value || 0).toFixed(2),
+                },
+                {
+                  title: "Narration",
+                  dataIndex: "narration",
+                },
+                {
+                  title: "Actions",
+                  render: (_, record) => (
+                    <DeleteOutlined
+                      onClick={() => handleRemoveExpenseItem(record.key)}
+                      className="text-red-500 cursor-pointer"
+                    />
+                  ),
+                },
+              ]}
+              pagination={false}
+            />
+          )}
           <div className="text-right font-bold mt-2 text-base">
-            <b>Total Debit: {debitTotal}</b>
+            <b>Total Expense: {expenseTotal.toFixed(2)}</b>
           </div>
         </div>
 
@@ -509,7 +655,7 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
             Credit Items
           </Divider>
           <Form component="div" form={creditForm} layout="vertical" className="mb-3 px-3">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
               <Form.Item name="accountsItemId" label="Ledger Head" rules={[{ required: true, message: "Required" }]}>
                 <Select
                   placeholder="Select ledger head"
@@ -543,6 +689,9 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
               <Form.Item name="narration" label="Narration">
                 <Input placeholder="Narration (optional)" />
               </Form.Item>
+              <Form.Item name="checkOrRTGS" label="Check/RTGS" rules={[{ required: true, message: "Required" }]}>
+                <Input type="text" placeholder="Check/RTGS" />
+              </Form.Item>
               <Form.Item label=" ">
                 <Button onClick={handleAddCreditItem} icon={<PlusOutlined />} style={{ fontSize: "12px", background: "#2d1849", color: "white", width: "100%" }}>
                   Add
@@ -563,6 +712,10 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
                   title: "Amount",
                   dataIndex: "amount",
                   render: (value: number) => value?.toFixed(2),
+                },
+                {
+                  title: "Check/RTGS",
+                  dataIndex: "checkOrRTGS",
                 },
                 {
                   title: "Narration",
