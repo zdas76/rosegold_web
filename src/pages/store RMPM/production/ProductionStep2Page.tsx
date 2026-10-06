@@ -18,7 +18,11 @@ import {
   useGetProductionsQuery,
   type Production,
 } from '../../../redux/features/production/production.api';
-import { setProductionStep1 } from '../../../redux/features/production/productionSlice';
+import {
+  setProductionStep1,
+  setProductionExpenses as setReduxProductionExpenses,
+  setPackingMaterials as setReduxPackingMaterials
+} from '../../../redux/features/production/productionSlice';
 import { getResponse } from '../../../utils/getResponse';
 import { useAppDispatch, useAppSelector } from '../../../redux/hooks';
 import type { RawMaterialItem, PackingMaterialItem, ProductionExpenseItem } from './ProductionCreationForm';
@@ -40,7 +44,6 @@ const ProductionStep2Page: React.FC = () => {
   const [form] = Form.useForm();
 
   const productionState = useAppSelector(state => state.production);
-  console.log(productionState, "productionState, productionState,productionState")
   const dispatch = useAppDispatch();
   const [productionData, setProductionData] = useState<any>(location.state?.production || null);
   const [rawMaterials, setRawMaterials] = useState<RawMaterialItem[]>([]);
@@ -362,6 +365,31 @@ const ProductionStep2Page: React.FC = () => {
     }
   }, [productionData, allRawMaterialsData, allPackingMaterialsData, allExpItemsData, ingredientsData, form, prodInv, productId, productionState.date, productionState.productId, productionState.rawMaterials, dispatch]);
 
+  // Sync expenses and packing materials to Redux
+  useEffect(() => {
+    dispatch(
+      setReduxProductionExpenses(
+        productionExpenses.map(item => ({
+          expenseId: String(item.expenseItemId || ''),
+          qty_duration: Number(item.qty) || 0,
+          expRate: Number(item.rate) || 0,
+        }))
+      )
+    );
+  }, [productionExpenses, dispatch]);
+
+  useEffect(() => {
+    dispatch(
+      setReduxPackingMaterials(
+        packingMaterials.map(item => ({
+          packingMaterialId: String(item.packingMaterialId || ''),
+          unitePrice: Number(item.unitPrice) || 0,
+          qty: Number(item.qty) || 0,
+        }))
+      )
+    );
+  }, [packingMaterials, dispatch]);
+
   // Calculations
   const grandTotal = useMemo(() => {
     return Number(rawMaterials.reduce((sum, item) => sum + (item.total || 0), 0).toFixed(2));
@@ -453,12 +481,16 @@ const ProductionStep2Page: React.FC = () => {
         return;
       }
 
-      if (combinedProducts.length > 0) {
-        const grandTotalQty = combinedProducts.reduce((sum, item) => sum + item.totalQty, 0);
-        if (grandTotalQty > finishedQty) {
-          message.error(`Total combined quantity (${grandTotalQty}) cannot exceed Finished Product Quantity (${finishedQty})`);
-          return;
-        }
+      const grandTotalQty = combinedProducts.reduce((sum, item) => sum + item.totalQty, 0);
+      if (grandTotalQty > finishedQty) {
+        message.error(`Total combined quantity (${grandTotalQty}) cannot exceed Finished Product Quantity (${finishedQty})`);
+        return;
+      }
+
+      if (currentCombinedTotalQty > 0 && grandTotalQty + currentCombinedTotalQty > finishedQty) {
+        const remaining = Math.max(0, finishedQty - grandTotalQty);
+        message.error(`Un-added combined quantity (${currentCombinedTotalQty}) exceeds the remaining available quantity (${remaining}). Please check your Combined Products section.`);
+        return;
       }
 
       // Check Production Expenses
@@ -783,15 +815,6 @@ const ProductionStep2Page: React.FC = () => {
       />
 
       <div className="mt-6 flex flex-wrap items-center justify-end gap-4 pt-4 border-t border-gray-100">
-        {/* <Button
-            onClick={() => navigate('/dashboard/production-voucher')}
-            icon={<ArrowLeftOutlined />}
-            size="large"
-            className="rounded-lg font-medium hover:bg-gray-50 border-gray-200"
-          >
-            Back to Voucher
-          </Button> */}
-
         <Button
           type="primary"
           onClick={handleSubmit}

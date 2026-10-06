@@ -80,8 +80,16 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
             <Form.Item
               label={<span className="font-semibold text-gray-700 text-sm">Total Qty</span>}
               className="mb-0"
+              validateStatus={currentCombinedTotalQty + combinedProducts.reduce((sum, item) => sum + item.totalQty, 0) > (Number(productQuantity) || 0) ? "error" : ""}
+              help={currentCombinedTotalQty > 0 && currentCombinedTotalQty + combinedProducts.reduce((sum, item) => sum + item.totalQty, 0) > (Number(productQuantity) || 0) ? `Exceeds! Only ${Math.max(0, (Number(productQuantity) || 0) - combinedProducts.reduce((sum, item) => sum + item.totalQty, 0))} remaining.` : undefined}
             >
-              <InputNumber value={currentCombinedTotalQty} disabled size="large" className="w-full rounded-lg bg-gray-50/80 shadow-sm font-bold text-gray-800" style={{ width: "100%" }} />
+              <InputNumber 
+                value={currentCombinedTotalQty} 
+                disabled 
+                size="large" 
+                className={`w-full rounded-lg shadow-sm font-bold ${currentCombinedTotalQty + combinedProducts.reduce((sum, item) => sum + item.totalQty, 0) > (Number(productQuantity) || 0) ? 'bg-red-50 text-red-600 border-red-300' : 'bg-gray-50/80 text-gray-800'}`} 
+                style={{ width: "100%" }} 
+              />
             </Form.Item>
 
             <Form.Item className="mb-0">
@@ -94,7 +102,8 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
                     const prodQty = Number(productQuantity) || 0;
 
                     if (currentGrandTotal + newTotal > prodQty) {
-                      message.error(`Total combined quantity (${currentGrandTotal + newTotal}) cannot exceed Finished Product Quantity (${prodQty})`);
+                      const remaining = Math.max(0, prodQty - currentGrandTotal);
+                      message.error(`Total combined quantity cannot exceed Finished Product Quantity (${prodQty}). You can only add up to ${remaining} more.`);
                       return;
                     }
 
