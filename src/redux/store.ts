@@ -17,6 +17,7 @@ import salesDebitReducer from './features/accountsSales/salesDebitSlice'
 import salesCreditReducer from './features/accountsSales/salesCreditSlice'
 import paymentVoucherDebitReducer from './features/paymentVoucher/paymentVoucherDebitSlice'
 import paymentVoucherCreditReducer from './features/paymentVoucher/paymentVoucherCreditSlice'
+import productionReducer from './features/production/productionSlice'
 const persistConfig = {
     key: "auth",
     storage,
@@ -42,7 +43,8 @@ export const store = configureStore({
         salesDebit: salesDebitReducer,
         salesCredit: salesCreditReducer,
         paymentVoucherDebit: paymentVoucherDebitReducer,
-        paymentVoucherCredit: paymentVoucherCreditReducer
+        paymentVoucherCredit: paymentVoucherCreditReducer,
+        production: productionReducer
     },
     middleware: (getDefaultMiddleware) => getDefaultMiddleware({
         serializableCheck: {

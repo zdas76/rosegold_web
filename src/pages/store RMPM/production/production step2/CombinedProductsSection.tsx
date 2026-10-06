@@ -28,29 +28,7 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
         <Form
           form={combinedForm}
           layout="vertical"
-          onFinish={(values) => {
-            const newTotal = (values.qtyPerPack || 0) * (values.numberOfCartoon || 0);
-            const currentGrandTotal = combinedProducts.reduce((sum, item) => sum + item.totalQty, 0);
-            const prodQty = Number(productQuantity) || 0;
-
-            if (currentGrandTotal + newTotal > prodQty) {
-              message.error(`Total combined quantity (${currentGrandTotal + newTotal}) cannot exceed Finished Product Quantity (${prodQty})`);
-              return;
-            }
-
-            const product = productsData?.data?.find((p: any) => p.id === values.productId);
-            const newProduct = {
-              id: Date.now(),
-              productId: values.productId,
-              productName: product?.name || `Product #${values.productId}`,
-              categoryName: product?.subCategory?.category?.categoryName || product?.category?.categoryName || '',
-              qtyPerPack: values.qtyPerPack,
-              numberOfCartoon: values.numberOfCartoon,
-              totalQty: newTotal,
-            };
-            setCombinedProducts([...combinedProducts, newProduct]);
-            combinedForm.resetFields();
-          }}
+          component={false}
         >
           <div className="grid grid-cols-1 md:grid-cols-5 gap-7 items-end">
             <Form.Item
@@ -107,7 +85,39 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
             </Form.Item>
 
             <Form.Item className="mb-0">
-              <Button type="dashed" htmlType="submit" size="large" icon={<PlusOutlined />} className="w-full text-blue-600 border-blue-200 hover:border-blue-400 hover:text-blue-700 font-bold rounded-lg shadow-sm">
+              <Button 
+                type="dashed" 
+                onClick={() => {
+                  combinedForm.validateFields().then((values: any) => {
+                    const newTotal = (values.qtyPerPack || 0) * (values.numberOfCartoon || 0);
+                    const currentGrandTotal = combinedProducts.reduce((sum: number, item: any) => sum + item.totalQty, 0);
+                    const prodQty = Number(productQuantity) || 0;
+
+                    if (currentGrandTotal + newTotal > prodQty) {
+                      message.error(`Total combined quantity (${currentGrandTotal + newTotal}) cannot exceed Finished Product Quantity (${prodQty})`);
+                      return;
+                    }
+
+                    const product = productsData?.data?.find((p: any) => p.id === values.productId);
+                    const newProduct = {
+                      id: Date.now(),
+                      productId: values.productId,
+                      productName: product?.name || `Product #${values.productId}`,
+                      categoryName: product?.subCategory?.category?.categoryName || product?.category?.categoryName || '',
+                      qtyPerPack: values.qtyPerPack,
+                      numberOfCartoon: values.numberOfCartoon,
+                      totalQty: newTotal,
+                    };
+                    setCombinedProducts([...combinedProducts, newProduct]);
+                    combinedForm.resetFields();
+                  }).catch((info: any) => {
+                    console.log('Validate Failed:', info);
+                  });
+                }} 
+                size="large" 
+                icon={<PlusOutlined />} 
+                className="w-full text-blue-600 border-blue-200 hover:border-blue-400 hover:text-blue-700 font-bold rounded-lg shadow-sm"
+              >
                 Add Product
               </Button>
             </Form.Item>

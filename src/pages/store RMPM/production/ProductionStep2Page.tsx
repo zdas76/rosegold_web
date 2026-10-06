@@ -1,11 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useMemo } from 'react';
-import { Form, InputNumber, Select, message, Button, Table, Tag, Collapse } from 'antd';
+import { Form, message, Button, Table, Tag, Collapse } from 'antd';
 import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
-  DeleteOutlined,
-  PlusOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, useParams, useSearchParams } from 'react-router';
@@ -20,7 +18,9 @@ import {
   useGetProductionsQuery,
   type Production,
 } from '../../../redux/features/production/production.api';
+import { setProductionStep1 } from '../../../redux/features/production/productionSlice';
 import { getResponse } from '../../../utils/getResponse';
+import { useAppDispatch, useAppSelector } from '../../../redux/hooks';
 import type { RawMaterialItem, PackingMaterialItem, ProductionExpenseItem } from './ProductionCreationForm';
 import CombinedProductsSection from './production step2/CombinedProductsSection';
 import FinalizationSummary from './production step2/FinalizationSummary';
@@ -39,6 +39,9 @@ const ProductionStep2Page: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [form] = Form.useForm();
 
+  const productionState = useAppSelector(state => state.production);
+  console.log(productionState, "productionState, productionState,productionState")
+  const dispatch = useAppDispatch();
   const [productionData, setProductionData] = useState<any>(location.state?.production || null);
   const [rawMaterials, setRawMaterials] = useState<RawMaterialItem[]>([]);
   const [packingMaterials, setPackingMaterials] = useState<PackingMaterialItem[]>([]);
@@ -47,7 +50,6 @@ const ProductionStep2Page: React.FC = () => {
   const [combinedForm] = Form.useForm();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   // Queries
   const { data: productsData } = useGetProductsQuery({});
@@ -55,12 +57,18 @@ const ProductionStep2Page: React.FC = () => {
   const { data: allPackingMaterialsData } = useGetPackingMaterialsQuery({});
   const { data: allExpItemsData } = useGetProductionExpItemsQuery({});
   const { data: allProductionsData, isLoading: isProductionsLoading } = useGetProductionsQuery({});
-
   const targetId = params.id || searchParams.get('id') || productionData?.id;
 
-  // If page was loaded directly or refreshed, find production by targetId
+  // Update productionData if location changes
   useEffect(() => {
-    if (!productionData && targetId && allProductionsData) {
+    if (location.state?.production) {
+      setProductionData(location.state.production);
+    }
+  }, [location.key, location.state]);
+
+  // If page was loaded directly, refreshed, or id changed, find production by targetId
+  useEffect(() => {
+    if (!location.state?.production && targetId && allProductionsData) {
       const list = Array.isArray(allProductionsData?.data)
         ? allProductionsData.data
         : Array.isArray((allProductionsData as any)?.data?.data)
@@ -69,9 +77,11 @@ const ProductionStep2Page: React.FC = () => {
       const found = list.find((p: any) => String(p.id) === String(targetId));
       if (found) {
         setProductionData(found);
+      } else {
+        setProductionData(null);
       }
     }
-  }, [productionData, targetId, allProductionsData]);
+  }, [location.state?.production, targetId, allProductionsData]);
 
   // Options
   const packingMaterialOptions = useMemo(() => {
@@ -94,21 +104,13 @@ const ProductionStep2Page: React.FC = () => {
     }));
   }, [allExpItemsData]);
 
-  const selectedPackingMaterialIds = useMemo(() => {
-    return new Set(packingMaterials.map(item => item.packingMaterialId).filter(Boolean));
-  }, [packingMaterials]);
-
-  const selectedExpenseItemIds = useMemo(() => {
-    return new Set(productionExpenses.map(item => item.expenseItemId).filter(Boolean));
-  }, [productionExpenses]);
-
   // Product info from productionData
   const prodInv = useMemo(() => {
     return productionData?.inventory?.find((inv: any) => inv.productId || inv.product);
   }, [productionData]);
 
-  const productId = prodInv?.productId || prodInv?.product?.id;
-  const productName = prodInv?.product?.name || (productId ? productsData?.data?.find((p: any) => p.id === productId)?.name : null) || 'Product';
+  const productId = prodInv?.productId || prodInv?.product?.id || productionState.productId;
+  const productName = prodInv?.product?.name || (productId ? productsData?.data?.find((p: any) => p.id === Number(productId))?.name : null) || 'Product';
 
   // Recipe query
   const { data: ingredientsData } = useGetProductionIngredientsQuery(
@@ -120,45 +122,81 @@ const ProductionStep2Page: React.FC = () => {
 
   // Populate form and lists when productionData arrives
   useEffect(() => {
-    if (!productionData) return;
+    if (!productionData && !productionState.productId) return;
+
+    const sourceData = productionData ? 'api' : 'redux';
 
     const initialProductQty = prodInv?.quantityAdd ?? prodInv?.quantity ?? undefined;
 
     form.setFieldsValue({
-      productId: productId || undefined,
-      batchNo: productionData.batchNo || '',
-      date: productionData.date ? dayjs(productionData.date) : dayjs(),
+      productId: Number(productId) || undefined,
+      batchNo: productionData?.batchNo || '',
+      date: productionData?.date ? dayjs(productionData?.date) : (productionState.date ? dayjs(productionState.date) : dayjs()),
       productQuantity: initialProductQty,
     });
 
     // 1. Raw Materials (Locked from Step 1)
-    const rawInvs = productionData.inventory?.filter((inv: any) => inv.rawId || inv.raWMaterial) || [];
-    const parsedRaw: RawMaterialItem[] = rawInvs.map((rm: any, index: number) => {
-      const rawId = rm.rawId || rm.raWMaterial?.id;
-      const foundRm = allRawMaterialsData?.data?.find((m: any) => Number(m.id) === Number(rawId));
-      const name = rm.raWMaterial?.name || foundRm?.name || rm.name || `Item #${rawId}`;
-      const unit = rm.raWMaterial?.unit?.name || foundRm?.unit?.name || rm.unit?.name || 'Kg';
-      const unitId = rm.raWMaterial?.unitId || foundRm?.unitId || null;
-      const qty = rm.quantityLess ?? rm.quantity ?? rm.quantityAdd ?? 0;
-      const rate = rm.unitPrice ?? foundRm?.unitPrice ?? 0;
-      const total = rm.creditAmount ?? (qty * rate);
-
-      return {
-        id: rm.id,
-        si: index + 1,
-        rawMaterialId: rawId,
-        name,
-        unit,
-        unitId,
-        qty: qty > 0 ? qty : null,
-        rate: rate > 0 ? rate : null,
-        total: Number(Number(total || 0).toFixed(2)),
-      };
-    });
+    let parsedRaw: RawMaterialItem[] = [];
+    if (sourceData === 'redux') {
+      parsedRaw = productionState.rawMaterials.map((rm, index) => {
+        const foundRm = allRawMaterialsData?.data?.find((m: any) => Number(m.id) === Number(rm.rawId));
+        return {
+          si: index + 1,
+          rawMaterialId: Number(rm.rawId),
+          name: foundRm?.name || `Item #${rm.rawId}`,
+          unit: foundRm?.unit?.name || 'Kg',
+          unitId: Number(rm.unitId) || null,
+          qty: rm.quantity,
+          rate: rm.uniterate,
+          total: Number((rm.quantity * rm.uniterate).toFixed(2)),
+        };
+      });
+    } else {
+      const rawInvs = productionData?.inventory?.filter((inv: any) => inv.rawId || inv.raWMaterial) || [];
+      parsedRaw = rawInvs.map((rm: any, index: number) => {
+        const rawId = rm.rawId || rm.raWMaterial?.id;
+        const foundRm = allRawMaterialsData?.data?.find((m: any) => Number(m.id) === Number(rawId));
+        const qty = rm.quantityLess ?? rm.quantity ?? rm.quantityAdd ?? 0;
+        const rate = rm.unitPrice ?? foundRm?.unitPrice ?? 0;
+        const total = rm.creditAmount ?? (qty * rate);
+        return {
+          id: rm.id,
+          si: index + 1,
+          rawMaterialId: rawId,
+          name: rm.raWMaterial?.name || foundRm?.name || rm.name || `Item #${rawId}`,
+          unit: rm.raWMaterial?.unit?.name || foundRm?.unit?.name || rm.unit?.name || 'Kg',
+          unitId: rm.raWMaterial?.unitId || foundRm?.unitId || null,
+          qty: qty > 0 ? qty : null,
+          rate: rate > 0 ? rate : null,
+          total: Number(Number(total || 0).toFixed(2)),
+        };
+      });
+    }
     setRawMaterials(parsedRaw);
 
+    // Update Redux slice with the API data
+    if (sourceData === 'api' && parsedRaw.length > 0) {
+      const formDate = productionData?.date ? dayjs(productionData.date).toISOString() : dayjs().toISOString();
+      const reduxPayload = {
+        productId: String(productId),
+        date: formDate,
+        rawMaterials: parsedRaw.map(item => ({
+          rawId: String(item.rawMaterialId!),
+          unitId: String(item.unitId || ''),
+          quantity: Number(item.qty) || 0,
+          uniterate: Number(item.rate) || 0,
+        })),
+      };
+
+      // Only dispatch if the redux state is different to avoid infinite loops
+      const isDifferent = productionState.productId !== String(productId) || productionState.rawMaterials.length !== parsedRaw.length;
+      if (isDifferent) {
+        dispatch(setProductionStep1(reduxPayload));
+      }
+    }
+
     // 2. Packing Materials
-    const pmInvs = productionData.pminventories || [];
+    const pmInvs = productionData?.pminventories || [];
     if (pmInvs.length > 0) {
       const parsedPacking: PackingMaterialItem[] = pmInvs.map((pm: any, index: number) => {
         const pmId = pm.packingMaterialId || pm.packingMaterial?.id || pm.id;
@@ -259,7 +297,7 @@ const ProductionStep2Page: React.FC = () => {
     }
 
     // 3. Production Expenses
-    const expInvs = productionData.productionExpensesInventory || [];
+    const expInvs = productionData?.productionExpensesInventory || [];
     if (expInvs.length > 0) {
       const parsedExpenses: ProductionExpenseItem[] = expInvs.map((exp: any, index: number) => {
         const expId = exp.proExpencesItemId || exp.expenseItemId || exp.productionExpenseItem?.id;
@@ -322,7 +360,7 @@ const ProductionStep2Page: React.FC = () => {
         ]);
       }
     }
-  }, [productionData, allRawMaterialsData, allPackingMaterialsData, allExpItemsData, ingredientsData, form, prodInv, productId]);
+  }, [productionData, allRawMaterialsData, allPackingMaterialsData, allExpItemsData, ingredientsData, form, prodInv, productId, productionState.date, productionState.productId, productionState.rawMaterials, dispatch]);
 
   // Calculations
   const grandTotal = useMemo(() => {
@@ -393,269 +431,7 @@ const ProductionStep2Page: React.FC = () => {
     }
   }, [productQuantity]);
 
-  // Handlers for Packing Materials
-  const handleAddPackingRow = () => {
-    setPackingMaterials(prev => [
-      ...prev,
-      {
-        si: prev.length + 1,
-        packingMaterialId: null,
-        name: '',
-        unit: 'Pcs',
-        unitId: null,
-        qty: null,
-        unitPrice: null,
-        perUnitQty: null,
-        perUnitCost: null,
-        total: 0,
-      },
-    ]);
-  };
 
-  const handleRemovePackingRow = (si: number) => {
-    setPackingMaterials(prev => {
-      if (prev.length <= 1) {
-        message.warning('At least one packing material row is required');
-        return prev;
-      }
-      return prev.filter(item => item.si !== si).map((item, idx) => ({ ...item, si: idx + 1 }));
-    });
-  };
-
-  const handlePackingMaterialChange = (si: number, materialId: number | null) => {
-    if (!materialId) {
-      setPackingMaterials(prev =>
-        prev.map(item =>
-          item.si === si
-            ? {
-              ...item,
-              packingMaterialId: null,
-              name: '',
-              unit: 'Pcs',
-              unitId: null,
-              qty: null,
-              unitPrice: null,
-              perUnitQty: null,
-              perUnitCost: null,
-              total: 0,
-            }
-            : item
-        )
-      );
-      return;
-    }
-
-    const chosen = packingMaterialOptions.find((opt: any) => opt.value === materialId);
-    if (chosen) {
-      const prodQty = Number(productQuantity) || 0;
-      setPackingMaterials(prev =>
-        prev.map(item => {
-          if (item.si === si) {
-            const unitPrice = chosen.unitPrice || 0;
-            const qty = item.qty;
-            const total = qty != null ? Number((qty * unitPrice).toFixed(2)) : 0;
-            let perUnitQty = item.perUnitQty;
-            let perUnitCost = null;
-
-            if (qty != null && prodQty > 0) {
-              perUnitQty = roundToThree(qty / prodQty);
-              perUnitCost = roundToThree(total / prodQty);
-            } else if (perUnitQty != null) {
-              if (prodQty > 0) {
-                const newQty = Number((perUnitQty * prodQty).toFixed(2));
-                const newTotal = Number((newQty * unitPrice).toFixed(2));
-                return {
-                  ...item,
-                  packingMaterialId: chosen.value,
-                  name: chosen.label,
-                  unit: chosen.unit || item.unit,
-                  unitPrice,
-                  qty: newQty,
-                  perUnitQty,
-                  perUnitCost: roundToThree(newTotal / prodQty),
-                  total: newTotal,
-                };
-              }
-              perUnitCost = roundToThree(perUnitQty * unitPrice);
-            }
-
-            return {
-              ...item,
-              packingMaterialId: chosen.value,
-              name: chosen.label,
-              unit: chosen.unit || item.unit,
-              unitPrice,
-              qty,
-              perUnitQty,
-              perUnitCost,
-              total,
-            };
-          }
-          return item;
-        })
-      );
-    }
-  };
-
-  const handlePackingQtyChange = (si: number, value: number | null) => {
-    const prodQty = Number(productQuantity) || 0;
-    setPackingMaterials(prev =>
-      prev.map(item => {
-        if (item.si === si) {
-          const qty = value;
-          const price = item.unitPrice || 0;
-          const total = qty != null ? Number((qty * price).toFixed(2)) : 0;
-          let perUnitQty = null;
-          let perUnitCost = null;
-          if (qty != null && prodQty > 0) {
-            perUnitQty = roundToThree(qty / prodQty);
-            perUnitCost = roundToThree(total / prodQty);
-          }
-          return { ...item, qty, perUnitQty, perUnitCost, total };
-        }
-        return item;
-      })
-    );
-  };
-
-  const handlePackingPriceChange = (si: number, value: number | null) => {
-    const prodQty = Number(productQuantity) || 0;
-    setPackingMaterials(prev =>
-      prev.map(item => {
-        if (item.si === si) {
-          const newPrice = value;
-          const qty = item.qty;
-          const total = qty != null && newPrice != null ? Number((qty * newPrice).toFixed(2)) : 0;
-          let perUnitCost = null;
-          if (total > 0 && prodQty > 0) {
-            perUnitCost = roundToThree(total / prodQty);
-          } else if (item.perUnitQty != null && newPrice != null) {
-            perUnitCost = roundToThree(item.perUnitQty * newPrice);
-          }
-          return { ...item, unitPrice: newPrice, perUnitCost, total };
-        }
-        return item;
-      })
-    );
-  };
-
-  const handlePackingPerUnitQtyChange = (si: number, value: number | null) => {
-    const prodQty = Number(productQuantity) || 0;
-    setPackingMaterials(prev =>
-      prev.map(item => {
-        if (item.si === si) {
-          const newPerUnitQty = value != null ? roundToThree(value) : null;
-          const price = item.unitPrice || 0;
-          let qty = item.qty;
-          if (newPerUnitQty != null && prodQty > 0) {
-            qty = Number((newPerUnitQty * prodQty).toFixed(2));
-          }
-          const total = qty != null ? Number((qty * price).toFixed(2)) : 0;
-          const perUnitCost =
-            total > 0 && prodQty > 0
-              ? roundToThree(total / prodQty)
-              : newPerUnitQty != null
-                ? roundToThree(newPerUnitQty * price)
-                : null;
-          return { ...item, perUnitQty: newPerUnitQty, qty, perUnitCost, total };
-        }
-        return item;
-      })
-    );
-  };
-
-  const handlePackingPerUnitCostChange = (si: number, value: number | null) => {
-    setPackingMaterials(prev =>
-      prev.map(item => (item.si === si ? { ...item, perUnitCost: value != null ? roundToThree(value) : null } : item))
-    );
-  };
-
-  // Handlers for Production Expenses
-  const handleAddExpenseRow = () => {
-    setProductionExpenses(prev => [
-      ...prev,
-      {
-        si: prev.length + 1,
-        expenseItemId: null,
-        name: '',
-        qty: null,
-        rate: null,
-        total: 0,
-      },
-    ]);
-  };
-
-  const handleRemoveExpenseRow = (si: number) => {
-    setProductionExpenses(prev => {
-      if (prev.length <= 1) {
-        message.warning('At least one production expense row is required');
-        return prev;
-      }
-      return prev.filter(item => item.si !== si).map((item, idx) => ({ ...item, si: idx + 1 }));
-    });
-  };
-
-  const handleExpenseItemChange = (si: number, expenseId: number | null) => {
-    if (!expenseId) {
-      setProductionExpenses(prev =>
-        prev.map(item =>
-          item.si === si
-            ? { ...item, expenseItemId: null, name: '', qty: null, rate: null, total: 0 }
-            : item
-        )
-      );
-      return;
-    }
-
-    const chosen = expenseOptions.find((opt: any) => opt.value === expenseId);
-    if (chosen) {
-      setProductionExpenses(prev =>
-        prev.map(item => {
-          if (item.si === si) {
-            const newRate = chosen.rate ?? item.rate ?? null;
-            const qty = item.qty || 0;
-            const newTotal = newRate != null && qty != null ? Number((qty * newRate).toFixed(2)) : 0;
-            return {
-              ...item,
-              expenseItemId: chosen.value,
-              name: chosen.label,
-              rate: newRate,
-              total: newTotal,
-            };
-          }
-          return item;
-        })
-      );
-    }
-  };
-
-  const handleExpenseQtyChange = (si: number, value: number | null) => {
-    setProductionExpenses(prev =>
-      prev.map(item => {
-        if (item.si === si) {
-          const newQty = value;
-          const rate = item.rate || 0;
-          const newTotal = newQty != null && rate != null ? Number((newQty * rate).toFixed(2)) : 0;
-          return { ...item, qty: newQty, total: newTotal };
-        }
-        return item;
-      })
-    );
-  };
-
-  const handleExpenseRateChange = (si: number, value: number | null) => {
-    setProductionExpenses(prev =>
-      prev.map(item => {
-        if (item.si === si) {
-          const newRate = value;
-          const qty = item.qty || 0;
-          const newTotal = newRate != null && qty != null ? Number((qty * newRate).toFixed(2)) : 0;
-          return { ...item, rate: newRate, total: newTotal };
-        }
-        return item;
-      })
-    );
-  };
 
   const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     e.target.select();
@@ -663,12 +439,10 @@ const ProductionStep2Page: React.FC = () => {
 
   // Submit Step 2
   const handleSubmit = async () => {
-    if (!productionData?.id) {
-      message.error('No production record found to update');
+    if (!productionData?.id && !productionState.productId) {
+      message.error('No production record found to update or save');
       return;
     }
-
-    setAttemptedSubmit(true);
 
     try {
       const values = await form.validateFields();
@@ -677,6 +451,14 @@ const ProductionStep2Page: React.FC = () => {
       if (!finishedQty || finishedQty <= 0) {
         message.error('Please enter a valid Finished Product Quantity (greater than 0)');
         return;
+      }
+
+      if (combinedProducts.length > 0) {
+        const grandTotalQty = combinedProducts.reduce((sum, item) => sum + item.totalQty, 0);
+        if (grandTotalQty > finishedQty) {
+          message.error(`Total combined quantity (${grandTotalQty}) cannot exceed Finished Product Quantity (${finishedQty})`);
+          return;
+        }
       }
 
       // Check Production Expenses
@@ -733,8 +515,9 @@ const ProductionStep2Page: React.FC = () => {
 
       const validMaterials = rawMaterials.filter(item => item.rawMaterialId);
 
-      const payload: Production & { id?: number } = {
+      const payload: Production & { id?: number, isNewFromRedux?: boolean } = {
         ...(productionData?.id ? { id: Number(productionData.id) } : {}),
+        ...(productionState.productId && !productionData?.id ? { isNewFromRedux: true } : {}), // For debugging
         date: values.date ? dayjs(values.date).toISOString() : dayjs().toISOString(),
         batchNo: values.batchNo,
         productinfo: {
@@ -865,7 +648,7 @@ const ProductionStep2Page: React.FC = () => {
         <div>
           <h2 className="text-xl font-bold text-gray-800 m-0">Production Step 2 (Packaging & Expenses)</h2>
           <span className="text-xs text-gray-500">
-            Configure finished quantity, packing materials, and expenses for batch {productionData.batchNo || '-'}
+            Configure finished quantity, packing materials, and expenses for batch {productionData?.batchNo || '-'}
           </span>
         </div>
 
@@ -887,12 +670,12 @@ const ProductionStep2Page: React.FC = () => {
             </div>
             <div>
               <span className="text-xs text-amber-600/80 block uppercase font-bold tracking-wider mb-1">Batch No</span>
-              <span className="font-semibold text-gray-800">{productionData.batchNo || '-'}</span>
+              <span className="font-semibold text-gray-800">{productionData?.batchNo || '-'}</span>
             </div>
             <div>
               <span className="text-xs text-amber-600/80 block uppercase font-bold tracking-wider mb-1">Date</span>
               <span className="font-semibold text-gray-800">
-                {productionData.date ? dayjs(productionData.date).format('DD MMM, YYYY') : '-'}
+                {productionData?.date ? dayjs(productionData.date).format('DD MMM, YYYY') : (productionState.date ? dayjs(productionState.date).format('DD MMM, YYYY') : '-')}
               </span>
             </div>
             <div>
@@ -903,7 +686,7 @@ const ProductionStep2Page: React.FC = () => {
             </div>
             <div className="flex justify-end">
               <Tag color="orange" className="font-bold text-sm py-1 px-3 rounded-full border-none shadow-sm m-0">
-                Production #{productionData.id}
+                Production #{productionData?.id || 'New'}
               </Tag>
             </div>
           </div>

@@ -67,9 +67,6 @@ import AccountsContraVoucher from '../pages/accounts/contraVoucher/AccountsContr
 import OrderReceived from '../pages/accounts/orderReceived/OrderReceived';
 import ExpenseVoucher from '../pages/accounts/expenseVoucher/ExpenseVoucher';
 import GiftVoucher from '../pages/accounts/giftVoucher/GiftVoucher';
-import SoapCreationForm from '../pages/store RMPM/production/SoapCreationForm';
-import DetergentCreationForm from '../pages/store RMPM/production/DetergentCreationForm';
-import KitchenbarCreationForm from '../pages/store RMPM/production/KitchenbarCreationForm';
 import ProductionCreationForm from '../pages/store RMPM/production/ProductionCreationForm';
 import ProductionVoucher from '../pages/store RMPM/production/ProductionVoucher';
 import PurchaseOrderRM from '../pages/purchase/purchaseOrder/PurchaseOrderRMList';

@@ -150,7 +150,7 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
         <Form
           form={form}
           layout="vertical"
-          onFinish={handleAddPacking}
+          component={false}
         >
           <div className="grid grid-cols-1 md:grid-cols-4 gap-7 items-end">
             <Form.Item
@@ -197,7 +197,19 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
             </Form.Item>
 
             <Form.Item className="mb-0">
-              <Button type="dashed" htmlType="submit" size="large" icon={<PlusOutlined />} className="w-full text-emerald-600 border-emerald-200 hover:border-emerald-400 hover:text-emerald-700 font-bold rounded-lg shadow-sm">
+              <Button 
+                type="dashed" 
+                onClick={() => {
+                  form.validateFields().then(values => {
+                    handleAddPacking(values);
+                  }).catch(info => {
+                    console.log('Validate Failed:', info);
+                  });
+                }} 
+                size="large" 
+                icon={<PlusOutlined />} 
+                className="w-full text-emerald-600 border-emerald-200 hover:border-emerald-400 hover:text-emerald-700 font-bold rounded-lg shadow-sm"
+              >
                 Add Material
               </Button>
             </Form.Item>

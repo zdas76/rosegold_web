@@ -106,15 +106,14 @@ const ProductionExpensesSection: React.FC<ProductionExpensesSectionProps> = ({
         <Form
           form={form}
           layout="vertical"
-          onFinish={handleAddExpense}
+          component={false}
         >
           <div className="grid grid-cols-1 md:grid-cols-4 gap-7 items-end">
             <Form.Item
               name="expenseItemId"
               label={<span className="font-semibold text-gray-700 text-sm">Select Expense Item</span>}
               rules={[{ required: true, message: 'Please select an expense item' }]}
-              className="mb-0"
-            >
+              className="mb-0">
               <Select
                 style={{ width: "100%" }}
                 showSearch
@@ -153,7 +152,19 @@ const ProductionExpensesSection: React.FC<ProductionExpensesSectionProps> = ({
             </Form.Item>
 
             <Form.Item className="mb-0">
-              <Button type="dashed" htmlType="submit" size="large" icon={<PlusOutlined />} className="w-full text-blue-600 border-blue-200 hover:border-blue-400 hover:text-blue-700 font-bold rounded-lg shadow-sm">
+              <Button 
+                type="dashed" 
+                onClick={() => {
+                  form.validateFields().then(values => {
+                    handleAddExpense(values);
+                  }).catch(info => {
+                    console.log('Validate Failed:', info);
+                  });
+                }} 
+                size="large" 
+                icon={<PlusOutlined />} 
+                className="w-full text-blue-600 border-blue-200 hover:border-blue-400 hover:text-blue-700 font-bold rounded-lg shadow-sm"
+              >
                 Add Expense
               </Button>
             </Form.Item>

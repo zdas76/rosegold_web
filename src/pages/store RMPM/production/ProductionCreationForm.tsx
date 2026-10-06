@@ -12,6 +12,8 @@ import {
   type Production,
 } from '../../../redux/features/production/production.api';
 import { getResponse } from '../../../utils/getResponse';
+import { useAppDispatch, useAppSelector } from '../../../redux/hooks';
+import { setProductionStep1 } from '../../../redux/features/production/productionSlice';
 
 export interface RawMaterialItem {
   id?: number;
@@ -64,6 +66,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useAppDispatch();
   const [form] = Form.useForm();
 
   const [existingProductionId, setExistingProductionId] = useState<number | null>(null);
@@ -190,7 +193,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
         { si: 1, rawMaterialId: null, name: '', unit: 'Kg', unitId: null, qty: null, rate: null, total: 0 },
       ]);
     }
-  }, [selectedProductId, ingredientsData, allRawMaterialsData, existingProductionId]);
+  }, [selectedProductId, ingredientsData, allRawMaterialsData, existingProductionId, form]);
 
   // Handlers for table rows
   const handleMaterialChange = (si: number, value: number | null) => {
@@ -299,7 +302,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
 
       setIsSubmitting(true);
 
-      const payload: Production & { id?: number } = {
+      const apiPayload: Production & { id?: number } = {
         ...(existingProductionId ? { id: existingProductionId } : {}),
         date: values.date ? dayjs(values.date).toISOString() : dayjs().toISOString(),
         batchNo: values.batchNo,
@@ -316,10 +319,22 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
         })),
       };
 
-      const res = await createProduction(payload);
+      const res = await createProduction(apiPayload);
       const result = getResponse(res);
 
       if (result?.success) {
+        const reduxPayload = {
+          productId: String(values.productId),
+          date: values.date ? dayjs(values.date).toISOString() : dayjs().toISOString(),
+          rawMaterials: validMaterials.map(item => ({
+            rawId: String(item.rawMaterialId!),
+            unitId: String(item.unitId || ''),
+            quantity: Number(item.qty) || 0,
+            uniterate: Number(item.rate) || 0,
+          })),
+        };
+        dispatch(setProductionStep1(reduxPayload));
+
         message.success('Step 1 (Raw Materials) saved successfully! Proceeding to Step 2.');
         const savedProduction = result.data;
         navigate('/dashboard/production-step-2', {
@@ -449,15 +464,14 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
 
         <Button
           icon={<UnorderedListOutlined />}
-          onClick={() => navigate('/dashboard/production-voucher')}
-        >
+          onClick={() => navigate('/dashboard/production-voucher')}>
           Production Voucher
         </Button>
       </div>
 
       <Form form={form} layout="vertical" initialValues={{ date: dayjs() }}>
         {/* Top 3 required fields */}
-        <div className="grid grid-cols-1 gap-4 bg-slate-50/60 p-3 rounded-lg border border-slate-200/60">
+        <div className="grid grid-cols-2 gap-4 bg-slate-50/60 p-3 rounded-lg border border-slate-200/60">
           <Form.Item
             name="productId"
             label={<span className="font-semibold">Select Product</span>}
