@@ -84,9 +84,9 @@ const FinalizationSummary: React.FC<FinalizationSummaryProps> = ({
         </div>
       </div>
 
-      <div className="mt-6 py-3 px-5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-md flex justify-between items-center text-white">
-        <span className="font-bold text-base tracking-wide">Final Per Unit Cost (All Costs Included)</span>
-        <span className="text-2xl font-black drop-shadow-sm">
+      <div className="mt-6 py-2 px-5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-md flex justify-between items-center text-white">
+        <span className="font-bold text-base">Final Per Unit Cost (All Costs Included)</span>
+        <span className="text-xl font-black drop-shadow-sm">
           {unitCost.toFixed(3)} ৳
         </span>
       </div>

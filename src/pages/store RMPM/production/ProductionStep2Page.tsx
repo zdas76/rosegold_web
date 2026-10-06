@@ -24,6 +24,8 @@ import { getResponse } from '../../../utils/getResponse';
 import type { RawMaterialItem, PackingMaterialItem, ProductionExpenseItem } from './ProductionCreationForm';
 import CombinedProductsSection from './production step2/CombinedProductsSection';
 import FinalizationSummary from './production step2/FinalizationSummary';
+import ProductionExpensesSection from './production step2/ProductionExpensesSection';
+import PackingMaterialsSection from './production step2/PackingMaterialsSection';
 
 const roundToThree = (val: number | null | undefined): number | null => {
   if (val == null || isNaN(Number(val))) return null;
@@ -830,237 +832,6 @@ const ProductionStep2Page: React.FC = () => {
     },
   ];
 
-  // Columns for Packing Materials
-  const packingColumns = [
-    { title: 'SI', dataIndex: 'si', key: 'si', width: 60, align: 'center' as const },
-    {
-      title: 'Packing Material',
-      dataIndex: 'name',
-      key: 'name',
-      width: 250,
-      render: (_: any, record: PackingMaterialItem) => (
-        <Select
-          status={attemptedSubmit && !record.packingMaterialId ? 'error' : undefined}
-          placeholder="Select Packing Material"
-          value={record.packingMaterialId || undefined}
-          style={{ width: '100%' }}
-          onChange={v => handlePackingMaterialChange(record.si, v as number | null)}
-          options={packingMaterialOptions.map((opt: any) => ({
-            ...opt,
-            disabled: selectedPackingMaterialIds.has(opt.value) && opt.value !== record.packingMaterialId,
-          }))}
-          showSearch
-          filterOption={(input, option) =>
-            !!option?.label?.toString().toLowerCase().includes(input.toLowerCase())
-          }
-        />
-      ),
-    },
-    {
-      title: 'Unit',
-      dataIndex: 'unit',
-      key: 'unit',
-      width: 80,
-      align: 'center' as const,
-      render: (unit: string) => <span className="text-gray-600 font-medium">{unit || 'Pcs'}</span>,
-    },
-    {
-      title: 'Unit Price (BDT)',
-      dataIndex: 'unitPrice',
-      key: 'unitPrice',
-      width: 140,
-      render: (_: any, record: PackingMaterialItem) => (
-        <InputNumber
-          status={attemptedSubmit && (record.unitPrice == null || Number(record.unitPrice) < 0) ? 'error' : undefined}
-          min={0}
-          step={0.01}
-          value={record.unitPrice}
-          onChange={v => handlePackingPriceChange(record.si, v)}
-          onFocus={handleInputFocus}
-          controls={false}
-          keyboard={false}
-          style={{ width: '100%' }}
-          precision={2}
-          placeholder="0.00"
-        />
-      ),
-    },
-    {
-      title: 'Total Qty',
-      dataIndex: 'qty',
-      key: 'qty',
-      width: 130,
-      render: (_: any, record: PackingMaterialItem) => (
-        <InputNumber
-          status={attemptedSubmit && (!record.qty || Number(record.qty) <= 0) ? 'error' : undefined}
-          min={0}
-          step={0.01}
-          value={record.qty}
-          onChange={v => handlePackingQtyChange(record.si, v)}
-          onFocus={handleInputFocus}
-          controls={false}
-          keyboard={false}
-          style={{ width: '100%' }}
-          precision={2}
-          placeholder="0.00"
-        />
-      ),
-    },
-    {
-      title: 'Per Unit Qty',
-      dataIndex: 'perUnitQty',
-      key: 'perUnitQty',
-      width: 120,
-      render: (_: any, record: PackingMaterialItem) => (
-        <InputNumber
-          disabled
-          value={record.perUnitQty}
-          controls={false}
-          style={{ width: '100%' }}
-          precision={3}
-          placeholder="0.000"
-          className="bg-slate-100/90 font-bold text-slate-800 border-slate-200 cursor-not-allowed"
-        />
-      ),
-    },
-    {
-      title: 'Per Unit Cost (BDT)',
-      dataIndex: 'perUnitCost',
-      key: 'perUnitCost',
-      width: 130,
-      render: (_: any, record: PackingMaterialItem) => (
-        <InputNumber
-          disabled
-          value={record.perUnitCost}
-          controls={false}
-          style={{ width: '100%' }}
-          precision={3}
-          placeholder="0.000"
-          className="bg-slate-100/90 font-bold text-slate-800 border-slate-200 cursor-not-allowed"
-        />
-      ),
-    },
-    {
-      title: 'Total (BDT)',
-      dataIndex: 'total',
-      key: 'total',
-      width: 130,
-      align: 'right' as const,
-      render: (value: number) => (
-        <span className="font-semibold text-gray-800">{Number(value || 0).toFixed(2)}</span>
-      ),
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      width: 60,
-      align: 'center' as const,
-      render: (_: any, record: PackingMaterialItem) => (
-        <Button
-          type="text"
-          danger
-          icon={<DeleteOutlined />}
-          onClick={() => handleRemovePackingRow(record.si)}
-          size="small"
-        />
-      ),
-    },
-  ];
-
-  // Columns for Production Expenses
-  const expenseColumns = [
-    { title: 'SI', dataIndex: 'si', key: 'si', width: 60, align: 'center' as const },
-    {
-      title: 'Expense Item Name',
-      dataIndex: 'name',
-      key: 'name',
-      width: 250,
-      render: (_: any, record: ProductionExpenseItem) => (
-        <Select
-          status={attemptedSubmit && !record.expenseItemId ? 'error' : undefined}
-          placeholder="Select Expense Item"
-          value={record.expenseItemId || undefined}
-          style={{ width: '100%' }}
-          onChange={v => handleExpenseItemChange(record.si, v as number | null)}
-          options={expenseOptions.map((opt: any) => ({
-            ...opt,
-            disabled: selectedExpenseItemIds.has(opt.value) && opt.value !== record.expenseItemId,
-          }))}
-          showSearch
-          filterOption={(input, option) =>
-            !!option?.label?.toString().toLowerCase().includes(input.toLowerCase())
-          }
-        />
-      ),
-    },
-    {
-      title: 'Qty/Duration',
-      dataIndex: 'qty',
-      key: 'qty',
-      width: 140,
-      render: (_: any, record: ProductionExpenseItem) => (
-        <InputNumber
-          status={attemptedSubmit && (!record.qty || Number(record.qty) <= 0) ? 'error' : undefined}
-          min={0}
-          step={0.01}
-          value={record.qty}
-          onChange={v => handleExpenseQtyChange(record.si, v)}
-          onFocus={handleInputFocus}
-          controls={false}
-          keyboard={false}
-          style={{ width: '100%' }}
-          precision={2}
-          placeholder="0.00"
-        />
-      ),
-    },
-    {
-      title: 'Rate (BDT)',
-      dataIndex: 'rate',
-      key: 'rate',
-      width: 140,
-      render: (_: any, record: ProductionExpenseItem) => (
-        <InputNumber
-          status={attemptedSubmit && (record.rate == null || Number(record.rate) < 0) ? 'error' : undefined}
-          min={0}
-          step={0.01}
-          value={record.rate}
-          onChange={v => handleExpenseRateChange(record.si, v)}
-          onFocus={handleInputFocus}
-          controls={false}
-          keyboard={false}
-          style={{ width: '100%' }}
-          precision={2}
-          placeholder="0.00"
-        />
-      ),
-    },
-    {
-      title: 'Total (BDT)',
-      dataIndex: 'total',
-      key: 'total',
-      width: 140,
-      align: 'right' as const,
-      render: (value: number) => (
-        <span className="font-semibold text-gray-800">{Number(value || 0).toFixed(2)}</span>
-      ),
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      width: 60,
-      align: 'center' as const,
-      render: (_: any, record: ProductionExpenseItem) => (
-        <Button
-          type="text"
-          danger
-          icon={<DeleteOutlined />}
-          onClick={() => handleRemoveExpenseRow(record.si)}
-          size="small"
-        />
-      ),
-    },
-  ];
 
   if (!productionData && isProductionsLoading) {
     return (
@@ -1186,116 +957,40 @@ const ProductionStep2Page: React.FC = () => {
         />
 
         {/* Production Expenses Section */}
-        <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-lg text-gray-800 m-0">Production Expenses</h3>
-            <Button
-              type="dashed"
-              icon={<PlusOutlined />}
-              onClick={handleAddExpenseRow}
-              className="text-blue-600 border-blue-200 hover:border-blue-400 hover:text-blue-700 font-medium rounded-lg"
-            >
-              Add Expense
-            </Button>
-          </div>
-          <div className="rounded-lg overflow-hidden border border-gray-200/60">
-            <Table
-              className="expense-materials-table"
-              dataSource={productionExpenses}
-              columns={expenseColumns}
-              rowKey="si"
-              pagination={false}
-              bordered
-              size="small"
-              scroll={{ x: 750 }}
-              summary={() => (
-                <Table.Summary fixed>
-                  <Table.Summary.Row className="bg-amber-50/40 border-t border-amber-200/50 font-bold">
-                    <Table.Summary.Cell index={0} colSpan={2} />
-                    <Table.Summary.Cell index={1} className="text-center font-bold text-slate-800">
-                      <span className="text-gray-500 mr-2 font-semibold">Total Qty/Duration:</span>
-                      <span className="text-sm font-bold text-slate-900">
-                        {totalExpenseQty.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={2} colSpan={2} className="text-right pr-4 font-bold">
-                      <span className="text-gray-500 mr-2 font-semibold">Total Tk:</span>
-                      <span className="text-base font-extrabold text-amber-700">
-                        {totalExpenseTk.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
-                      </span>
-                    </Table.Summary.Cell>
-                  </Table.Summary.Row>
-
-                </Table.Summary>
-              )}
-            />
-          </div>
-
-        </div>
+        <ProductionExpensesSection
+          productionExpenses={productionExpenses}
+          setProductionExpenses={setProductionExpenses}
+          expenseOptions={expenseOptions}
+          totalExpenseQty={totalExpenseQty}
+          totalExpenseTk={totalExpenseTk}
+        />
 
         {/* Packing Materials Section */}
-        <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-lg text-gray-800 m-0">Packing Materials</h3>
-            <Button
-              type="dashed"
-              icon={<PlusOutlined />}
-              onClick={handleAddPackingRow}
-              className="text-emerald-600 border-emerald-200 hover:border-emerald-400 hover:text-emerald-700 font-medium rounded-lg"
-            >
-              Add Material
-            </Button>
-          </div>
-          <div className="rounded-lg overflow-hidden border border-gray-200/60">
-            <Table
-              className="packing-materials-table"
-              dataSource={packingMaterials}
-              columns={packingColumns}
-              rowKey="si"
-              pagination={false}
-              bordered
-              size="small"
-              scroll={{ x: 950 }}
-              summary={() => (
-                <Table.Summary fixed>
-                  <Table.Summary.Row className="bg-amber-50/40 border-t border-amber-200/50 font-bold">
-                    <Table.Summary.Cell index={0} colSpan={3} />
-                    <Table.Summary.Cell index={1} colSpan={3} className="text-center font-bold text-slate-800">
-                      <span className="text-gray-500 mr-2 font-semibold">Total Qty:</span>
-                      <span className="text-sm font-bold text-slate-900">
-                        {totalPackingQty.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </Table.Summary.Cell>
-                    <Table.Summary.Cell index={2} colSpan={2} className="text-right pr-4 font-bold">
-                      <span className="text-gray-500 mr-2 font-semibold">Total Tk:</span>
-                      <span className="text-base font-extrabold text-amber-700">
-                        {totalPackingTk.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
-                      </span>
-                    </Table.Summary.Cell>
-                  </Table.Summary.Row>
+        <PackingMaterialsSection
+          packingMaterials={packingMaterials}
+          setPackingMaterials={setPackingMaterials}
+          packingMaterialOptions={packingMaterialOptions}
+          totalPackingQty={totalPackingQty}
+          totalPackingTk={totalPackingTk}
+          productQuantity={productQuantity}
+        />
 
-                </Table.Summary>
-              )}
-            />
-          </div>
-        </div>
-
-      {/* Finished Product Quantity & Unit Cost Summary */}
-      <FinalizationSummary
-        handleInputFocus={handleInputFocus}
-        unitCost={unitCost}
-        grandTotal={grandTotal}
-        rawMaterialUnitCost={rawMaterialUnitCost}
-        totalExpenseTk={totalExpenseTk}
-        expenseStageUnitCost={expenseStageUnitCost}
-        totalPackingTk={totalPackingTk}
-        packingStageUnitCost={packingStageUnitCost}
-        totalProductionCost={totalProductionCost}
-      />
+        {/* Finished Product Quantity & Unit Cost Summary */}
+        <FinalizationSummary
+          handleInputFocus={handleInputFocus}
+          unitCost={unitCost}
+          grandTotal={grandTotal}
+          rawMaterialUnitCost={rawMaterialUnitCost}
+          totalExpenseTk={totalExpenseTk}
+          expenseStageUnitCost={expenseStageUnitCost}
+          totalPackingTk={totalPackingTk}
+          packingStageUnitCost={packingStageUnitCost}
+          totalProductionCost={totalProductionCost}
+        />
       </Form>
 
       {/* Combined Products Section */}
-      <CombinedProductsSection 
+      <CombinedProductsSection
         combinedForm={combinedForm}
         combinedProducts={combinedProducts}
         setCombinedProducts={setCombinedProducts}
@@ -1304,27 +999,27 @@ const ProductionStep2Page: React.FC = () => {
         currentCombinedTotalQty={currentCombinedTotalQty}
       />
 
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-gray-100">
-          <Button
+      <div className="mt-6 flex flex-wrap items-center justify-end gap-4 pt-4 border-t border-gray-100">
+        {/* <Button
             onClick={() => navigate('/dashboard/production-voucher')}
             icon={<ArrowLeftOutlined />}
             size="large"
             className="rounded-lg font-medium hover:bg-gray-50 border-gray-200"
           >
             Back to Voucher
-          </Button>
+          </Button> */}
 
-          <Button
-            type="primary"
-            onClick={handleSubmit}
-            loading={isSubmitting}
-            size="large"
-            icon={<CheckCircleOutlined />}
-            className="px-10 rounded-lg bg-gradient-to-r from-[#C58D2F] to-[#b07d28] hover:from-[#b07d28] hover:to-[#96691e] border-none text-white shadow-md font-bold text-base"
-          >
-            {isSubmitting ? 'Saving...' : 'Complete & Save'}
-          </Button>
-        </div>
+        <Button
+          type="primary"
+          onClick={handleSubmit}
+          loading={isSubmitting}
+          size="large"
+          icon={<CheckCircleOutlined />}
+          className="px-10 rounded-lg bg-gradient-to-r from-[#C58D2F] to-[#b07d28] hover:from-[#b07d28] hover:to-[#96691e] border-none text-white shadow-md font-bold text-base"
+        >
+          {isSubmitting ? 'Saving...' : 'Complete & Save'}
+        </Button>
+      </div>
     </div>
   );
 };

@@ -52,7 +52,7 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
             combinedForm.resetFields();
           }}
         >
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-7 items-end">
             <Form.Item
               name="productId"
               label={<span className="font-semibold text-gray-700 text-sm">Select Combined Product</span>}
@@ -60,6 +60,7 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
               className="mb-0"
             >
               <Select
+                style={{ width: "100%" }}
                 showSearch
                 placeholder="Search by category or product"
                 optionFilterProp="children"
@@ -80,12 +81,13 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
             </Form.Item>
 
             <Form.Item
+
               name="qtyPerPack"
               label={<span className="font-semibold text-gray-700 text-sm">Qty per Pack</span>}
               rules={[{ required: true, message: 'Enter qty' }]}
               className="mb-0"
             >
-              <InputNumber min={1} controls={false} size="large" className="w-full rounded-lg shadow-sm" placeholder="0" />
+              <InputNumber style={{ width: "100%" }} min={1} controls={false} size="large" className="w-full rounded-lg shadow-sm" placeholder="0" />
             </Form.Item>
 
             <Form.Item
@@ -94,14 +96,14 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
               rules={[{ required: true, message: 'Enter cartoon count' }]}
               className="mb-0"
             >
-              <InputNumber min={1} controls={false} size="large" className="w-full rounded-lg shadow-sm" placeholder="0" />
+              <InputNumber min={1} controls={false} size="large" className="w-full rounded-lg shadow-sm" placeholder="0" style={{ width: "100%" }} />
             </Form.Item>
 
             <Form.Item
               label={<span className="font-semibold text-gray-700 text-sm">Total Qty</span>}
               className="mb-0"
             >
-              <InputNumber value={currentCombinedTotalQty} disabled size="large" className="w-full rounded-lg bg-gray-50/80 shadow-sm font-bold text-gray-800" />
+              <InputNumber value={currentCombinedTotalQty} disabled size="large" className="w-full rounded-lg bg-gray-50/80 shadow-sm font-bold text-gray-800" style={{ width: "100%" }} />
             </Form.Item>
 
             <Form.Item className="mb-0">
