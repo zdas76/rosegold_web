@@ -43,23 +43,24 @@ const Supplier = () => {
     <div>
       <div className="mb-4">
         <div className="flex items-center justify-between">
-          <div className="bg-white rounded-lg px-4 py-2">
+          <div className="bg-white rounded-lg px-4 py-2 flex items-center justify-between w-full">
             <h1 className="font-bold text-lg md:text-xl m-0">Supplier</h1>
+            <div>
+              <CommonModal
+                btnClass="px-4 bg-slate-800 text-white py-2"
+                title="Add Supplier"
+                isModalOpen={isAddModalOpen}
+                setIsModalOpen={setIsAddModalOpen}
+                btnText={
+                  <span className="flex items-center gap-1 justify-center">
+                    <FaPlus size={10} /> <small>Create Supplier</small>
+                  </span>
+                }>
+                <AddVendorForm setIsModalOpen={setIsAddModalOpen} />
+              </CommonModal>
+            </div>
           </div>
-          <div>
-            <CommonModal
-              btnClass="px-4 bg-slate-800 text-white py-2"
-              title="Add Supplier"
-              isModalOpen={isAddModalOpen}
-              setIsModalOpen={setIsAddModalOpen}
-              btnText={
-                <span className="flex items-center gap-1 justify-center">
-                  <FaPlus size={10} /> <small>Create Supplier</small>
-                </span>
-              }>
-              <AddVendorForm setIsModalOpen={setIsAddModalOpen} />
-            </CommonModal>
-          </div>
+
         </div>
       </div>
       <div className="bg-white p-4 rounded-md shadow pb-1">

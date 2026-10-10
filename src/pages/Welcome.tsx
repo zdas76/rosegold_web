@@ -5,8 +5,7 @@ const Welcome = () => {
     return (
         <AuthLayout
             title="Welcome Back"
-            subtitle="Sign in to your account to continue"
-        >
+            subtitle="Sign in to your account to continue">
             <LoginPage />
         </AuthLayout>
     );

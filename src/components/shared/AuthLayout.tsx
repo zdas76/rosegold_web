@@ -29,8 +29,7 @@ const AuthLayout = ({ children, title, subtitle }: AuthLayoutProps) => {
                     className="space-y-6"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.2 }}
-                >
+                    transition={{ duration: 0.6, delay: 0.2 }}>
                     <h1 className="text-3xl xl:text-4xl font-bold leading-tight m-0">
                         Golden Mart Industries
                     </h1>
@@ -59,8 +58,7 @@ const AuthLayout = ({ children, title, subtitle }: AuthLayoutProps) => {
                     className="w-full max-w-md"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                >
+                    transition={{ duration: 0.5 }}>
                     <div className="lg:hidden text-center mb-8">
                         <img src={logo} alt="Golden Mart" className="w-24 mx-auto mb-4" />
                     </div>

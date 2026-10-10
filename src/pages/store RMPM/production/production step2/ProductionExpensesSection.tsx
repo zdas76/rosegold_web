@@ -152,17 +152,17 @@ const ProductionExpensesSection: React.FC<ProductionExpensesSectionProps> = ({
             </Form.Item>
 
             <Form.Item className="mb-0">
-              <Button 
-                type="dashed" 
+              <Button
+                type="dashed"
                 onClick={() => {
                   form.validateFields().then(values => {
                     handleAddExpense(values);
                   }).catch(info => {
                     console.log('Validate Failed:', info);
                   });
-                }} 
-                size="large" 
-                icon={<PlusOutlined />} 
+                }}
+                size="large"
+                icon={<PlusOutlined />}
                 className="w-full text-blue-600 border-blue-200 hover:border-blue-400 hover:text-blue-700 font-bold rounded-lg shadow-sm"
               >
                 Add Expense

@@ -74,10 +74,6 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
         return sum + Number(amt || 0);
       }, 0);
 
-      const hasPackaging = item.pminventories && item.pminventories.length > 0;
-      const hasExpenses = item.productionExpensesInventory && item.productionExpensesInventory.length > 0;
-      const isCompleted = (finishedQty && finishedQty > 0) || (hasPackaging && hasExpenses);
-
       return {
         ...item,
         key: item.id || idx + 1,
@@ -88,7 +84,6 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
         rawInvs,
         rawCount,
         rawCostTotal,
-        isCompleted,
       };
     });
   }, [productionsData, productMap]);
@@ -211,20 +206,7 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
       key: 'status',
       width: 115,
       align: 'center' as const,
-      render: (_: any, record: any) => {
-        if (record.isCompleted) {
-          return (
-            <Tag icon={<CheckCircleOutlined />} color="success" className="m-0 text-xs">
-              Completed
-            </Tag>
-          );
-        }
-        return (
-          <Tag icon={<ClockCircleOutlined />} color="warning" className="m-0 text-xs">
-            Step 1 Saved
-          </Tag>
-        );
-      },
+      render: (_: any, record: any) => <Tag>{record.status}</Tag>,
     },
     {
       title: 'Action',
