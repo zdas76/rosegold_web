@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React from 'react';
-import { Button, Table, Select, InputNumber, Form } from 'antd';
+import React, { useMemo } from 'react';
+import { Button, Table, Select, InputNumber } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { PackingMaterialItem } from '../ProductionCreationForm';
 
@@ -11,6 +11,7 @@ interface PackingMaterialsSectionProps {
   totalPackingQty: number;
   totalPackingTk: number;
   productQuantity: number | string | null;
+  disabled?: boolean;
 }
 
 const roundToThree = (val: number | null | undefined): number | null => {
@@ -25,55 +26,178 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
   totalPackingQty,
   totalPackingTk,
   productQuantity,
+  disabled = false,
 }) => {
-  const [form] = Form.useForm();
+  const selectedPackingIds = useMemo(() => {
+    return new Set(
+      packingMaterials
+        .map(item => item.packingMaterialId)
+        .filter((id): id is number => id != null)
+    );
+  }, [packingMaterials]);
 
-  const handleAddPacking = (values: any) => {
-    const chosen = packingMaterialOptions.find((opt: any) => opt.value === values.packingMaterialId);
-    if (!chosen) return;
-
-    const unitPrice = values.unitPrice || 0;
-    const qty = values.qty || 0;
-    const total = Number((qty * unitPrice).toFixed(2));
-    const prodQty = Number(productQuantity) || 0;
-    
-    let perUnitQty = null;
-    let perUnitCost = null;
-    
-    if (prodQty > 0) {
-      perUnitQty = roundToThree(qty / prodQty);
-      perUnitCost = roundToThree(total / prodQty);
-    }
-
-    const newMaterial: PackingMaterialItem = {
-      si: packingMaterials.length > 0 ? Math.max(...packingMaterials.map(p => p.si)) + 1 : 1,
-      packingMaterialId: values.packingMaterialId,
-      name: chosen.label,
-      unit: chosen.unit || 'Pcs',
-      unitId: chosen.item?.unitId || null,
-      qty,
-      unitPrice,
-      perUnitQty,
-      perUnitCost,
-      total,
+  const handleAddPackingRow = () => {
+    const newRow: PackingMaterialItem = {
+      si: packingMaterials.length + 1,
+      packingMaterialId: null,
+      name: '',
+      unit: 'Pcs',
+      unitId: null,
+      qty: null,
+      unitPrice: null,
+      perUnitQty: null,
+      perUnitCost: null,
+      total: 0,
     };
+    setPackingMaterials(prev => [...prev, newRow]);
+  };
 
-    setPackingMaterials([...packingMaterials, newMaterial]);
-    form.resetFields();
+  const handlePackingItemChange = (si: number, packingMaterialId: number | null) => {
+    const chosen = packingMaterialOptions.find((opt: any) => opt.value === packingMaterialId);
+    const prodQty = Number(productQuantity) || 0;
+
+    setPackingMaterials(prev =>
+      prev.map(item => {
+        if (item.si === si) {
+          if (!chosen) {
+            return {
+              ...item,
+              packingMaterialId: null,
+              name: '',
+              unit: 'Pcs',
+              unitId: null,
+              unitPrice: null,
+              total: 0,
+              perUnitQty: null,
+              perUnitCost: null,
+            };
+          }
+
+          const unitPrice = chosen.unitPrice || 0;
+          const qty = item.qty != null ? Number(item.qty) : 0;
+          const total = Number((qty * unitPrice).toFixed(2));
+          let perUnitQty = null;
+          let perUnitCost = null;
+
+          if (prodQty > 0) {
+            perUnitQty = roundToThree(qty / prodQty);
+            perUnitCost = roundToThree(total / prodQty);
+          }
+
+          return {
+            ...item,
+            packingMaterialId,
+            name: chosen.label,
+            unit: chosen.unit || 'Pcs',
+            unitId: chosen.item?.unitId || null,
+            unitPrice,
+            total,
+            perUnitQty,
+            perUnitCost,
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  const handleUnitPriceChange = (si: number, newPrice: number | null) => {
+    const prodQty = Number(productQuantity) || 0;
+    setPackingMaterials(prev =>
+      prev.map(item => {
+        if (item.si === si) {
+          const priceVal = newPrice != null ? Number(newPrice) : 0;
+          const qtyVal = item.qty != null ? Number(item.qty) : 0;
+          const total = Number((qtyVal * priceVal).toFixed(2));
+          let perUnitQty = null;
+          let perUnitCost = null;
+
+          if (prodQty > 0) {
+            perUnitQty = roundToThree(qtyVal / prodQty);
+            perUnitCost = roundToThree(total / prodQty);
+          }
+
+          return {
+            ...item,
+            unitPrice: newPrice,
+            total,
+            perUnitQty,
+            perUnitCost,
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  const handleQuantityChange = (si: number, newQty: number | null) => {
+    const prodQty = Number(productQuantity) || 0;
+    setPackingMaterials(prev =>
+      prev.map(item => {
+        if (item.si === si) {
+          const qtyVal = newQty != null ? Number(newQty) : 0;
+          const unitPrice = item.unitPrice || 0;
+          const total = Number((qtyVal * unitPrice).toFixed(2));
+          let perUnitQty = null;
+          let perUnitCost = null;
+
+          if (prodQty > 0) {
+            perUnitQty = roundToThree(qtyVal / prodQty);
+            perUnitCost = roundToThree(total / prodQty);
+          }
+
+          return {
+            ...item,
+            qty: newQty,
+            total,
+            perUnitQty,
+            perUnitCost,
+          };
+        }
+        return item;
+      })
+    );
   };
 
   const handleRemovePackingRow = (si: number) => {
-    setPackingMaterials(prev => prev.filter(item => item.si !== si));
+    setPackingMaterials(prev =>
+      prev
+        .filter(item => item.si !== si)
+        .map((item, index) => ({ ...item, si: index + 1 }))
+    );
   };
 
   const packingColumns = [
-    { title: 'SI', dataIndex: 'si', key: 'si', width: 60, align: 'center' as const },
+    {
+      title: 'SI',
+      dataIndex: 'si',
+      key: 'si',
+      width: 55,
+      align: 'center' as const,
+      render: (_: any, __: any, index: number) => index + 1,
+    },
     {
       title: 'Packing Material',
-      dataIndex: 'name',
-      key: 'name',
-      width: 250,
-      render: (text: string) => <span className="font-semibold text-gray-800">{text}</span>
+      dataIndex: 'packingMaterialId',
+      key: 'packingMaterialId',
+      width: 260,
+      render: (_: any, record: PackingMaterialItem) => (
+        <Select
+          showSearch
+          disabled={disabled}
+          placeholder="Select Packing Material"
+          value={record.packingMaterialId || undefined}
+          style={{ width: '100%' }}
+          options={packingMaterialOptions.map((opt: any) => ({
+            ...opt,
+            disabled: selectedPackingIds.has(opt.value) && opt.value !== record.packingMaterialId,
+          }))}
+          filterOption={(input, option) =>
+            !!option?.label?.toString().toLowerCase().includes(input.toLowerCase())
+          }
+          onChange={(val) => handlePackingItemChange(record.si, val)}
+        />
+      ),
     },
     {
       title: 'Unit',
@@ -89,31 +213,57 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
       key: 'unitPrice',
       width: 140,
       align: 'right' as const,
-      render: (unitPrice: number) => <span>{Number(unitPrice || 0).toFixed(2)}</span>
+      render: (unitPrice: number, record: PackingMaterialItem) => (
+        <InputNumber
+          min={0}
+          step={0.01}
+          disabled={disabled}
+          value={unitPrice}
+          onChange={(val) => handleUnitPriceChange(record.si, val)}
+          onFocus={(e) => e.target.select()}
+          controls={false}
+          precision={2}
+          placeholder="0.00"
+          className="w-full text-right"
+        />
+      ),
     },
     {
       title: 'Total Qty',
       dataIndex: 'qty',
       key: 'qty',
-      width: 130,
+      width: 140,
       align: 'right' as const,
-      render: (qty: number) => <span className="font-medium">{Number(qty || 0).toFixed(2)}</span>
+      render: (qty: number, record: PackingMaterialItem) => (
+        <InputNumber
+          min={0}
+          step={0.01}
+          disabled={disabled}
+          value={qty}
+          onChange={(val) => handleQuantityChange(record.si, val)}
+          onFocus={(e) => e.target.select()}
+          controls={false}
+          precision={2}
+          placeholder="0.00"
+          className="w-full text-right"
+        />
+      ),
     },
     {
       title: 'P.U. Qty',
       dataIndex: 'perUnitQty',
       key: 'perUnitQty',
-      width: 120,
+      width: 110,
       align: 'right' as const,
-      render: (val: number) => <span className="text-gray-600">{val != null ? val.toFixed(3) : '-'}</span>
+      render: (val: number) => <span className="text-gray-600">{val != null ? val.toFixed(3) : '-'}</span>,
     },
     {
       title: 'P. U. Cost',
       dataIndex: 'perUnitCost',
       key: 'perUnitCost',
-      width: 130,
+      width: 120,
       align: 'right' as const,
-      render: (val: number) => <span className="text-gray-600">{val != null ? val.toFixed(3) : '-'}</span>
+      render: (val: number) => <span className="text-gray-600">{val != null ? val.toFixed(3) : '-'}</span>,
     },
     {
       title: 'Total (BDT)',
@@ -130,7 +280,7 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
       key: 'action',
       width: 60,
       align: 'center' as const,
-      render: (_: any, record: PackingMaterialItem) => (
+      render: (_: any, record: PackingMaterialItem) => !disabled ? (
         <Button
           type="text"
           danger
@@ -138,118 +288,77 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
           onClick={() => handleRemovePackingRow(record.si)}
           size="small"
         />
-      ),
+      ) : <span className="text-gray-400">-</span>,
     },
   ];
 
   return (
-    <div className="bg-slate-50/50 p-6 rounded-xl border border-slate-200/60 shadow-sm mt-6">
-      <h3 className="font-bold text-lg text-gray-800 mb-5 border-b border-gray-200 pb-2">Packing Materials</h3>
-      
-      <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-        <Form
-          form={form}
-          layout="vertical"
-          component={false}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-7 items-end">
-            <Form.Item
-              name="packingMaterialId"
-              label={<span className="font-semibold text-gray-700 text-sm">Select Packing Material</span>}
-              rules={[{ required: true, message: 'Please select a packing material' }]}
-              className="mb-0"
-            >
-              <Select
-                style={{ width: "100%" }}
-                showSearch
-                placeholder="Select Packing Material"
-                options={packingMaterialOptions}
-                filterOption={(input, option) =>
-                  !!option?.label?.toString().toLowerCase().includes(input.toLowerCase())
-                }
-                onChange={(value) => {
-                   const chosen = packingMaterialOptions.find((opt: any) => opt.value === value);
-                   if (chosen && chosen.unitPrice) {
-                      form.setFieldsValue({ unitPrice: chosen.unitPrice });
-                   }
-                }}
-                size="large"
-                className="rounded-lg shadow-sm"
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="unitPrice"
-              label={<span className="font-semibold text-gray-700 text-sm">Unit Price (BDT)</span>}
-              rules={[{ required: true, message: 'Enter unit price' }]}
-              className="mb-0"
-            >
-              <InputNumber style={{ width: "100%" }} min={0} step={0.01} controls={false} size="large" className="w-full rounded-lg shadow-sm" placeholder="0.00" />
-            </Form.Item>
-
-            <Form.Item
-              name="qty"
-              label={<span className="font-semibold text-gray-700 text-sm">Total Qty</span>}
-              rules={[{ required: true, message: 'Enter qty' }]}
-              className="mb-0"
-            >
-              <InputNumber min={0.01} step={0.01} controls={false} size="large" className="w-full rounded-lg shadow-sm" placeholder="0.00" style={{ width: "100%" }} />
-            </Form.Item>
-
-            <Form.Item className="mb-0">
-              <Button 
-                type="dashed" 
-                onClick={() => {
-                  form.validateFields().then(values => {
-                    handleAddPacking(values);
-                  }).catch(info => {
-                    console.log('Validate Failed:', info);
-                  });
-                }} 
-                size="large" 
-                icon={<PlusOutlined />} 
-                className="w-full text-emerald-600 border-emerald-200 hover:border-emerald-400 hover:text-emerald-700 font-bold rounded-lg shadow-sm"
-              >
-                Add Material
-              </Button>
-            </Form.Item>
-          </div>
-        </Form>
+    <div className={`bg-slate-50/50 p-6 rounded-xl border border-slate-200/60 shadow-sm mt-6 ${disabled ? 'opacity-90' : ''}`}>
+      <div className="flex items-center justify-between mb-4 border-b border-gray-200 pb-3">
+        <div className="flex items-center gap-3">
+          <h3 className="font-bold text-lg text-gray-800 m-0">Packing Materials</h3>
+          {disabled && (
+            <span className="text-xs font-semibold px-2.5 py-0.5 bg-gray-200 text-gray-700 rounded-full">
+              Locked
+            </span>
+          )}
+        </div>
+        {!disabled && (
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleAddPackingRow}
+            className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold shadow-xs"
+          >
+            Add Item
+          </Button>
+        )}
       </div>
 
-      {packingMaterials.length > 0 && (
-        <div className="mt-5 rounded-lg overflow-hidden border border-gray-200/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] bg-white">
-          <Table
-            className="packing-materials-table"
-            dataSource={packingMaterials}
-            columns={packingColumns}
-            rowKey="si"
-            pagination={false}
-            bordered
-            size="small"
-            scroll={{ x: 950 }}
-            summary={() => (
-              <Table.Summary fixed>
-                <Table.Summary.Row className="bg-amber-50/40 border-t border-amber-200/50 font-bold">
-                  <Table.Summary.Cell index={0} colSpan={3} />
-                  <Table.Summary.Cell index={1} colSpan={2} className="text-right pr-4 font-bold text-slate-800">
-                    <span className="text-gray-500 mr-2 font-semibold">Total Qty:</span>
-                    <span className="text-sm font-bold text-slate-900">
-                      {totalPackingQty.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </Table.Summary.Cell>
-                  <Table.Summary.Cell index={2} colSpan={3} className="text-right pr-4 font-bold">
-                    <span className="text-gray-500 mr-2 font-semibold">Total Tk:</span>
-                    <span className="text-base font-extrabold text-amber-700">
-                      {totalPackingTk.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
-                    </span>
-                  </Table.Summary.Cell>
-                </Table.Summary.Row>
-              </Table.Summary>
-            )}
-          />
-        </div>
-      )}
+      <div className="rounded-lg overflow-hidden border border-gray-200/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] bg-white">
+        <Table
+          className="packing-materials-table"
+          dataSource={packingMaterials}
+          columns={packingColumns}
+          rowKey={(record, index) =>
+            record.id ? `id-${record.id}` : `row-${record.si ?? index}`
+          }
+          pagination={false}
+          bordered
+          size="small"
+          scroll={{ x: 950 }}
+          summary={() => (
+            <Table.Summary fixed>
+              <Table.Summary.Row className="bg-amber-50/40 border-t border-amber-200/50 font-bold">
+                <Table.Summary.Cell index={0} colSpan={3}>
+                  {!disabled && (
+                    <Button
+                      type="dashed"
+                      icon={<PlusOutlined />}
+                      onClick={handleAddPackingRow}
+                      className="text-amber-700 border-amber-300 hover:text-amber-800 hover:border-amber-400"
+                      size="small">
+                      Add Item
+                    </Button>
+                  )}
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={1} colSpan={2} className="text-right pr-4 font-bold text-slate-800">
+                  <span className="text-gray-500 mr-2 font-semibold">Total Qty:</span>
+                  <span className="text-sm font-bold text-slate-900">
+                    {totalPackingQty.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={2} colSpan={4} className="text-right pr-4 font-bold">
+                  <span className="text-gray-500 mr-2 font-semibold">Total Tk:</span>
+                  <span className="text-base font-extrabold text-amber-700">
+                    {totalPackingTk.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
+                  </span>
+                </Table.Summary.Cell>
+              </Table.Summary.Row>
+            </Table.Summary>
+          )}
+        />
+      </div>
     </div>
   );
 };

@@ -7,7 +7,7 @@ const ProductionVoucher: React.FC = () => {
   const navigate = useNavigate();
 
   const handleNextStep = (production: any) => {
-    navigate('/dashboard/production-step-2', {
+    navigate('/dashboard/production-step-two', {
       state: { production },
     });
   };

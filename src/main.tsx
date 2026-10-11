@@ -89,8 +89,8 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/dashboard/store_rmpm_production_Kitchenbar" element={<ProductionCreationForm />} />
               <Route path="/dashboard/production-voucher" element={<ProductionVoucher />} />
               <Route path="/dashboard/store_rmpm_production_voucher" element={<ProductionVoucher />} />
-              <Route path="/dashboard/production-step-2" element={<ProductionStep2Page />} />
-              <Route path="/dashboard/production-step-2/:id" element={<ProductionStep2Page />} />
+              <Route path="/dashboard/production-step-two" element={<ProductionStep2Page />} />
+              <Route path="/dashboard/production-step-two/:id" element={<ProductionStep2Page />} />
             </Route>
             <Route path="/dashboard/sales/challan/:voucherNo" element={<CallanVoucher />} />
             <Route path="/dashboard/voucher-details/:voucherNo" element={<VoucherDetails />} />

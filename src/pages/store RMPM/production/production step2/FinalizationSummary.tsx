@@ -12,6 +12,7 @@ interface FinalizationSummaryProps {
   totalPackingTk: number;
   packingStageUnitCost: number;
   totalProductionCost: number;
+  disabled?: boolean;
 }
 
 const FinalizationSummary: React.FC<FinalizationSummaryProps> = ({
@@ -23,11 +24,19 @@ const FinalizationSummary: React.FC<FinalizationSummaryProps> = ({
   expenseStageUnitCost,
   totalPackingTk,
   packingStageUnitCost,
-  totalProductionCost
+  totalProductionCost,
+  disabled = false,
 }) => {
   return (
-    <div className="bg-slate-50/50 p-6 rounded-xl border border-slate-200/60 shadow-sm">
-      <h3 className="font-bold text-lg text-gray-800 mb-5 border-b border-gray-200 pb-2">Finalization</h3>
+    <div className={`bg-slate-50/50 p-6 rounded-xl border border-slate-200/60 shadow-sm ${disabled ? 'opacity-70' : ''}`}>
+      <div className="flex items-center justify-between mb-5 border-b border-gray-200 pb-2">
+        <h3 className="font-bold text-lg text-gray-800 m-0">Finalization</h3>
+        {disabled && (
+          <span className="text-xs font-semibold px-2.5 py-0.5 bg-amber-100 text-amber-800 rounded-full border border-amber-200">
+            Disabled (Save Materials & Expenses first)
+          </span>
+        )}
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Form.Item
           name="productQuantity"
@@ -38,8 +47,9 @@ const FinalizationSummary: React.FC<FinalizationSummaryProps> = ({
             min={0.01}
             step={1}
             precision={2}
+            disabled={disabled}
             controls={false}
-            placeholder="Enter final produced quantity"
+            placeholder={disabled ? "Please save materials and expenses first" : "Enter final produced quantity"}
             style={{ width: '100%' }}
             onFocus={handleInputFocus}
             size="large"

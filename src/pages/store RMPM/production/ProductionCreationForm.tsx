@@ -305,10 +305,9 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
       const apiPayload: Production & { id?: number } = {
         ...(existingProductionId ? { id: existingProductionId } : {}),
         date: values.date ? dayjs(values.date).toISOString() : dayjs().toISOString(),
-        batchNo: values.batchNo,
         productinfo: {
           productId: Number(values.productId),
-          quantity: 0,
+          quantityAdd: 0,
           unitPrice: 0,
         },
         rawMaterials: validMaterials.map(item => ({
@@ -319,26 +318,25 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
         })),
       };
 
-      const res = await createProduction(apiPayload);
+      const res = await createProduction({ data: apiPayload });
       const result = getResponse(res);
 
       if (result?.success) {
         const reduxPayload = {
-          productId: String(values.productId),
+          productId: Number(values.productId),
           date: values.date ? dayjs(values.date).toISOString() : dayjs().toISOString(),
           rawMaterials: validMaterials.map(item => ({
-            rawId: String(item.rawMaterialId!),
-            unitId: String(item.unitId || ''),
+            rawId: Number(item.rawMaterialId!),
             quantity: Number(item.qty) || 0,
-            uniterate: Number(item.rate) || 0,
+            unitPrice: Number(item.rate) || 0,
           })),
         };
         dispatch(setProductionStep1(reduxPayload));
 
         message.success('Step 1 (Raw Materials) saved successfully! Proceeding to Step 2.');
         const savedProduction = result.data;
-        navigate('/dashboard/production-step-2', {
-          state: { production: savedProduction },
+        navigate('/dashboard/production-step-two', {
+          state: { productionId: savedProduction.id },
         });
       }
     } catch (error: any) {

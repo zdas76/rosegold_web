@@ -2,18 +2,16 @@
 import React, { useState, useMemo } from 'react';
 import { Table, Tag, Button, Input, Space, Tooltip } from 'antd';
 import {
-  ArrowRightOutlined,
   PlusOutlined,
   ReloadOutlined,
   SearchOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
   InfoCircleOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useGetProductionsQuery } from '../../../../redux/features/production/production.api';
 import { useGetProductsQuery } from '../../../../redux/features/product/product.api';
 import { useGetRowMaterialsQuery } from '../../../../redux/features/rowMaterials/rowMaterials.api';
+import { Link } from 'react-router';
 
 interface SavedProductionListProps {
   onNextStep: (production: any) => void;
@@ -206,7 +204,7 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
       key: 'status',
       width: 115,
       align: 'center' as const,
-      render: (_: any, record: any) => <Tag>{record.status}</Tag>,
+      render: (_: any, record: any) => <Tag color={record.status === "IN_PROGRESS" ? "success" : record?.status === "PENDDING" ? "blue" : "yellow"}>{record.status}</Tag>,
     },
     {
       title: 'Action',
@@ -214,16 +212,8 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
       width: 105,
       align: 'center' as const,
       render: (_: any, record: any) => (
-        <Button
-          type="primary"
-          size="small"
-          icon={<ArrowRightOutlined />}
-          onClick={() => onNextStep(record)}
-          className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white shadow-xs font-semibold px-2.5 text-xs flex items-center justify-center gap-1 mx-auto"
-        >
-          Next Step
-        </Button>
-      ),
+        <Link to={`/dashboard/production-step-two/${record.id}`} > Next Step</Link >
+      )
     },
   ];
 

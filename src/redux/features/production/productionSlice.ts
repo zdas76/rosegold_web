@@ -1,40 +1,50 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-export interface RawMaterialItem {
-  rawId: string;
-  unitId: string;
-  quantity: number;
-  uniterate: number;
-}
-
-export interface ProductionExpenseItem {
-  expenseId: string;
-  qty_duration: number;
-  expRate: number;
-}
-
-export interface PackingMaterialItem {
-  packingMaterialId: string;
-  unitePrice: number;
-  qty: number;
-}
-
 export interface ProductionState {
-  productId: string;
   date: string;
-  rawMaterials: RawMaterialItem[];
-  productionExpenses: ProductionExpenseItem[];
-  packingMaterials: PackingMaterialItem[];
-  numberOfProductProduced: number;
+  productinfo: {
+    productId: number | null;
+    quantityAdd?: number | null;
+    unitPrice?: number | null;
+  };
+  rawMaterials?: {
+    rawId: number;
+    quantity: number;
+    unitPrice: number;
+  }[];
+  productionExpenses?: {
+    proExpencesItemId: number;
+    unitRate: number;
+    expDuration: number;
+    amount: number;
+  }[];
+  packingMaterials?: {
+    packingMaterialId: number;
+    unitPrice: number;
+    Qty: number;
+    perUnitQty: number;
+    perUnitCost: number;
+  }[];
+  products?: {
+    productId: number;
+    quantityAdd?: number;
+    quantityLess?: number;
+    unitPrice: number;
+  }[];
 }
+
 
 const initialState: ProductionState = {
-  productId: '',
   date: '',
+  productinfo: {
+    productId: null,
+    quantityAdd: null,
+    unitPrice: null,
+  },
   rawMaterials: [],
   productionExpenses: [],
   packingMaterials: [],
-  numberOfProductProduced: 0,
+  products: [],
 };
 
 const productionSlice = createSlice({
@@ -43,20 +53,35 @@ const productionSlice = createSlice({
   reducers: {
     setProductionStep1: (
       state,
-      action: PayloadAction<{ productId: string; date: string; rawMaterials: RawMaterialItem[] }>
+      action: PayloadAction<{ productId: number | null; date: string; rawMaterials: NonNullable<ProductionState['rawMaterials']> }>
     ) => {
-      state.productId = action.payload.productId;
+      state.productinfo.productId = action.payload.productId;
       state.date = action.payload.date;
       state.rawMaterials = action.payload.rawMaterials;
     },
-    setProductionExpenses: (state, action: PayloadAction<ProductionExpenseItem[]>) => {
-      state.productionExpenses = action.payload;
-    },
-    setPackingMaterials: (state, action: PayloadAction<PackingMaterialItem[]>) => {
-      state.packingMaterials = action.payload;
+    setProductionStep2: (
+      state,
+      action: PayloadAction<{
+        productionExpenses: NonNullable<ProductionState['productionExpenses']>;
+        packingMaterials: NonNullable<ProductionState['packingMaterials']>;
+      }>
+    ) => {
+      state.productionExpenses = action.payload.productionExpenses;
+      state.packingMaterials = action.payload.packingMaterials;
     },
     setNumberOfProductProduced: (state, action: PayloadAction<number>) => {
-      state.numberOfProductProduced = action.payload;
+      state.productinfo.quantityAdd = action.payload;
+    },
+    updatePackingMaterialQty: (
+      state,
+      action: PayloadAction<{ packingMaterialId: number; Qty: number }>
+    ) => {
+      const item = state.packingMaterials?.find(
+        p => p.packingMaterialId === action.payload.packingMaterialId
+      );
+      if (item) {
+        item.Qty = action.payload.Qty;
+      }
     },
     setProductionState: (state, action: PayloadAction<Partial<ProductionState>>) => {
       return { ...state, ...action.payload };
@@ -69,9 +94,9 @@ const productionSlice = createSlice({
 
 export const {
   setProductionStep1,
-  setProductionExpenses,
-  setPackingMaterials,
+  setProductionStep2,
   setNumberOfProductProduced,
+  updatePackingMaterialQty,
   setProductionState,
   resetProductionState,
 } = productionSlice.actions;

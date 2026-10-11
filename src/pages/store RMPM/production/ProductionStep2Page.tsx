@@ -1,12 +1,8 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useMemo } from 'react';
-import { Form, message, Button, Table, Tag, Collapse, InputNumber } from 'antd';
-import {
-  ArrowLeftOutlined,
-  CheckCircleOutlined,
-  EyeOutlined,
-  EditOutlined,
-} from '@ant-design/icons';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Form, message, Button, Tag, DatePicker } from 'antd';
+import { ArrowLeftOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation, useParams, useSearchParams } from 'react-router';
 import dayjs from 'dayjs';
 import { useGetRowMaterialsQuery } from '../../../redux/features/rowMaterials/rowMaterials.api';
@@ -16,26 +12,25 @@ import { useGetProductionExpItemsQuery } from '../../../redux/features/productio
 import { useGetProductionIngredientsQuery } from '../../../redux/features/productionIngredient/productionIngredient.api';
 import {
   useCreateProductionMutation,
-  useGetProductionsQuery,
-  type Production,
+  useGetProductionByIdQuery,
 } from '../../../redux/features/production/production.api';
 import {
   setProductionStep1,
-  setProductionExpenses as setReduxProductionExpenses,
-  setPackingMaterials as setReduxPackingMaterials
+  setProductionStep2,
+  resetProductionState,
 } from '../../../redux/features/production/productionSlice';
 import { getResponse } from '../../../utils/getResponse';
 import { useAppDispatch, useAppSelector } from '../../../redux/hooks';
 import type { RawMaterialItem, PackingMaterialItem, ProductionExpenseItem } from './ProductionCreationForm';
-import CombinedProductsSection from './production step2/CombinedProductsSection';
+import CombinedProductsSection, { CombinedProductItem } from './production step2/CombinedProductsSection';
 import FinalizationSummary from './production step2/FinalizationSummary';
 import ProductionExpensesSection from './production step2/ProductionExpensesSection';
 import PackingMaterialsSection from './production step2/PackingMaterialsSection';
 import RawMaterialsSection from './production step2/RawMaterialsSection';
 
-const roundToThree = (val: number | null | undefined): number | null => {
-  if (val == null || isNaN(Number(val))) return null;
-  return Math.round((Number(val) + Number.EPSILON) * 1000) / 1000;
+const roundToThree = (value: number | null | undefined): number | null => {
+  if (value == null || isNaN(Number(value))) return null;
+  return Math.round((Number(value) + Number.EPSILON) * 1000) / 1000;
 };
 
 const ProductionStep2Page: React.FC = () => {
@@ -45,50 +40,90 @@ const ProductionStep2Page: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [form] = Form.useForm();
 
-  const productionState = useAppSelector(state => state.production);
   const dispatch = useAppDispatch();
-  const [productionData, setProductionData] = useState<any>(location.state?.production || null);
+  const productionState = useAppSelector(state => state.production);
+
+  const [productionData, setProductionData] = useState<any>(null);
   const [rawMaterials, setRawMaterials] = useState<RawMaterialItem[]>([]);
   const [packingMaterials, setPackingMaterials] = useState<PackingMaterialItem[]>([]);
   const [productionExpenses, setProductionExpenses] = useState<ProductionExpenseItem[]>([]);
-  const [combinedProducts, setCombinedProducts] = useState<any[]>([]);
-  const [combinedForm] = Form.useForm();
-
+  const [combinedProducts, setCombinedProducts] = useState<CombinedProductItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingIntermediate, setIsSavingIntermediate] = useState(false);
 
   // Queries
   const { data: productsData } = useGetProductsQuery({});
   const { data: allRawMaterialsData } = useGetRowMaterialsQuery({});
   const { data: allPackingMaterialsData } = useGetPackingMaterialsQuery({});
   const { data: allExpItemsData } = useGetProductionExpItemsQuery({});
-  const { data: allProductionsData, isLoading: isProductionsLoading } = useGetProductionsQuery({});
-  const targetId = params.id || searchParams.get('id') || productionData?.id;
+  const targetId = params.id || searchParams.get('id') || location.state?.productionId;
+  const { data: productionResponse, isLoading: isProductionLoading, refetch } = useGetProductionByIdQuery(
+    targetId as string,
+    { skip: !targetId }
+  );
 
-  // Update productionData if location changes
+  const prevTargetIdRef = useRef<string | null>(null);
+  // Keep URL in sync with targetId so Ctrl+S / reload preserves the ID
   useEffect(() => {
-    if (location.state?.production) {
-      setProductionData(location.state.production);
+    if (targetId && !params.id) {
+      navigate(`/dashboard/production-step-two/${targetId}`, { replace: true });
     }
-  }, [location.key, location.state]);
+  }, [targetId, params.id, navigate]);
 
-  // If page was loaded directly, refreshed, or id changed, find production by targetId
+  // Reset voucher state only when switching to a different targetId
   useEffect(() => {
-    if (!location.state?.production && targetId && allProductionsData) {
-      const list = Array.isArray(allProductionsData?.data)
-        ? allProductionsData.data
-        : Array.isArray((allProductionsData as any)?.data?.data)
-          ? (allProductionsData as any).data.data
-          : [];
-      const found = list.find((p: any) => String(p.id) === String(targetId));
-      if (found) {
-        setProductionData(found);
-      } else {
-        setProductionData(null);
+    if (targetId && prevTargetIdRef.current && prevTargetIdRef.current !== String(targetId)) {
+      setProductionData(null);
+      setRawMaterials([]);
+      setPackingMaterials([]);
+      setProductionExpenses([]);
+      form.resetFields();
+      dispatch(resetProductionState());
+    }
+    if (targetId) {
+      prevTargetIdRef.current = String(targetId);
+    }
+  }, [targetId, dispatch, form]);
+
+  // Extract selected product from API inventory
+  const productInventoryItem = useMemo(() => {
+    const inventoryList = productionResponse?.data?.inventory || [];
+    return inventoryList.find((item: any) => Boolean(item.product?.id || item.productId)) || null;
+  }, [productionResponse]);
+
+  const selectedProduct = productInventoryItem?.product;
+  const currentProductId = selectedProduct?.id || productInventoryItem?.productId;
+
+  // Sync API response to local state and Redux
+  useEffect(() => {
+    if (productionResponse?.data) {
+      setProductionData(productionResponse.data);
+
+      const inventoryList = productionResponse.data.inventory || [];
+      const productItem = inventoryList.find((item: any) => Boolean(item.product?.id || item.productId));
+      const productId = productItem?.product?.id || productItem?.productId;
+
+      if (productId) {
+        const rawMaterialsList = inventoryList
+          .filter((item: any) => Boolean(item.rawId || item.raWMaterial))
+          .map((item: any) => ({
+            rawId: Number(item.rawId || item.raWMaterial?.id),
+            quantity: Number(item.quantityLess ?? item.quantity ?? 0),
+            unitPrice: Number(item.unitPrice ?? 0),
+          }));
+
+        dispatch(
+          setProductionStep1({
+            productId: Number(productId),
+            date: productionResponse.data.date || dayjs().toISOString(),
+            rawMaterials: rawMaterialsList,
+          })
+        );
       }
     }
-  }, [location.state?.production, targetId, allProductionsData]);
+  }, [productionResponse, dispatch]);
 
-  // Options
+  // Dropdown options
   const packingMaterialOptions = useMemo(() => {
     const list = Array.isArray(allPackingMaterialsData?.data) ? allPackingMaterialsData.data : [];
     return list.map((item: any) => ({
@@ -108,243 +143,256 @@ const ProductionStep2Page: React.FC = () => {
       rate: item.unitRate ?? item.rate ?? null,
     }));
   }, [allExpItemsData]);
-
-  // Product info from productionData
-  const prodInv = useMemo(() => {
-    return productionData?.inventory?.find((inv: any) => inv.productId || inv.product);
-  }, [productionData]);
-
-  const productId = prodInv?.productId || prodInv?.product?.id || productionState.productId;
-  const productName = prodInv?.product?.name || (productId ? productsData?.data?.find((p: any) => p.id === Number(productId))?.name : null) || 'Product';
-
+  const productName =
+    selectedProduct?.name ||
+    (currentProductId ? productsData?.data?.find((prod: any) => prod.id === Number(currentProductId))?.name : null) ||
+    'Product';
   // Recipe query
   const { data: ingredientsData } = useGetProductionIngredientsQuery(
-    productId ? { productId } : undefined,
-    { skip: !productId }
+    currentProductId ? { productId: currentProductId } : undefined,
+    { skip: !currentProductId }
   );
+  console.log(ingredientsData?.data, "ingredientsData")
 
   const [createProduction] = useCreateProductionMutation();
-
-  // Populate form and lists when productionData arrives
+  // Populate form and lists when production data arrives
   useEffect(() => {
-    if (!productionData && !productionState.productId) return;
-
+    if (!productionData && !productionState.productinfo?.productId) return;
     const sourceData = productionData ? 'api' : 'redux';
-
-    const initialProductQty = prodInv?.quantityAdd ?? prodInv?.quantity ?? undefined;
-
+    const initialProductQty = productInventoryItem?.quantityAdd ?? productInventoryItem?.quantity ?? undefined;
     form.setFieldsValue({
-      productId: Number(productId) || undefined,
+      productId: Number(currentProductId) || undefined,
       batchNo: productionData?.batchNo || '',
-      date: productionData?.date ? dayjs(productionData?.date) : (productionState.date ? dayjs(productionState.date) : dayjs()),
+      date: productionData?.date
+        ? dayjs(productionData.date)
+        : productionState.date
+          ? dayjs(productionState.date)
+          : (form.getFieldValue('date') || dayjs()),
       productQuantity: initialProductQty,
     });
-
-    // 1. Raw Materials (Locked from Step 1)
-    let parsedRaw: RawMaterialItem[] = [];
+    const allRawMaterialsList = Array.isArray(allRawMaterialsData?.data) ? allRawMaterialsData.data : [];
+    const allPackingList = Array.isArray(allPackingMaterialsData?.data) ? allPackingMaterialsData.data : [];
+    const allExpensesList = Array.isArray(allExpItemsData?.data) ? allExpItemsData.data : [];
+    // 1. Raw Materials (from Step 1)
+    let parsedRawMaterials: RawMaterialItem[] = [];
     if (sourceData === 'redux') {
-      parsedRaw = productionState.rawMaterials.map((rm, index) => {
-        const foundRm = allRawMaterialsData?.data?.find((m: any) => Number(m.id) === Number(rm.rawId));
+      parsedRawMaterials = (productionState.rawMaterials || []).map((rawItem, index) => {
+        const matchingRaw = allRawMaterialsList.find((material: any) => Number(material.id) === Number(rawItem.rawId));
         return {
           si: index + 1,
-          rawMaterialId: Number(rm.rawId),
-          name: foundRm?.name || `Item #${rm.rawId}`,
-          unit: foundRm?.unit?.name || 'Kg',
-          unitId: Number(rm.unitId) || null,
-          qty: rm.quantity,
-          rate: rm.uniterate,
-          total: Number((rm.quantity * rm.uniterate).toFixed(2)),
+          rawMaterialId: Number(rawItem.rawId),
+          name: matchingRaw?.name || `Item #${rawItem.rawId}`,
+          unit: matchingRaw?.unit?.name || 'Kg',
+          unitId: matchingRaw?.unitId || null,
+          qty: rawItem.quantity,
+          rate: rawItem.unitPrice,
+          total: Number((rawItem.quantity * rawItem.unitPrice).toFixed(2)),
         };
       });
     } else {
-      const rawInvs = productionData?.inventory?.filter((inv: any) => inv.rawId || inv.raWMaterial) || [];
-      parsedRaw = rawInvs.map((rm: any, index: number) => {
-        const rawId = rm.rawId || rm.raWMaterial?.id;
-        const foundRm = allRawMaterialsData?.data?.find((m: any) => Number(m.id) === Number(rawId));
-        const qty = rm.quantityLess ?? rm.quantity ?? rm.quantityAdd ?? 0;
-        const rate = rm.unitPrice ?? foundRm?.unitPrice ?? 0;
-        const total = rm.creditAmount ?? (qty * rate);
+      const rawInventories =
+        productionData?.rawMaterials ||
+        productionData?.inventory?.filter((item: any) => item.rawId !== null) ||
+        [];
+      parsedRawMaterials = rawInventories.map((rawItem: any, index: number) => {
+        const rawId = rawItem.rawId;
+        const matchingRaw = allRawMaterialsList.find((material: any) => Number(material.id) === Number(rawId));
+        const quantity = rawItem.quantity ?? rawItem.quantityLess ?? 0;
+        const rate = rawItem.unitPrice ?? matchingRaw?.unitPrice ?? 0;
+        const total = quantity * rate;
         return {
-          id: rm.id,
+          id: rawItem.id,
           si: index + 1,
           rawMaterialId: rawId,
-          name: rm.raWMaterial?.name || foundRm?.name || rm.name || `Item #${rawId}`,
-          unit: rm.raWMaterial?.unit?.name || foundRm?.unit?.name || rm.unit?.name || 'Kg',
-          unitId: rm.raWMaterial?.unitId || foundRm?.unitId || null,
-          qty: qty > 0 ? qty : null,
+          name: matchingRaw?.name || `Item #${rawId}`,
+          unit: matchingRaw?.unit?.name || 'Kg',
+          unitId: matchingRaw?.unitId || null,
+          qty: quantity > 0 ? quantity : null,
           rate: rate > 0 ? rate : null,
-          total: Number(Number(total || 0).toFixed(2)),
+          total: Number(total.toFixed(2)),
         };
       });
     }
-    setRawMaterials(parsedRaw);
-
-    // Update Redux slice with the API data
-    if (sourceData === 'api' && parsedRaw.length > 0) {
-      const formDate = productionData?.date ? dayjs(productionData.date).toISOString() : dayjs().toISOString();
-      const reduxPayload = {
-        productId: String(productId),
-        date: formDate,
-        rawMaterials: parsedRaw.map(item => ({
-          rawId: String(item.rawMaterialId!),
-          unitId: String(item.unitId || ''),
-          quantity: Number(item.qty) || 0,
-          uniterate: Number(item.rate) || 0,
-        })),
-      };
-
-      // Only dispatch if the redux state is different to avoid infinite loops
-      const isDifferent = productionState.productId !== String(productId) || productionState.rawMaterials.length !== parsedRaw.length;
-      if (isDifferent) {
-        dispatch(setProductionStep1(reduxPayload));
-      }
-    }
-
+    setRawMaterials(parsedRawMaterials);
     // 2. Packing Materials
-    const pmInvs = productionData?.pminventories || [];
-    if (pmInvs.length > 0) {
-      const parsedPacking: PackingMaterialItem[] = pmInvs.map((pm: any, index: number) => {
-        const pmId = pm.packingMaterialId || pm.packingMaterial?.id || pm.id;
-        const foundPm = allPackingMaterialsData?.data?.find((p: any) => Number(p.id) === Number(pmId));
-        const name = pm.packingMaterial?.name || foundPm?.name || pm.name || `Packing #${pmId}`;
-        const unit = pm.packingMaterial?.unit?.name || foundPm?.unit?.name || pm.unit?.name || 'Pcs';
-        const unitId = pm.packingMaterial?.unitId || foundPm?.unitId || null;
-        const prodQty = Number(initialProductQty) || 0;
-        const unitPrice = pm.unitPrice ?? foundPm?.unitPrice ?? 0;
-        const qty = pm.Qty ?? pm.quantity ?? pm.quantityLess ?? 0;
-        const total = pm.amount ?? (qty * unitPrice);
-        const perUnitQty =
-          prodQty > 0 && qty > 0
-            ? roundToThree(qty / prodQty)
-            : (pm.perUnitQty != null ? roundToThree(pm.perUnitQty) : null);
-        const perUnitCost =
-          prodQty > 0 && total > 0
-            ? roundToThree(total / prodQty)
-            : (perUnitQty ? roundToThree(perUnitQty * unitPrice) : (pm.perUnitCost != null ? roundToThree(pm.perUnitCost) : null));
+    const currentProd = productionData || productionResponse?.data;
+    const existingPackingInventories =
+      (currentProd?.pminventories && currentProd.pminventories.length > 0)
+        ? currentProd.pminventories
+        : (currentProd?.pmInventories && currentProd.pmInventories.length > 0)
+          ? currentProd.pmInventories
+          : (currentProd?.packingMaterials && currentProd.packingMaterials.length > 0)
+            ? currentProd.packingMaterials
+            : [];
 
-        return {
-          id: pm.id,
-          si: index + 1,
-          packingMaterialId: pmId,
-          name,
-          unit,
-          unitId,
-          qty: qty > 0 ? qty : null,
-          unitPrice: unitPrice > 0 ? unitPrice : null,
-          perUnitQty,
-          perUnitCost,
-          total: Number(Number(total || 0).toFixed(2)),
-        };
-      });
+    if (existingPackingInventories.length > 0) {
+      const parsedPacking: PackingMaterialItem[] = existingPackingInventories.map(
+        (packingItem: any, index: number) => {
+          const packingMaterialId = packingItem.packingMaterialId ?? packingItem.packingMaterial?.id;
+          const matchingPacking = allPackingList.find((p: any) => Number(p.id) === Number(packingMaterialId));
+          const name = packingItem.packingMaterial?.name || matchingPacking?.name || `Packing #${packingMaterialId}`;
+          const unit = packingItem.packingMaterial?.unit?.name || matchingPacking?.unit?.name || 'Pcs';
+          const unitId = packingItem.packingMaterial?.unitId || matchingPacking?.unitId || null;
+          const unitPrice = Number(packingItem.unitPrice ?? matchingPacking?.unitPrice ?? 0);
+          const quantity = Number(
+            packingItem.Qty ??
+            packingItem.quantityLess ??
+            packingItem.quantityAdd ??
+            packingItem.quantity ??
+            0
+          );
+          const total = Number(
+            packingItem.amount ??
+            packingItem.debitAmount ??
+            packingItem.creditAmount ??
+            (quantity > 0 && unitPrice > 0 ? quantity * unitPrice : 0)
+          );
+          const perUnitQty = packingItem.perUnitQty != null ? roundToThree(packingItem.perUnitQty) : null;
+          const perUnitCost = packingItem.perUnitCost != null ? roundToThree(packingItem.perUnitCost) : null;
+
+          return {
+            id: packingItem.id,
+            si: index + 1,
+            packingMaterialId: Number(packingMaterialId),
+            name,
+            unit,
+            unitId,
+            qty: quantity > 0 ? quantity : null,
+            unitPrice: unitPrice > 0 ? unitPrice : null,
+            perUnitQty,
+            perUnitCost,
+            total: Number(total.toFixed(2)),
+          };
+        }
+      );
       setPackingMaterials(parsedPacking);
     } else {
       // Auto-load recipe packing materials if available
-      const rawList = Array.isArray(ingredientsData?.data)
+      const ingredientsList = Array.isArray(ingredientsData?.data)
         ? ingredientsData.data
         : Array.isArray((ingredientsData as any)?.data?.data)
           ? (ingredientsData as any).data.data
           : [];
-      const matched = rawList.find((r: any) => Number(r.productId) === Number(productId)) || rawList[0];
-      const packing = matched?.ingredientPackingMaterial || matched?.ingredientPackingMaterials || matched?.packingMaterials || [];
+      const matchedRecipe =
+        ingredientsList.find((recipe: any) => Number(recipe.productId) === Number(currentProductId)) ||
+        ingredientsList[0];
+      const recipePackingMaterials =
+        matchedRecipe?.ingredientPackingMaterial || [];
 
-      if (packing.length > 0) {
-        const prodQty = Number(initialProductQty) || 0;
-        const initialPacking: PackingMaterialItem[] = packing.map((pm: any, index: number) => {
-          const pmId = pm.packingMaterialId ?? pm.packingMaterial?.id ?? pm.id;
-          const packingList = Array.isArray(allPackingMaterialsData?.data) ? allPackingMaterialsData.data : [];
-          const foundPacking = packingList.find((p: any) => Number(p.id) === Number(pmId));
-          const name = pm.packingMaterial?.name ?? foundPacking?.name ?? pm.name ?? '';
-          const unit = pm.packingMaterial?.unit?.name ?? foundPacking?.unit?.name ?? pm.unit?.name ?? 'Pcs';
-          const unitId = pm.packingMaterial?.unitId ?? foundPacking?.unitId ?? pm.unit?.id ?? null;
-          const pmPrice = pm.packingMaterial?.unitPrice ?? pm.unitPrice ?? pm.rate ?? foundPacking?.unitPrice ?? foundPacking?.rate ?? 0;
-          const pmPerUnitQty = pm.ingredienteQty ?? pm.quantity ?? pm.perUnitQty ?? null;
-          const calculatedQty = pmPerUnitQty != null && prodQty > 0 ? Number((pmPerUnitQty * prodQty).toFixed(2)) : (pm.Qty ?? pm.quantity ?? null);
-          const total = calculatedQty != null ? Number((calculatedQty * pmPrice).toFixed(2)) : 0;
-          const calculatedPerUnitQty =
-            prodQty > 0 && calculatedQty != null
-              ? roundToThree(calculatedQty / prodQty)
-              : (pmPerUnitQty != null ? roundToThree(pmPerUnitQty) : null);
-          const calculatedCost =
-            prodQty > 0 && total > 0
-              ? roundToThree(total / prodQty)
-              : (calculatedPerUnitQty != null ? roundToThree(calculatedPerUnitQty * pmPrice) : null);
+      if (recipePackingMaterials.length > 0) {
+        const finishedProductQty = Number(initialProductQty) || 0;
+        const initialPacking: PackingMaterialItem[] = recipePackingMaterials.map(
+          (recipeItem: any, index: number) => {
+            const packingMaterialId = recipeItem.packingMaterialId ?? recipeItem.packingMaterial?.id ?? recipeItem.id;
+            const matchingPacking = allPackingList.find((p: any) => Number(p.id) === Number(packingMaterialId));
+            const name = recipeItem.packingMaterial?.name ?? matchingPacking?.name ?? recipeItem.name ?? '';
+            const unit = recipeItem.packingMaterial?.unit?.name ?? matchingPacking?.unit?.name ?? recipeItem.unit?.name ?? 'Pcs';
+            const unitId = recipeItem.packingMaterial?.unitId ?? matchingPacking?.unitId ?? recipeItem.unit?.id ?? null;
+            const unitPrice = recipeItem.packingMaterial?.unitPrice ?? recipeItem.unitPrice ?? recipeItem.rate ?? matchingPacking?.unitPrice ?? matchingPacking?.rate ?? 0;
+            const perUnitQty = recipeItem.ingredienteQty ?? recipeItem.quantity ?? recipeItem.perUnitQty ?? null;
+            const totalQty =
+              perUnitQty != null && finishedProductQty > 0
+                ? Number((perUnitQty * finishedProductQty).toFixed(2))
+                : (recipeItem.Qty ?? recipeItem.quantity ?? null);
+            const total = totalQty != null ? Number((totalQty * unitPrice).toFixed(2)) : 0;
+            const calculatedPerUnitQty =
+              finishedProductQty > 0 && totalQty != null
+                ? roundToThree(totalQty / finishedProductQty)
+                : perUnitQty != null
+                  ? roundToThree(perUnitQty)
+                  : null;
+            const calculatedCost =
+              finishedProductQty > 0 && total > 0
+                ? roundToThree(total / finishedProductQty)
+                : calculatedPerUnitQty != null
+                  ? roundToThree(calculatedPerUnitQty * unitPrice)
+                  : null;
 
-          return {
-            si: index + 1,
-            packingMaterialId: pmId,
-            name,
-            unit,
-            unitId,
-            qty: calculatedQty,
-            unitPrice: pmPrice,
-            perUnitQty: calculatedPerUnitQty,
-            perUnitCost: calculatedCost,
-            total,
-          };
-        });
+            return {
+              si: index + 1,
+              packingMaterialId,
+              name,
+              unit,
+              unitId,
+              qty: totalQty,
+              unitPrice,
+              perUnitQty: calculatedPerUnitQty,
+              perUnitCost: calculatedCost,
+              total,
+            };
+          }
+        );
         setPackingMaterials(initialPacking);
       } else {
-        setPackingMaterials([
-          {
-            si: 1,
-            packingMaterialId: null,
-            name: '',
-            unit: 'Pcs',
-            unitId: null,
-            qty: null,
-            unitPrice: null,
-            perUnitQty: null,
-            perUnitCost: null,
-            total: 0,
-          },
-        ]);
+        setPackingMaterials([]);
       }
     }
 
     // 3. Production Expenses
-    const expInvs = productionData?.productionExpensesInventory || [];
-    if (expInvs.length > 0) {
-      const parsedExpenses: ProductionExpenseItem[] = expInvs.map((exp: any, index: number) => {
-        const expId = exp.proExpencesItemId || exp.expenseItemId || exp.productionExpenseItem?.id;
-        const foundExp = allExpItemsData?.data?.find((e: any) => Number(e.id) === Number(expId));
-        const name = exp.productionExpenseItem?.expItemName || foundExp?.expItemName || exp.expItemName || `Expense #${expId}`;
-        const rate = exp.unitRate ?? foundExp?.unitRate ?? 0;
-        const qty = exp.expDuration ?? exp.qty ?? 0;
-        const total = exp.amount ?? (qty * rate);
+    const existingExpenseInventories =
+      (currentProd?.productionExpensesInventory && currentProd.productionExpensesInventory.length > 0)
+        ? currentProd.productionExpensesInventory
+        : (currentProd?.productionExpenses && currentProd.productionExpenses.length > 0)
+          ? currentProd.productionExpenses
+          : [];
 
-        return {
-          id: exp.id,
-          si: index + 1,
-          expenseItemId: expId,
-          name,
-          qty: qty > 0 ? qty : null,
-          rate: rate > 0 ? rate : null,
-          total: Number(Number(total || 0).toFixed(2)),
-        };
-      });
+    if (existingExpenseInventories.length > 0) {
+      const parsedExpenses: ProductionExpenseItem[] = existingExpenseInventories.map(
+        (expenseItem: any, index: number) => {
+          const expenseItemId = expenseItem.proExpencesItemId ?? expenseItem.productionExpenseItem?.id ?? expenseItem.expenseItemId;
+          const matchingExpense = allExpensesList.find((e: any) => Number(e.id) === Number(expenseItemId));
+          const name =
+            expenseItem.productionExpenseItem?.expItemName ||
+            matchingExpense?.expItemName ||
+            `Expense #${expenseItemId}`;
+          const rate = Number(expenseItem.unitRate ?? expenseItem.rate ?? matchingExpense?.unitRate ?? 0);
+          const duration = Number(expenseItem.expDuration ?? expenseItem.quantity ?? expenseItem.qty ?? 0);
+          const total = Number(expenseItem.amount ?? (duration * rate));
+
+          return {
+            id: expenseItem.id,
+            si: index + 1,
+            expenseItemId: Number(expenseItemId),
+            name,
+            qty: duration > 0 ? duration : null,
+            rate: rate > 0 ? rate : null,
+            total: Number(total.toFixed(2)),
+          };
+        }
+      );
       setProductionExpenses(parsedExpenses);
     } else {
-      const rawList = Array.isArray(ingredientsData?.data)
+      const ingredientsList = Array.isArray(ingredientsData?.data)
         ? ingredientsData.data
         : Array.isArray((ingredientsData as any)?.data?.data)
           ? (ingredientsData as any).data.data
           : [];
-      const matched = rawList.find((r: any) => Number(r.productId) === Number(productId)) || rawList[0];
-      const expItems = matched?.ingredientExpneseItems || matched?.expenseItems || [];
+      const matchedRecipe =
+        ingredientsList.find((recipe: any) => Number(recipe.productId) === Number(currentProductId)) ||
+        ingredientsList[0];
+      const recipeExpenses = matchedRecipe?.ingredientExpneseItems || matchedRecipe?.expenseItems || [];
 
-      if (expItems.length > 0) {
-        const expList = Array.isArray(allExpItemsData?.data) ? allExpItemsData.data : [];
-        const initialExpenses: ProductionExpenseItem[] = expItems.map((exp: any, index: number) => {
-          const expId = exp.productionExpenssItemId ?? exp.productionExpenseItem?.id ?? exp.id;
-          const foundExp = expList.find((e: any) => Number(e.id) === Number(expId));
-          const name = exp.productionExpenseItem?.expItemName ?? foundExp?.expItemName ?? exp.expItemName ?? '';
-          const rate = exp.productionExpenseItem?.unitRate ?? exp.unitRate ?? foundExp?.unitRate ?? foundExp?.rate ?? null;
-          const qty = exp.qty !== undefined && exp.qty !== null ? Number(exp.qty) : null;
+      if (recipeExpenses.length > 0) {
+        const initialExpenses: ProductionExpenseItem[] = recipeExpenses.map((recipeExp: any, index: number) => {
+          const expenseItemId = recipeExp.productionExpenssItemId ?? recipeExp.productionExpenseItem?.id ?? recipeExp.id;
+          const matchingExpense = allExpensesList.find((e: any) => Number(e.id) === Number(expenseItemId));
+          const name =
+            recipeExp.productionExpenseItem?.expItemName ??
+            matchingExpense?.expItemName ??
+            recipeExp.expItemName ??
+            '';
+          const rate =
+            recipeExp.productionExpenseItem?.unitRate ??
+            recipeExp.unitRate ??
+            matchingExpense?.unitRate ??
+            matchingExpense?.rate ??
+            null;
+          const qty = recipeExp.qty !== undefined && recipeExp.qty !== null ? Number(recipeExp.qty) : null;
           const total = qty != null && rate != null ? Number((qty * rate).toFixed(2)) : 0;
 
           return {
             si: index + 1,
-            expenseItemId: expId,
+            expenseItemId,
             name,
             qty,
             rate,
@@ -353,44 +401,85 @@ const ProductionStep2Page: React.FC = () => {
         });
         setProductionExpenses(initialExpenses);
       } else {
-        setProductionExpenses([
-          {
-            si: 1,
-            expenseItemId: null,
-            name: '',
-            qty: null,
-            rate: null,
-            total: 0,
-          },
-        ]);
+        setProductionExpenses([]);
       }
     }
-  }, [productionData, allRawMaterialsData, allPackingMaterialsData, allExpItemsData, ingredientsData, form, prodInv, productId, productionState.date, productionState.productId, productionState.rawMaterials, dispatch]);
+
+    // 4. Combined Products
+    const existingCombined =
+      (currentProd?.products && currentProd.products.length > 0)
+        ? currentProd.products
+        : (currentProd?.combinedProducts && currentProd.combinedProducts.length > 0)
+          ? currentProd.combinedProducts
+          : [];
+
+    if (existingCombined.length > 0) {
+      const allProdList = Array.isArray(productsData?.data) ? productsData.data : [];
+      const parsedCombined: CombinedProductItem[] = existingCombined.map((cp: any, index: number) => {
+        const productId = cp.productId ?? cp.product?.id;
+        const matchingProd = allProdList.find((p: any) => Number(p.id) === Number(productId));
+        const name = cp.productName || cp.product?.name || matchingProd?.name || `Product #${productId}`;
+        const catName =
+          matchingProd?.subCategory?.category?.categoryName ||
+          matchingProd?.category?.categoryName ||
+          cp.categoryName ||
+          '';
+        const qtyPerPack = cp.qtyPerPack ?? cp.quantityPerPack ?? 1;
+        const totalQty = Number(cp.quantityAdd ?? cp.quantity ?? cp.totalQty ?? 0);
+        const numberOfCartoon = cp.numberOfCartoon ?? cp.carton ?? (qtyPerPack > 0 ? Math.floor(totalQty / qtyPerPack) : 0);
+
+        return {
+          id: cp.id || Date.now() + index,
+          si: index + 1,
+          productId: Number(productId),
+          productName: name,
+          categoryName: catName,
+          qtyPerPack,
+          numberOfCartoon,
+          totalQty,
+        };
+      });
+      setCombinedProducts(parsedCombined);
+    }
+  }, [
+    productionData,
+    allRawMaterialsData,
+    allPackingMaterialsData,
+    allExpItemsData,
+    ingredientsData,
+    form,
+    productInventoryItem,
+    currentProductId,
+    productionState.date,
+    productionState.productinfo?.productId,
+    productionState.rawMaterials,
+    dispatch,
+  ]);
 
   // Sync expenses and packing materials to Redux
   useEffect(() => {
     dispatch(
-      setReduxProductionExpenses(
-        productionExpenses.map(item => ({
-          expenseId: String(item.expenseItemId || ''),
-          qty_duration: Number(item.qty) || 0,
-          expRate: Number(item.rate) || 0,
-        }))
-      )
+      setProductionStep2({
+        productionExpenses: productionExpenses
+          .filter(item => Boolean(item.expenseItemId))
+          .map(item => ({
+            proExpencesItemId: Number(item.expenseItemId),
+            expDuration: Number(item.qty) || 0,
+            unitRate: Number(item.rate) || 0,
+            amount: Number(item.total) || 0,
+          })),
+        packingMaterials: packingMaterials
+          .filter(item => Boolean(item.packingMaterialId))
+          .map(item => ({
+            packingMaterialId: Number(item.packingMaterialId),
+            unitPrice: Number(item.unitPrice) || 0,
+            Qty: Number(item.qty) || 0,
+            perUnitQty: Number(item.perUnitQty) || 0,
+            perUnitCost: Number(item.perUnitCost) || 0,
+          })),
+      })
     );
-  }, [productionExpenses, dispatch]);
-
-  useEffect(() => {
-    dispatch(
-      setReduxPackingMaterials(
-        packingMaterials.map(item => ({
-          packingMaterialId: String(item.packingMaterialId || ''),
-          unitePrice: Number(item.unitPrice) || 0,
-          qty: Number(item.qty) || 0,
-        }))
-      )
-    );
-  }, [packingMaterials, dispatch]);
+  }, [productionExpenses, packingMaterials, dispatch]);
 
   // Calculations
   const grandTotal = useMemo(() => {
@@ -414,9 +503,6 @@ const ProductionStep2Page: React.FC = () => {
   }, [productionExpenses]);
 
   const productQuantity = Form.useWatch('productQuantity', form);
-  const combinedQtyPerPack = Form.useWatch('qtyPerPack', combinedForm);
-  const combinedNumberOfCartoon = Form.useWatch('numberOfCartoon', combinedForm);
-  const currentCombinedTotalQty = (combinedQtyPerPack || 0) * (combinedNumberOfCartoon || 0);
 
   const totalProductionCost = useMemo(() => {
     return Number((grandTotal + totalPackingTk + totalExpenseTk).toFixed(2));
@@ -448,7 +534,8 @@ const ProductionStep2Page: React.FC = () => {
           const qty = item.qty != null ? Number(item.qty) : null;
           const price = item.unitPrice != null ? Number(item.unitPrice) : 0;
           const total = qty != null ? Number((qty * price).toFixed(2)) : 0;
-          const perUnitQty = qty != null ? roundToThree(qty / prodQty) : (item.perUnitQty != null ? roundToThree(item.perUnitQty) : null);
+          const perUnitQty =
+            qty != null ? roundToThree(qty / prodQty) : item.perUnitQty != null ? roundToThree(item.perUnitQty) : null;
           const perUnitCost =
             total > 0
               ? roundToThree(total / prodQty)
@@ -461,110 +548,78 @@ const ProductionStep2Page: React.FC = () => {
     }
   }, [productQuantity]);
 
-
-
   const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     e.target.select();
   };
 
-  // Submit Step 2
-  const handleSubmit = async () => {
-    if (!productionData?.id && !productionState.productId) {
+  // Save Raw Materials, Expenses & Packing Materials before Finalization
+  const handleSaveMaterialsAndExpenses = async () => {
+    if (!productionData?.id && !productionState.productinfo?.productId) {
       message.error('No production record found to update or save');
       return;
     }
 
+    // Check Production Expenses
+    if (productionExpenses.length > 0) {
+      const hasUnselectedExpense = productionExpenses.some(item => !item.expenseItemId);
+      if (hasUnselectedExpense) {
+        message.error('Please select an Expense Item for all expense rows or remove unused rows');
+        return;
+      }
+
+      const hasInvalidExpenseQty = productionExpenses.some(
+        item => item.qty === null || item.qty === undefined || Number(item.qty) <= 0
+      );
+      if (hasInvalidExpenseQty) {
+        message.error('Please enter a valid Qty/Duration (greater than 0) for all expense items');
+        return;
+      }
+
+      const hasInvalidExpenseRate = productionExpenses.some(
+        item => item.rate === null || item.rate === undefined || Number(item.rate) < 0
+      );
+      if (hasInvalidExpenseRate) {
+        message.error('Please enter a valid Rate for all expense items');
+        return;
+      }
+    }
+
+    // Check Packing Materials
+    if (packingMaterials.length > 0) {
+      const hasUnselectedPacking = packingMaterials.some(item => !item.packingMaterialId);
+      if (hasUnselectedPacking) {
+        message.error('Please select a Packing Material for all packing rows or remove unused rows');
+        return;
+      }
+
+      const hasInvalidPackingQty = packingMaterials.some(
+        item => item.qty === null || item.qty === undefined || Number(item.qty) <= 0
+      );
+      if (hasInvalidPackingQty) {
+        message.error('Please enter a valid Total Qty (greater than 0) for all packing materials');
+        return;
+      }
+
+      const hasInvalidPackingPrice = packingMaterials.some(
+        item => item.unitPrice === null || item.unitPrice === undefined || Number(item.unitPrice) < 0
+      );
+      if (hasInvalidPackingPrice) {
+        message.error('Please enter a valid Unit Price for all packing materials');
+        return;
+      }
+    }
+
+    setIsSavingIntermediate(true);
     try {
-      const values = await form.validateFields();
-
-      const finishedQty = Number(values.productQuantity);
-      if (!finishedQty || finishedQty <= 0) {
-        message.error('Please enter a valid Finished Product Quantity (greater than 0)');
-        return;
-      }
-
-      const grandTotalQty = combinedProducts.reduce((sum, item) => sum + item.totalQty, 0);
-      if (grandTotalQty > finishedQty) {
-        message.error(`Total combined quantity (${grandTotalQty}) cannot exceed Finished Product Quantity (${finishedQty})`);
-        return;
-      }
-
-      if (currentCombinedTotalQty > 0 && grandTotalQty + currentCombinedTotalQty > finishedQty) {
-        const remaining = Math.max(0, finishedQty - grandTotalQty);
-        message.error(`Un-added combined quantity (${currentCombinedTotalQty}) exceeds the remaining available quantity (${remaining}). Please check your Combined Products section.`);
-        return;
-      }
-
-      // Check Production Expenses
-      if (productionExpenses.length > 0) {
-        const hasUnselectedExp = productionExpenses.some(item => !item.expenseItemId);
-        if (hasUnselectedExp) {
-          message.error('Please select an Expense Item for all expense rows or remove unused rows');
-          return;
-        }
-
-        const hasInvalidExpQty = productionExpenses.some(
-          item => item.qty === null || item.qty === undefined || Number(item.qty) <= 0
-        );
-        if (hasInvalidExpQty) {
-          message.error('Please enter a valid Qty/Duration (greater than 0) for all expense items');
-          return;
-        }
-
-        const hasInvalidExpRate = productionExpenses.some(
-          item => item.rate === null || item.rate === undefined || Number(item.rate) < 0
-        );
-        if (hasInvalidExpRate) {
-          message.error('Please enter a valid Rate for all expense items');
-          return;
-        }
-      }
-
-      // Check Packing Materials
-      if (packingMaterials.length > 0) {
-        const hasUnselectedPm = packingMaterials.some(item => !item.packingMaterialId);
-        if (hasUnselectedPm) {
-          message.error('Please select a Packing Material for all packing rows or remove unused rows');
-          return;
-        }
-
-        const hasInvalidPmQty = packingMaterials.some(
-          item => item.qty === null || item.qty === undefined || Number(item.qty) <= 0
-        );
-        if (hasInvalidPmQty) {
-          message.error('Please enter a valid Total Qty (greater than 0) for all packing materials');
-          return;
-        }
-
-        const hasInvalidPmPrice = packingMaterials.some(
-          item => item.unitPrice === null || item.unitPrice === undefined || Number(item.unitPrice) < 0
-        );
-        if (hasInvalidPmPrice) {
-          message.error('Please enter a valid Unit Price for all packing materials');
-          return;
-        }
-      }
-
-      setIsSubmitting(true);
-
-      const validMaterials = rawMaterials.filter(item => item.rawMaterialId);
-
-      const payload: Production & { id?: number, isNewFromRedux?: boolean } = {
-        ...(productionData?.id ? { id: Number(productionData.id) } : {}),
-        ...(productionState.productId && !productionData?.id ? { isNewFromRedux: true } : {}), // For debugging
-        date: values.date ? dayjs(values.date).toISOString() : dayjs().toISOString(),
-        batchNo: values.batchNo,
+      const selectedDate = form.getFieldValue('date');
+      const payload: any = {
+        date: selectedDate ? dayjs(selectedDate).toISOString() : dayjs().toISOString(),
         productinfo: {
-          productId: Number(values.productId || productId),
-          quantity: Number(values.productQuantity) || 0,
+          productId: Number(currentProductId || form.getFieldValue('productId')),
+          quantityAdd: Number(form.getFieldValue('productQuantity')) || 0,
           unitPrice: unitCost || 0,
         },
-        rawMaterials: validMaterials.map(item => ({
-          ...(item.id ? { id: item.id } : {}),
-          rawId: Number(item.rawMaterialId!),
-          quantity: Number(item.qty) || 0,
-          unitPrice: Number(item.rate) || 0,
-        })),
+        rawMaterials: [],
         packingMaterials: packingMaterials
           .filter(item => item.packingMaterialId)
           .map(item => ({
@@ -586,7 +641,155 @@ const ProductionStep2Page: React.FC = () => {
           })),
       };
 
-      const res = await createProduction(payload);
+      const res = await createProduction({ data: { ...payload, status: "IN_PROGRESS" }, id: productionData?.id });
+      const result = getResponse(res);
+
+      if (result?.success) {
+        refetch?.();
+        if (result.data) {
+          setProductionData(result.data);
+        } else {
+          setProductionData((prev: any) => ({ ...(prev || {}), status: "IN_PROGRESS" }));
+        }
+        message.success('Materials and expenses saved successfully! Please continue to Finalization and Combined Products.');
+      }
+    } catch (error: any) {
+      message.error('An error occurred while saving materials and expenses');
+    } finally {
+      setIsSavingIntermediate(false);
+    }
+  };
+
+  // Submit Step 2 (Final Save)
+  const handleSubmit = async () => {
+    console.log(productionState, "handleSubmit")
+    if (!productionData?.id && !productionState.productinfo?.productId) {
+      message.error('No production record found to update or save');
+      return;
+    }
+
+    try {
+      const values = await form.validateFields();
+
+      const finishedQty = Number(values.productQuantity);
+      if (!finishedQty || finishedQty <= 0) {
+        message.error('Please enter a valid Finished Product Quantity (greater than 0)');
+        return;
+      }
+
+
+      // Check Production Expenses
+      if (productionExpenses.length > 0) {
+        const hasUnselectedExpense = productionExpenses.some(item => !item.expenseItemId);
+        if (hasUnselectedExpense) {
+          message.error('Please select an Expense Item for all expense rows or remove unused rows');
+          return;
+        }
+
+        const hasInvalidExpenseQty = productionExpenses.some(
+          item => item.qty === null || item.qty === undefined || Number(item.qty) <= 0
+        );
+        if (hasInvalidExpenseQty) {
+          message.error('Please enter a valid Qty/Duration (greater than 0) for all expense items');
+          return;
+        }
+
+        const hasInvalidExpenseRate = productionExpenses.some(
+          item => item.rate === null || item.rate === undefined || Number(item.rate) < 0
+        );
+        if (hasInvalidExpenseRate) {
+          message.error('Please enter a valid Rate for all expense items');
+          return;
+        }
+      }
+
+      // Check Packing Materials
+      if (packingMaterials.length > 0) {
+        const hasUnselectedPacking = packingMaterials.some(item => !item.packingMaterialId);
+        if (hasUnselectedPacking) {
+          message.error('Please select a Packing Material for all packing rows or remove unused rows');
+          return;
+        }
+
+        const hasInvalidPackingQty = packingMaterials.some(
+          item => item.qty === null || item.qty === undefined || Number(item.qty) <= 0
+        );
+        if (hasInvalidPackingQty) {
+          message.error('Please enter a valid Total Qty (greater than 0) for all packing materials');
+          return;
+        }
+
+        const hasInvalidPackingPrice = packingMaterials.some(
+          item => item.unitPrice === null || item.unitPrice === undefined || Number(item.unitPrice) < 0
+        );
+        if (hasInvalidPackingPrice) {
+          message.error('Please enter a valid Unit Price for all packing materials');
+          return;
+        }
+      }
+
+      // Check Combined Products
+      if (combinedProducts.length > 0) {
+        const hasUnselectedCombined = combinedProducts.some(item => !item.productId);
+        if (hasUnselectedCombined) {
+          message.error('Please select a Product for all combined product rows or remove unused rows');
+          return;
+        }
+
+        const hasInvalidCombinedQty = combinedProducts.some(
+          item => !item.totalQty || Number(item.totalQty) <= 0
+        );
+        if (hasInvalidCombinedQty) {
+          message.error('Please enter valid Qty per Pack and No. of Cartons for all combined products');
+          return;
+        }
+
+        const totalCombined = combinedProducts.reduce((sum, item) => sum + (Number(item.totalQty) || 0), 0);
+        const prodQty = Number(values.productQuantity) || 0;
+        if (prodQty > 0 && totalCombined > prodQty) {
+          message.error(`Total combined quantity (${totalCombined}) cannot exceed Finished Product Quantity (${prodQty})`);
+          return;
+        }
+      }
+
+      const selectedDate = values.date || form.getFieldValue('date');
+      const payload: any = {
+        date: selectedDate ? dayjs(selectedDate).toISOString() : dayjs().toISOString(),
+        productinfo: {
+          productId: Number(currentProductId || form.getFieldValue('productId')),
+          quantityAdd: Number(values.productQuantity) || 0,
+          unitPrice: unitCost || 0,
+        },
+        rawMaterials: [],
+        packingMaterials: packingMaterials
+          .filter(item => item.packingMaterialId)
+          .map(item => ({
+            ...(item.id ? { id: item.id } : {}),
+            packingMaterialId: Number(item.packingMaterialId!),
+            unitPrice: Number(item.unitPrice) || 0,
+            Qty: Number(item.qty) || 0,
+            perUnitQty: Number(item.perUnitQty) || 0,
+            perUnitCost: Number(item.perUnitCost) || 0,
+          })),
+        productionExpenses: productionExpenses
+          .filter(item => item.expenseItemId)
+          .map(item => ({
+            ...(item.id ? { id: item.id } : {}),
+            proExpencesItemId: Number(item.expenseItemId!),
+            unitRate: Number(item.rate) || 0,
+            expDuration: Number(item.qty) || 0,
+            amount: Number(item.total) || 0,
+          })),
+        products: combinedProducts
+          .filter(cp => cp.productId)
+          .map(cp => ({
+            productId: Number(cp.productId),
+            quantityAdd: Number(cp.totalQty) || 0,
+            unitPrice: unitCost || 0,
+          })),
+      };
+
+      const res = await createProduction({ ...payload, status: "COMPLETE" });
       const result = getResponse(res);
 
       if (result?.success) {
@@ -604,7 +807,9 @@ const ProductionStep2Page: React.FC = () => {
     }
   };
 
-  if (!productionData && isProductionsLoading) {
+  const effectiveProductionData = productionData || productionResponse?.data;
+
+  if (targetId && isProductionLoading && !effectiveProductionData) {
     return (
       <div className="p-8 text-center bg-white rounded-lg shadow-sm">
         <p className="text-gray-500 font-medium">Loading production data...</p>
@@ -612,11 +817,13 @@ const ProductionStep2Page: React.FC = () => {
     );
   }
 
-  if (!productionData && !isProductionsLoading) {
+  if (!targetId && !effectiveProductionData && !productionState.productinfo?.productId) {
     return (
       <div className="p-8 text-center bg-white rounded-lg shadow-sm space-y-4">
         <h3 className="text-lg font-bold text-gray-800">No Production Selected</h3>
-        <p className="text-gray-500 text-sm">Please select a production from Production Voucher to proceed with Step 2.</p>
+        <p className="text-gray-500 text-sm">
+          Please select a production from Production Voucher to proceed with Step 2.
+        </p>
         <Button
           type="primary"
           icon={<ArrowLeftOutlined />}
@@ -629,6 +836,10 @@ const ProductionStep2Page: React.FC = () => {
     );
   }
 
+  const currentStatus = productionData?.status || productionResponse?.data?.status || 'PENDDING';
+  const isPending = currentStatus === 'PENDDING' || currentStatus === 'PENDING';
+  const isInProgress = currentStatus === 'IN_PROGRESS';
+
   return (
     <div className="p-4 bg-white rounded-lg shadow-sm space-y-4">
       {/* Top Header */}
@@ -640,17 +851,14 @@ const ProductionStep2Page: React.FC = () => {
           </span>
         </div>
 
-        <Button
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate('/dashboard/production-voucher')}
-        >
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/dashboard/production-voucher')}>
           Back to Production Voucher
         </Button>
       </div>
 
-      <Form form={form} layout="vertical" className="space-y-4">
+      <Form form={form} layout="vertical" initialValues={{ date: dayjs() }} className="space-y-4">
         {/* Step 1 Summary Banner */}
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-xl border border-amber-200/50 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 px-2 py-1 rounded border border-amber-200/50 flex flex-wrap items-center justify-between gap-4 shadow-sm">
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 w-full items-center">
             <div>
               <span className="text-xs text-amber-600/80 block uppercase font-bold tracking-wider mb-1">Product</span>
@@ -662,17 +870,33 @@ const ProductionStep2Page: React.FC = () => {
             </div>
             <div>
               <span className="text-xs text-amber-600/80 block uppercase font-bold tracking-wider mb-1">Date</span>
-              <span className="font-semibold text-gray-800">
-                {productionData?.date ? dayjs(productionData.date).format('DD MMM, YYYY') : (productionState.date ? dayjs(productionState.date).format('DD MMM, YYYY') : '-')}
-              </span>
+              <Form.Item
+                name="date"
+                rules={[{ required: true, message: 'Please select date' }]}
+                className="mb-0"
+              >
+                <DatePicker
+                  format="DD-MMM-YYYY"
+                  style={{ width: '100%' }}
+                  className="rounded-lg shadow-2xs font-semibold text-gray-800 bg-white"
+                />
+              </Form.Item>
             </div>
             <div>
-              <span className="text-xs text-amber-600/80 block uppercase font-bold tracking-wider mb-1">Raw Material Cost</span>
+              <span className="text-xs text-amber-600/80 block uppercase font-bold tracking-wider mb-1">
+                Raw Material Cost
+              </span>
               <span className="font-bold text-amber-700 text-base">
                 {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
               </span>
             </div>
-            <div className="flex justify-end">
+            <div className="flex justify-end items-center gap-2">
+              <Tag
+                color={isInProgress ? 'success' : isPending ? 'blue' : 'purple'}
+                className="font-bold text-xs py-1 px-3 rounded-full border-none shadow-sm m-0"
+              >
+                {currentStatus}
+              </Tag>
               <Tag color="orange" className="font-bold text-sm py-1 px-3 rounded-full border-none shadow-sm m-0">
                 Production #{productionData?.id || 'New'}
               </Tag>
@@ -686,6 +910,7 @@ const ProductionStep2Page: React.FC = () => {
           setRawMaterials={setRawMaterials}
           grandTotal={grandTotal}
           handleInputFocus={handleInputFocus}
+          hideEditButton={isInProgress}
         />
 
         {/* Production Expenses Section */}
@@ -695,6 +920,7 @@ const ProductionStep2Page: React.FC = () => {
           expenseOptions={expenseOptions}
           totalExpenseQty={totalExpenseQty}
           totalExpenseTk={totalExpenseTk}
+          disabled={isInProgress}
         />
 
         {/* Packing Materials Section */}
@@ -705,7 +931,22 @@ const ProductionStep2Page: React.FC = () => {
           totalPackingQty={totalPackingQty}
           totalPackingTk={totalPackingTk}
           productQuantity={productQuantity}
+          disabled={isInProgress}
         />
+
+        {/* Save Materials & Expenses Button */}
+        <div className="flex justify-end mt-4 mb-6 border-b border-gray-100 pb-6">
+          <Button
+            type="primary"
+            onClick={handleSaveMaterialsAndExpenses}
+            loading={isSavingIntermediate}
+            disabled={isInProgress}
+            size="large"
+            className="px-8 rounded-lg bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-bold shadow-sm disabled:opacity-50"
+          >
+            {isInProgress ? 'Saved (In Progress)' : isSavingIntermediate ? 'Saving...' : 'Save & Proceed'}
+          </Button>
+        </div>
 
         {/* Finished Product Quantity & Unit Cost Summary */}
         <FinalizationSummary
@@ -718,17 +959,17 @@ const ProductionStep2Page: React.FC = () => {
           totalPackingTk={totalPackingTk}
           packingStageUnitCost={packingStageUnitCost}
           totalProductionCost={totalProductionCost}
+          disabled={isPending}
         />
       </Form>
 
       {/* Combined Products Section */}
       <CombinedProductsSection
-        combinedForm={combinedForm}
         combinedProducts={combinedProducts}
         setCombinedProducts={setCombinedProducts}
         productsData={productsData}
         productQuantity={productQuantity}
-        currentCombinedTotalQty={currentCombinedTotalQty}
+        disabled={isPending}
       />
 
       <div className="mt-6 flex flex-wrap items-center justify-end gap-4 pt-4 border-t border-gray-100">
@@ -736,9 +977,10 @@ const ProductionStep2Page: React.FC = () => {
           type="primary"
           onClick={handleSubmit}
           loading={isSubmitting}
+          disabled={isPending}
           size="large"
           icon={<CheckCircleOutlined />}
-          className="px-10 rounded-lg bg-gradient-to-r from-[#C58D2F] to-[#b07d28] hover:from-[#b07d28] hover:to-[#96691e] border-none text-white shadow-md font-bold text-base"
+          className="px-10 rounded-lg bg-gradient-to-r from-[#C58D2F] to-[#b07d28] hover:from-[#b07d28] hover:to-[#96691e] border-none text-white shadow-md font-bold text-base disabled:opacity-50"
         >
           {isSubmitting ? 'Saving...' : 'Complete & Save'}
         </Button>

@@ -27,9 +27,9 @@ const AddProduct = ({ setIsModalOpen }: { setIsModalOpen: any }) => {
                 : 0,
             initialStock: {
                 quantity: values?.quantity,
-                amount: Number((unitPrice! * quantity!).toFixed(2)),
+                amount: Number(((unitPrice || 0) * (quantity || 0)).toFixed(2)),
                 date: values?.date,
-                unitPrice: Number(unitPrice?.toFixed(2))
+                unitPrice: Number((unitPrice || 0).toFixed(2))
             }
         }
         // Perform any actions like sending the data to the server
@@ -91,16 +91,23 @@ const AddProduct = ({ setIsModalOpen }: { setIsModalOpen: any }) => {
                         <Input type='text' />
                     </Form.Item>
                     <Form.Item label="Initial Quantity" name="quantity" rules={[{ required: true }]}>
-                        <InputNumber type="number" min={0} onChange={(value) => setQuantity(Number(value?.toFixed(2)))} style={{ width: '100%' }} />
+                        <InputNumber type="number" min={0} onChange={(value) => {
+                            const qty = value !== null && value !== undefined ? Number(value.toFixed(2)) : null;
+                            setQuantity(qty);
+                            if (qty === 0) {
+                                setUnitPrice(0);
+                                form.setFieldsValue({ unitPrice: 0 });
+                            }
+                        }} style={{ width: '100%' }} />
                     </Form.Item>
 
                     <Form.Item label="Unit Price" name={"unitPrice"}>
-                        <InputNumber type="number" min={0} style={{ width: '100%' }} onChange={(value) => setUnitPrice(value)} disabled={!quantity} />
+                        <InputNumber type="number" min={0} style={{ width: '100%' }} onChange={(value) => setUnitPrice(value)} disabled={quantity === undefined || quantity === null} />
                     </Form.Item>
 
                     <div className='col-span-2 grid grid-cols-3 gap-x-4'>
                         <Form.Item label="Initial Total Amount" rules={[{ required: true }]} style={{ width: '100%' }}>
-                            <InputNumber type="number" min={0} readOnly style={{ width: '100%', color: "black" }} value={Number((unitPrice! * quantity!).toFixed(2))} />
+                            <InputNumber type="number" min={0} readOnly style={{ width: '100%', color: "black" }} value={Number(((unitPrice || 0) * (quantity || 0)).toFixed(2))} />
                         </Form.Item>
 
                         <Form.Item label="Date" name="date" rules={[{ required: true }]} initialValue={dayjs()} style={{ width: '100%' }}>

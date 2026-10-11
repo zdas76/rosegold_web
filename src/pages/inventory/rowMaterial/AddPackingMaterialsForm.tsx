@@ -86,27 +86,29 @@ const AddPackingMaterialsForm = ({ setIsModalOpen }: { setIsModalOpen: any }) =>
                     />
                 </Form.Item>
 
-                <Form.Item label="Amount">
-                    <InputNumber
-                        type="number"
-                        disabled
-                        value={Number(((Number(quantity) || 0) * (Number(unitPrice) || 0)).toFixed(2))}
-                        style={{ width: '100%' }}
-                    />
-                </Form.Item>
+                <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-x-4">
+                    <Form.Item label="Amount">
+                        <InputNumber
+                            type="number"
+                            disabled
+                            value={Number(((Number(quantity) || 0) * (Number(unitPrice) || 0)).toFixed(2))}
+                            style={{ width: '100%' }}
+                        />
+                    </Form.Item>
 
-                <Form.Item label="Alert Quantity" name="alertQuantity">
-                    <InputNumber
-                        type="number"
-                        min={0}
-                        style={{ width: '100%' }}
-                        placeholder="Alert quantity"
-                    />
-                </Form.Item>
+                    <Form.Item label="Alert Quantity" name="alertQuantity">
+                        <InputNumber
+                            type="number"
+                            min={0}
+                            style={{ width: '100%' }}
+                            placeholder="Alert quantity"
+                        />
+                    </Form.Item>
 
-                <Form.Item label="Opening Date" name="date" rules={[{ required: true, message: "Please select date" }]}>
-                    <DatePicker style={{ width: '100%' }} />
-                </Form.Item>
+                    <Form.Item label="Opening Date" name="date" rules={[{ required: true, message: "Please select date" }]}>
+                        <DatePicker style={{ width: '100%' }} />
+                    </Form.Item>
+                </div>
             </div>
 
             {/* Description Field */}

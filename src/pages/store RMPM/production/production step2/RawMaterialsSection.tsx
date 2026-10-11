@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import { Table, Collapse, Button, InputNumber } from 'antd';
 import { EyeOutlined, EditOutlined } from '@ant-design/icons';
@@ -8,6 +9,7 @@ interface RawMaterialsSectionProps {
   setRawMaterials: React.Dispatch<React.SetStateAction<RawMaterialItem[]>>;
   grandTotal: number;
   handleInputFocus: (e: React.FocusEvent<HTMLInputElement>) => void;
+  hideEditButton?: boolean;
 }
 
 const RawMaterialsSection: React.FC<RawMaterialsSectionProps> = ({
@@ -15,8 +17,10 @@ const RawMaterialsSection: React.FC<RawMaterialsSectionProps> = ({
   setRawMaterials,
   grandTotal,
   handleInputFocus,
+  hideEditButton = false,
 }) => {
   const [isRawMaterialsEditable, setIsRawMaterialsEditable] = useState(false);
+  const effectiveIsEditable = !hideEditButton && isRawMaterialsEditable;
 
   const handleRawMaterialChange = (si: number, field: 'qty' | 'rate', value: number | null) => {
     setRawMaterials((prev: any) => prev.map((item: any) => {
@@ -51,7 +55,7 @@ const RawMaterialsSection: React.FC<RawMaterialsSectionProps> = ({
       key: 'qty',
       width: 120,
       align: 'right' as const,
-      render: (qty: number, record: any) => isRawMaterialsEditable ? (
+      render: (qty: number, record: any) => effectiveIsEditable ? (
         <InputNumber
           value={qty}
           min={0}
@@ -67,7 +71,7 @@ const RawMaterialsSection: React.FC<RawMaterialsSectionProps> = ({
       key: 'rate',
       width: 130,
       align: 'right' as const,
-      render: (rate: number, record: any) => isRawMaterialsEditable ? (
+      render: (rate: number, record: any) => effectiveIsEditable ? (
         <InputNumber
           value={rate}
           min={0}
@@ -91,6 +95,7 @@ const RawMaterialsSection: React.FC<RawMaterialsSectionProps> = ({
 
   return (
     <Collapse
+      defaultActiveKey={['1']}
       ghost
       className="bg-slate-50/60 rounded-lg border border-slate-200/60"
       items={[
@@ -102,7 +107,7 @@ const RawMaterialsSection: React.FC<RawMaterialsSectionProps> = ({
               Raw Materials Breakdown ({rawMaterials.length} Items)
             </span>
           ),
-          extra: (
+          extra: !hideEditButton ? (
             <Button
               type="text"
               size="small"
@@ -115,7 +120,7 @@ const RawMaterialsSection: React.FC<RawMaterialsSectionProps> = ({
             >
               {isRawMaterialsEditable ? 'Done' : 'Edit'}
             </Button>
-          ),
+          ) : null,
           children: (
             <Table
               dataSource={rawMaterials}
