@@ -11,6 +11,7 @@ import {
   useCreateProductionMutation,
   type Production,
 } from '../../../redux/features/production/production.api';
+import { useLazyGetTotalQuantityAndUnitPriceQuery } from '../../../redux/features/transactions/transactons.api';
 import { getResponse } from '../../../utils/getResponse';
 import { showErrorAlert } from '../../../utils/sweetAlert';
 import { useAppDispatch, useAppSelector } from '../../../redux/hooks';
@@ -26,6 +27,7 @@ export interface RawMaterialItem {
   qty: number | null;
   rate: number | null;
   total: number;
+  netQuantity?: number | null;
 }
 
 export interface PackingMaterialItem {
@@ -89,6 +91,28 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
     );
 
   const [createProduction] = useCreateProductionMutation();
+  const [triggerGetTotalQuantity] = useLazyGetTotalQuantityAndUnitPriceQuery();
+
+  // Helper to fetch live rate and netQuantity from /inventory/inventorytotal?itemType=raw&rawId={rawId}
+  const fetchRawMaterialInfo = async (rawId: number): Promise<{ rate: number | null; netQuantity: number | null }> => {
+    try {
+      const res = await triggerGetTotalQuantity({
+        itemType: 'raw',
+        rawId: String(rawId),
+      }).unwrap();
+      const rawNetQty = res?.data?.netQuantity;
+      const netQty = rawNetQty !== undefined && rawNetQty !== null ? Number(rawNetQty) : null;
+      const netAmount = Number(res?.data?.netAmount) || 0;
+      let rate: number | null = null;
+      if (netQty !== null && netQty > 0 && netAmount > 0) {
+        rate = Number((netAmount / netQty).toFixed(2));
+      }
+      return { rate, netQuantity: netQty };
+    } catch (err) {
+      console.error('Failed to fetch inventory total for raw material:', err);
+    }
+    return { rate: null, netQuantity: null };
+  };
 
   // Product & Raw Material dropdown options
   const productOptions = useMemo(() => {
@@ -189,20 +213,44 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
         };
       });
       setRawMaterials(initialItems);
+
+      // Fetch live inventory rates (netAmount / netQuantity) and netQuantity for auto-populated raw materials
+      materials.forEach((m: any, idx: number) => {
+        const rawId = m.rawId ?? m.rawMaterials?.id ?? m.id ?? m.rawMaterialId;
+        if (rawId) {
+          fetchRawMaterialInfo(Number(rawId)).then(({ rate: liveRate, netQuantity }) => {
+            setRawMaterials(prev =>
+              prev.map((item, i) => {
+                if (i === idx) {
+                  const itemQty = item.qty ?? 0;
+                  const finalRate = liveRate ?? item.rate;
+                  return {
+                    ...item,
+                    rate: finalRate,
+                    netQuantity,
+                    total: itemQty > 0 && finalRate != null ? Number((itemQty * finalRate).toFixed(2)) : item.total,
+                  };
+                }
+                return item;
+              })
+            );
+          });
+        }
+      });
     } else {
       setRawMaterials([
-        { si: 1, rawMaterialId: null, name: '', unit: 'Kg', unitId: null, qty: null, rate: null, total: 0 },
+        { si: 1, rawMaterialId: null, name: '', unit: 'Kg', unitId: null, qty: null, rate: null, total: 0, netQuantity: null },
       ]);
     }
   }, [selectedProductId, ingredientsData, allRawMaterialsData, existingProductionId, form]);
 
   // Handlers for table rows
-  const handleMaterialChange = (si: number, value: number | null) => {
+  const handleMaterialChange = async (si: number, value: number | null) => {
     if (!value) {
       setRawMaterials(prev =>
         prev.map(item =>
           item.si === si
-            ? { ...item, rawMaterialId: null, name: '', unit: 'Kg', unitId: null, qty: null, rate: null, total: 0 }
+            ? { ...item, rawMaterialId: null, name: '', unit: 'Kg', unitId: null, qty: null, rate: null, total: 0, netQuantity: null }
             : item
         )
       );
@@ -211,19 +259,41 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
 
     const selected = allRawMaterialsData?.data?.find((m: RawMaterialFromAPI) => m.id === value);
     if (selected) {
+      const fallbackRate = selected.ingredienteRate ?? selected.unitPrice ?? selected.rate ?? null;
+
+      // Optimistically set material with fallback rate
       setRawMaterials(prev =>
         prev.map(item => {
           if (item.si === si) {
-            const newRate = selected.ingredienteRate ?? selected.unitPrice ?? selected.rate ?? null;
-            const newQty = item.qty ?? 0;
-            const newTotal = newRate != null ? Number((newQty * newRate).toFixed(2)) : 0;
+            const currentQty = item.qty ?? 0;
+            const newTotal = fallbackRate != null ? Number((currentQty * fallbackRate).toFixed(2)) : 0;
             return {
               ...item,
               rawMaterialId: selected.id,
               name: selected.name,
               unit: selected.unit?.name || 'Kg',
               unitId: selected.unitId ?? null,
-              rate: newRate,
+              rate: fallbackRate,
+              total: newTotal,
+              netQuantity: null,
+            };
+          }
+          return item;
+        })
+      );
+
+      // Fetch live rate and netQuantity from /inventory/inventorytotal?itemType=raw&rawId={value}
+      const { rate: liveRate, netQuantity } = await fetchRawMaterialInfo(selected.id);
+      setRawMaterials(prev =>
+        prev.map(item => {
+          if (item.si === si) {
+            const currentQty = item.qty ?? 0;
+            const finalRate = liveRate ?? item.rate;
+            const newTotal = finalRate != null ? Number((currentQty * finalRate).toFixed(2)) : 0;
+            return {
+              ...item,
+              rate: finalRate,
+              netQuantity,
               total: newTotal,
             };
           }
@@ -237,6 +307,15 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
     setRawMaterials(prev =>
       prev.map(item => {
         if (item.si === si) {
+          const maxAllowed = item.netQuantity !== undefined && item.netQuantity !== null ? item.netQuantity : null;
+          if (value !== null && maxAllowed !== null && value > maxAllowed) {
+            showErrorAlert(
+              `Quantity cannot exceed available stock (${maxAllowed}). You entered ${value}.`,
+              'Stock Limit Exceeded'
+            );
+            return item;
+          }
+
           const rate = item.rate || 0;
           const total = value != null ? Number((value * rate).toFixed(2)) : 0;
           return { ...item, qty: value, total };
@@ -262,7 +341,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
   const handleAddRow = () => {
     setRawMaterials(prev => [
       ...prev,
-      { si: prev.length + 1, rawMaterialId: null, name: '', qty: null, unit: 'Kg', unitId: null, rate: null, total: 0 },
+      { si: prev.length + 1, rawMaterialId: null, name: '', qty: null, unit: 'Kg', unitId: null, rate: null, total: 0, netQuantity: null },
     ]);
   };
 
@@ -292,6 +371,19 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
       const invalidQty = validMaterials.some(item => !item.qty || Number(item.qty) <= 0);
       if (invalidQty) {
         showErrorAlert('Please enter a valid Quantity (greater than 0) for all raw materials');
+        return;
+      }
+
+      // Check if any quantity exceeds netQuantity
+      const exceededItem = validMaterials.find(item => {
+        const maxAllowed = item.netQuantity !== undefined && item.netQuantity !== null ? item.netQuantity : null;
+        return maxAllowed !== null && Number(item.qty) > maxAllowed;
+      });
+      if (exceededItem) {
+        showErrorAlert(
+          `Quantity for "${exceededItem.name || 'Raw Material'}" (${exceededItem.qty}) exceeds available stock (${exceededItem.netQuantity}). It must be less than or equal to ${exceededItem.netQuantity}.`,
+          'Stock Limit Exceeded'
+        );
         return;
       }
 
@@ -391,17 +483,31 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
       key: 'qty',
       width: 140,
       render: (_: any, record: RawMaterialItem) => (
-        <InputNumber
-          status={attemptedSubmit && (!record.qty || Number(record.qty) <= 0) ? 'error' : undefined}
-          min={0}
-          step={0.01}
-          value={record.qty}
-          onChange={v => handleQtyChange(record.si, v)}
-          controls={false}
-          style={{ width: '100%' }}
-          precision={2}
-          placeholder="0.00"
-        />
+        <div>
+          <InputNumber
+            status={
+              attemptedSubmit && (!record.qty || Number(record.qty) <= 0)
+                ? 'error'
+                : record.netQuantity != null && record.qty != null && Number(record.qty) > record.netQuantity
+                  ? 'error'
+                  : undefined
+            }
+            min={0}
+            max={record.netQuantity != null ? record.netQuantity : undefined}
+            step={0.01}
+            value={record.qty}
+            onChange={v => handleQtyChange(record.si, v)}
+            controls={false}
+            style={{ width: '100%' }}
+            precision={2}
+            placeholder="0.00"
+          />
+          {record.netQuantity != null && (
+            <div className="text-[11px] text-gray-400 mt-0.5 leading-tight">
+              Stock: <span className="font-medium text-gray-600">{record.netQuantity}</span>
+            </div>
+          )}
+        </div>
       ),
     },
     {

@@ -75,10 +75,9 @@ export const MaterialStockReport = () => {
       const lessQty = item.total?._sum?.quantityLess || 0;
       const qtyBalance = addQty - lessQty;
       const rawAlert = (item.rawMaterial as any)?.alertQuantity ?? (item as any)?.alertQuantity;
-      const alertThreshold = rawAlert !== undefined && rawAlert !== null && rawAlert !== ""
-        ? Number(rawAlert)
-        : 10;
-      const isLowStock = qtyBalance <= alertThreshold;
+      const hasAlertQty = rawAlert !== undefined && rawAlert !== null && rawAlert !== "";
+      const alertThreshold = hasAlertQty ? Number(rawAlert) : null;
+      const isLowStock = alertThreshold !== null && qtyBalance <= alertThreshold;
 
       return {
         ...item.rawMaterial,
@@ -336,7 +335,7 @@ export const MaterialStockReport = () => {
           <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-3 py-1 rounded-md text-xs font-semibold animate-pulse">
             <WarningOutlined className="text-red-600" />
             <span>
-              Low Stock Warning: <strong>{lowStockCount}</strong> raw material{lowStockCount > 1 ? "s" : ""} with QTY Balance ≤ 10
+              Low Stock Warning: <strong>{lowStockCount}</strong> raw material{lowStockCount > 1 ? "s" : ""} at or below Alert Quantity
             </span>
           </div>
         )}

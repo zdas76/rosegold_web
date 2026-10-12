@@ -120,7 +120,15 @@ const PurchaseOrderRMModal: React.FC<Props> = ({ open, onClose }) => {
                     >
                         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4">
                             <Form.Item name="partyId" label="Select Supplier" rules={[{ required: true, message: "Please select a party" }]}>
-                                <Select style={{ width: "100%" }} placeholder="Select Name" options={partyData} />
+                                <Select
+                                    showSearch
+                                    style={{ width: "100%" }}
+                                    placeholder="Select Name"
+                                    options={partyData}
+                                    filterOption={(input, option) =>
+                                        (option?.label ?? "").toString().toLowerCase().includes(input.toLowerCase())
+                                    }
+                                />
                             </Form.Item>
                             <Form.Item label="Date" name="date" rules={[{ required: true, message: "Select a date" }]}>
                                 <DatePicker className="w-full" />
@@ -134,7 +142,14 @@ const PurchaseOrderRMModal: React.FC<Props> = ({ open, onClose }) => {
                             <Form component="div" form={itemForm} layout="vertical" className="mb-3">
                                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3">
                                     <Form.Item name="rawId" label="Raw Material" rules={[{ required: true, message: "Required" }]}>
-                                        <Select placeholder="Select Name" options={row_materials} />
+                                        <Select
+                                            showSearch
+                                            placeholder="Select Name"
+                                            options={row_materials}
+                                            filterOption={(input, option) =>
+                                                (option?.label ?? "").toString().toLowerCase().includes(input.toLowerCase())
+                                            }
+                                        />
                                     </Form.Item>
                                     <Form.Item
                                         name="quantity"

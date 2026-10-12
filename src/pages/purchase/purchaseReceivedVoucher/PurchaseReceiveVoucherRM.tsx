@@ -17,11 +17,13 @@ import { generateInvoiceNumber } from "../../../utils/generateRandomNumber";
 import { useGetBankQuery } from "../../../redux/features/bank/bank.api";
 import PostSubmitModal from "../../../components/shared/PostSubmitModal";
 import Loading from "../../../components/shared/Loading";
+import EditableInput from "../../../components/shared/EditableInput";
 import { useAppDispatch, useAppSelector } from "../../../redux/hooks";
 import {
   addReceiveVoucherDebitItem,
   setReceiveVoucherDebitItems,
   removeReceiveVoucherDebitItem,
+  updateReceiveVoucherDebitUnitPrice,
   clearReceiveVoucherDebitItems,
 } from "../../../redux/features/purchaseReceiveVoucher/receiveVoucherDebitSlice";
 import {
@@ -51,6 +53,7 @@ export type TExpenseItem = {
   amount: number;
   narration?: string;
 };
+
 const PurchaseReceiveVoucherRM: React.FC = () => {
   const [form] = Form.useForm();
   const [debitForm] = Form.useForm();
@@ -61,6 +64,7 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCreditLedgerName, setSelectedCreditLedgerName] = useState<string>("");
   const [searchRequisitionNo, setSearchRequisitionNo] = useState<string>("");
+  const [editingKey, setEditingKey] = useState<number | null>(null);
   const dispatch = useAppDispatch();
   const debitItems = useAppSelector((state) => state.receiveVoucherDebit.debitItems);
   const creditItemsRedux = useAppSelector((state) => state.receiveVoucherCredit.creditItems);
@@ -477,7 +481,11 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
               <Form.Item name="rawMaterialId" label="Raw Material" rules={[{ required: true, message: "Required" }]}>
                 <Select
+                  showSearch
                   placeholder="Select raw material"
+                  filterOption={(input, option) =>
+                    (option?.label ?? "").toString().toLowerCase().includes(input.toLowerCase())
+                  }
                   options={rawMaterialsMapped?.map((opt: any) => ({
                     ...opt,
                     disabled: debitItems?.some((di: any) => String(di.rawMaterialId) === String(opt.value))
@@ -524,7 +532,39 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
                 {
                   title: "Unit Price",
                   dataIndex: "unitPrice",
-                  render: (value: number) => value?.toFixed(2),
+                  render: (value: number, record: any) => {
+                    const isEditing = editingKey === record.key;
+                    if (isEditing) {
+                      return (
+                        <EditableInput
+                          type="number"
+                          initialValue={record.unitPrice}
+                          onSave={(newVal) => {
+                            const newPrice = Math.max(0, parseFloat(newVal) || 0);
+                            dispatch(
+                              updateReceiveVoucherDebitUnitPrice({
+                                key: record.key,
+                                unitPrice: newPrice,
+                              })
+                            );
+                            setEditingKey(null);
+                          }}
+                          onCancel={() => setEditingKey(null)}
+                        />
+                      );
+                    }
+                    return (
+                      <div
+                        onDoubleClick={() => {
+                          setEditingKey(record.key);
+                        }}
+                        className="cursor-pointer hover:bg-blue-50 px-2 py-1 rounded transition-colors inline-block select-none"
+                        title="Double-click to edit"
+                      >
+                        {Number(value || 0).toFixed(2)}
+                      </div>
+                    );
+                  },
                 },
                 {
                   title: "Total",
@@ -744,7 +784,7 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
             {creditTotal !== debitTotal ? (
               <h3 className="font-bold text-sm text-slate-900">
                 Debit or credit Difference{" "}
-                {creditTotal - debitTotal}
+                {creditTotal - (debitTotal + expenseTotal)}
               </h3>
             ) : (
               <p
