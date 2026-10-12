@@ -20,6 +20,7 @@ import {
   resetProductionState,
 } from '../../../redux/features/production/productionSlice';
 import { getResponse } from '../../../utils/getResponse';
+import { showErrorAlert } from '../../../utils/sweetAlert';
 import { useAppDispatch, useAppSelector } from '../../../redux/hooks';
 import type { RawMaterialItem, PackingMaterialItem, ProductionExpenseItem } from './ProductionCreationForm';
 import CombinedProductsSection, { CombinedProductItem } from './production step2/CombinedProductsSection';
@@ -473,7 +474,7 @@ const ProductionStep2Page: React.FC = () => {
           .map(item => ({
             packingMaterialId: Number(item.packingMaterialId),
             unitPrice: Number(item.unitPrice) || 0,
-            Qty: Number(item.qty) || 0,
+            qty: Number(item.qty) || 0,
             perUnitQty: Number(item.perUnitQty) || 0,
             perUnitCost: Number(item.perUnitCost) || 0,
           })),
@@ -555,7 +556,7 @@ const ProductionStep2Page: React.FC = () => {
   // Save Raw Materials, Expenses & Packing Materials before Finalization
   const handleSaveMaterialsAndExpenses = async () => {
     if (!productionData?.id && !productionState.productinfo?.productId) {
-      message.error('No production record found to update or save');
+      showErrorAlert('No production record found to update or save');
       return;
     }
 
@@ -563,7 +564,7 @@ const ProductionStep2Page: React.FC = () => {
     if (productionExpenses.length > 0) {
       const hasUnselectedExpense = productionExpenses.some(item => !item.expenseItemId);
       if (hasUnselectedExpense) {
-        message.error('Please select an Expense Item for all expense rows or remove unused rows');
+        showErrorAlert('Please select an Expense Item for all expense rows or remove unused rows');
         return;
       }
 
@@ -571,7 +572,7 @@ const ProductionStep2Page: React.FC = () => {
         item => item.qty === null || item.qty === undefined || Number(item.qty) <= 0
       );
       if (hasInvalidExpenseQty) {
-        message.error('Please enter a valid Qty/Duration (greater than 0) for all expense items');
+        showErrorAlert('Please enter a valid Qty/Duration (greater than 0) for all expense items');
         return;
       }
 
@@ -579,7 +580,7 @@ const ProductionStep2Page: React.FC = () => {
         item => item.rate === null || item.rate === undefined || Number(item.rate) < 0
       );
       if (hasInvalidExpenseRate) {
-        message.error('Please enter a valid Rate for all expense items');
+        showErrorAlert('Please enter a valid Rate for all expense items');
         return;
       }
     }
@@ -588,7 +589,7 @@ const ProductionStep2Page: React.FC = () => {
     if (packingMaterials.length > 0) {
       const hasUnselectedPacking = packingMaterials.some(item => !item.packingMaterialId);
       if (hasUnselectedPacking) {
-        message.error('Please select a Packing Material for all packing rows or remove unused rows');
+        showErrorAlert('Please select a Packing Material for all packing rows or remove unused rows');
         return;
       }
 
@@ -596,7 +597,7 @@ const ProductionStep2Page: React.FC = () => {
         item => item.qty === null || item.qty === undefined || Number(item.qty) <= 0
       );
       if (hasInvalidPackingQty) {
-        message.error('Please enter a valid Total Qty (greater than 0) for all packing materials');
+        showErrorAlert('Please enter a valid Total Qty (greater than 0) for all packing materials');
         return;
       }
 
@@ -604,7 +605,7 @@ const ProductionStep2Page: React.FC = () => {
         item => item.unitPrice === null || item.unitPrice === undefined || Number(item.unitPrice) < 0
       );
       if (hasInvalidPackingPrice) {
-        message.error('Please enter a valid Unit Price for all packing materials');
+        showErrorAlert('Please enter a valid Unit Price for all packing materials');
         return;
       }
     }
@@ -626,7 +627,121 @@ const ProductionStep2Page: React.FC = () => {
             ...(item.id ? { id: item.id } : {}),
             packingMaterialId: Number(item.packingMaterialId!),
             unitPrice: Number(item.unitPrice) || 0,
-            Qty: Number(item.qty) || 0,
+            qty: Number(item.qty) || 0,
+            perUnitQty: Number(item.perUnitQty) || 0,
+            perUnitCost: Number(item.perUnitCost) || 0,
+          })),
+        productionExpenses: productionExpenses
+          .filter(item => item.expenseItemId)
+          .map(item => ({
+            ...(item.id ? { id: item.id } : {}),
+            proExpencesItemId: Number(item.expenseItemId!),
+            unitRate: Number(item.rate) || 0,
+            expDuration: Number(item.qty) || 0,
+            amount: Number(item.total) || 0,
+          })),
+      };
+      const res = await createProduction({ data: { ...payload, status: "IN_PROGRESS" }, id: productionData?.id });
+      const result = getResponse(res);
+
+      if (result?.success) {
+        refetch?.();
+        if (result.data) {
+          setProductionData(result.data);
+        } else {
+          setProductionData((prev: any) => ({ ...(prev || {}), status: "IN_PROGRESS" }));
+        }
+        message.success('Materials and expenses saved successfully! Please continue to Finalization and Combined Products.');
+      }
+    } catch (error: any) {
+      showErrorAlert('An error occurred while saving materials and expenses');
+    } finally {
+      setIsSavingIntermediate(false);
+    }
+  };
+  // submit the finished goods after production
+  const handleSubmitFinishedGoods = async () => {
+    if (!productionData?.id && !productionState.productinfo?.productId) {
+      showErrorAlert('No production record found to update or save');
+      return;
+    }
+
+    const finishedQty = Number(form.getFieldValue('productQuantity'));
+    if (!finishedQty || finishedQty <= 0) {
+      showErrorAlert('Please enter a valid Finished Product Quantity (greater than 0)');
+      return;
+    }
+
+    // Check Production Expenses
+    if (productionExpenses.length > 0) {
+      const hasUnselectedExpense = productionExpenses.some(item => !item.expenseItemId);
+      if (hasUnselectedExpense) {
+        showErrorAlert('Please select an Expense Item for all expense rows or remove unused rows');
+        return;
+      }
+
+      const hasInvalidExpenseQty = productionExpenses.some(
+        item => item.qty === null || item.qty === undefined || Number(item.qty) <= 0
+      );
+      if (hasInvalidExpenseQty) {
+        showErrorAlert('Please enter a valid Qty/Duration (greater than 0) for all expense items');
+        return;
+      }
+
+      const hasInvalidExpenseRate = productionExpenses.some(
+        item => item.rate === null || item.rate === undefined || Number(item.rate) < 0
+      );
+      if (hasInvalidExpenseRate) {
+        showErrorAlert('Please enter a valid Rate for all expense items');
+        return;
+      }
+    }
+
+    // Check Packing Materials
+    if (packingMaterials.length > 0) {
+      const hasUnselectedPacking = packingMaterials.some(item => !item.packingMaterialId);
+      if (hasUnselectedPacking) {
+        showErrorAlert('Please select a Packing Material for all packing rows or remove unused rows');
+        return;
+      }
+
+      const hasInvalidPackingQty = packingMaterials.some(
+        item => item.qty === null || item.qty === undefined || Number(item.qty) <= 0
+      );
+      if (hasInvalidPackingQty) {
+        showErrorAlert('Please enter a valid Total Qty (greater than 0) for all packing materials');
+        return;
+      }
+
+      const hasInvalidPackingPrice = packingMaterials.some(
+        item => item.unitPrice === null || item.unitPrice === undefined || Number(item.unitPrice) < 0
+      );
+      if (hasInvalidPackingPrice) {
+        showErrorAlert('Please enter a valid Unit Price for all packing materials');
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
+    try {
+      const previousDate = productionData?.date || productionState.date || form.getFieldValue('date');
+      const date = previousDate ? dayjs(previousDate).toISOString() : dayjs().toISOString();
+
+      const payload: any = {
+        date,
+        productinfo: {
+          productId: Number(currentProductId || form.getFieldValue('productId')),
+          quantityAdd: Number(form.getFieldValue('productQuantity')) || 0,
+          unitPrice: unitCost || 0,
+        },
+        rawMaterials: [],
+        packingMaterials: packingMaterials
+          .filter(item => item.packingMaterialId)
+          .map(item => ({
+            ...(item.id ? { id: item.id } : {}),
+            packingMaterialId: Number(item.packingMaterialId!),
+            unitPrice: Number(item.unitPrice) || 0,
+            qty: Number(item.qty) || 0,
             perUnitQty: Number(item.perUnitQty) || 0,
             perUnitCost: Number(item.perUnitCost) || 0,
           })),
@@ -641,64 +756,58 @@ const ProductionStep2Page: React.FC = () => {
           })),
       };
 
-      const res = await createProduction({ data: { ...payload, status: "IN_PROGRESS" }, id: productionData?.id });
+      const res = await createProduction({
+        data: { ...payload, status: "COMPLETE" },
+        id: productionData?.id,
+      });
       const result = getResponse(res);
 
       if (result?.success) {
+        message.success('Finished goods completed and saved successfully');
         refetch?.();
         if (result.data) {
           setProductionData(result.data);
-        } else {
-          setProductionData((prev: any) => ({ ...(prev || {}), status: "IN_PROGRESS" }));
         }
-        message.success('Materials and expenses saved successfully! Please continue to Finalization and Combined Products.');
+        navigate('/dashboard/production-voucher');
       }
     } catch (error: any) {
-      message.error('An error occurred while saving materials and expenses');
+      showErrorAlert('An error occurred while saving finished goods');
     } finally {
-      setIsSavingIntermediate(false);
+      setIsSubmitting(false);
     }
   };
-
   // Submit Step 2 (Final Save)
   const handleSubmit = async () => {
-    console.log(productionState, "handleSubmit")
     if (!productionData?.id && !productionState.productinfo?.productId) {
-      message.error('No production record found to update or save');
+      showErrorAlert('No production record found to update or save');
       return;
     }
-
     try {
       const values = await form.validateFields();
-
       const finishedQty = Number(values.productQuantity);
       if (!finishedQty || finishedQty <= 0) {
-        message.error('Please enter a valid Finished Product Quantity (greater than 0)');
+        showErrorAlert('Please enter a valid Finished Product Quantity (greater than 0)');
         return;
       }
-
-
       // Check Production Expenses
       if (productionExpenses.length > 0) {
         const hasUnselectedExpense = productionExpenses.some(item => !item.expenseItemId);
         if (hasUnselectedExpense) {
-          message.error('Please select an Expense Item for all expense rows or remove unused rows');
+          showErrorAlert('Please select an Expense Item for all expense rows or remove unused rows');
           return;
         }
-
         const hasInvalidExpenseQty = productionExpenses.some(
           item => item.qty === null || item.qty === undefined || Number(item.qty) <= 0
         );
         if (hasInvalidExpenseQty) {
-          message.error('Please enter a valid Qty/Duration (greater than 0) for all expense items');
+          showErrorAlert('Please enter a valid Qty/Duration (greater than 0) for all expense items');
           return;
         }
-
         const hasInvalidExpenseRate = productionExpenses.some(
           item => item.rate === null || item.rate === undefined || Number(item.rate) < 0
         );
         if (hasInvalidExpenseRate) {
-          message.error('Please enter a valid Rate for all expense items');
+          showErrorAlert('Please enter a valid Rate for all expense items');
           return;
         }
       }
@@ -707,7 +816,7 @@ const ProductionStep2Page: React.FC = () => {
       if (packingMaterials.length > 0) {
         const hasUnselectedPacking = packingMaterials.some(item => !item.packingMaterialId);
         if (hasUnselectedPacking) {
-          message.error('Please select a Packing Material for all packing rows or remove unused rows');
+          showErrorAlert('Please select a Packing Material for all packing rows or remove unused rows');
           return;
         }
 
@@ -715,7 +824,7 @@ const ProductionStep2Page: React.FC = () => {
           item => item.qty === null || item.qty === undefined || Number(item.qty) <= 0
         );
         if (hasInvalidPackingQty) {
-          message.error('Please enter a valid Total Qty (greater than 0) for all packing materials');
+          showErrorAlert('Please enter a valid Total Qty (greater than 0) for all packing materials');
           return;
         }
 
@@ -723,7 +832,7 @@ const ProductionStep2Page: React.FC = () => {
           item => item.unitPrice === null || item.unitPrice === undefined || Number(item.unitPrice) < 0
         );
         if (hasInvalidPackingPrice) {
-          message.error('Please enter a valid Unit Price for all packing materials');
+          showErrorAlert('Please enter a valid Unit Price for all packing materials');
           return;
         }
       }
@@ -732,7 +841,7 @@ const ProductionStep2Page: React.FC = () => {
       if (combinedProducts.length > 0) {
         const hasUnselectedCombined = combinedProducts.some(item => !item.productId);
         if (hasUnselectedCombined) {
-          message.error('Please select a Product for all combined product rows or remove unused rows');
+          showErrorAlert('Please select a Product for all combined product rows or remove unused rows');
           return;
         }
 
@@ -740,14 +849,14 @@ const ProductionStep2Page: React.FC = () => {
           item => !item.totalQty || Number(item.totalQty) <= 0
         );
         if (hasInvalidCombinedQty) {
-          message.error('Please enter valid Qty per Pack and No. of Cartons for all combined products');
+          showErrorAlert('Please enter valid Qty per Pack and No. of Cartons for all combined products');
           return;
         }
 
         const totalCombined = combinedProducts.reduce((sum, item) => sum + (Number(item.totalQty) || 0), 0);
         const prodQty = Number(values.productQuantity) || 0;
         if (prodQty > 0 && totalCombined > prodQty) {
-          message.error(`Total combined quantity (${totalCombined}) cannot exceed Finished Product Quantity (${prodQty})`);
+          showErrorAlert(`Total combined quantity (${totalCombined}) cannot exceed Finished Product Quantity (${prodQty})`);
           return;
         }
       }
@@ -767,7 +876,7 @@ const ProductionStep2Page: React.FC = () => {
             ...(item.id ? { id: item.id } : {}),
             packingMaterialId: Number(item.packingMaterialId!),
             unitPrice: Number(item.unitPrice) || 0,
-            Qty: Number(item.qty) || 0,
+            qty: Number(item.qty) || 0,
             perUnitQty: Number(item.perUnitQty) || 0,
             perUnitCost: Number(item.perUnitCost) || 0,
           })),
@@ -789,7 +898,13 @@ const ProductionStep2Page: React.FC = () => {
           })),
       };
 
-      const res = await createProduction({ ...payload, status: "COMPLETE" });
+      const completePayload = { ...payload, status: "COMPLETE" };
+      console.log(completePayload, "payload");
+
+      const res = await createProduction({
+        data: completePayload,
+        id: productionData?.id,
+      });
       const result = getResponse(res);
 
       if (result?.success) {
@@ -798,9 +913,9 @@ const ProductionStep2Page: React.FC = () => {
       }
     } catch (error: any) {
       if (error?.errorFields) {
-        message.error('Please enter finished product quantity and check required fields');
+        showErrorAlert('Please enter finished product quantity and check required fields');
       } else {
-        message.error('An error occurred while saving Step 2');
+        showErrorAlert('An error occurred while saving Step 2');
       }
     } finally {
       setIsSubmitting(false);
@@ -961,6 +1076,21 @@ const ProductionStep2Page: React.FC = () => {
           totalProductionCost={totalProductionCost}
           disabled={isPending}
         />
+
+        {/* Save Finalization / Complete Button */}
+        <div className="flex justify-end mt-4 mb-6 border-b border-gray-100 pb-6">
+          <Button
+            type="primary"
+            onClick={handleSubmitFinishedGoods}
+            loading={isSubmitting}
+            disabled={isPending}
+            size="large"
+            icon={<CheckCircleOutlined />}
+            className="px-8 rounded-lg bg-gradient-to-r from-[#C58D2F] to-[#b07d28] hover:from-[#b07d28] hover:to-[#96691e] border-none text-white font-bold shadow-md disabled:opacity-50"
+          >
+            {isSubmitting ? 'Saving...' : 'Complete & Save'}
+          </Button>
+        </div>
       </Form>
 
       {/* Combined Products Section */}

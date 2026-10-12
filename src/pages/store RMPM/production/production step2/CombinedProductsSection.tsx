@@ -261,16 +261,6 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
             </span>
           )}
         </div>
-        {!disabled && (
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleAddProductRow}
-            className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold shadow-xs"
-          >
-            Add Product
-          </Button>
-        )}
       </div>
 
       <div className="rounded-lg overflow-hidden border border-gray-200/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] bg-white">
@@ -291,11 +281,10 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
                 <Table.Summary.Cell index={0} colSpan={2}>
                   {!disabled && (
                     <Button
-                      type="dashed"
+                      type="primary"
                       icon={<PlusOutlined />}
                       onClick={handleAddProductRow}
-                      className="text-blue-700 border-blue-300 hover:text-blue-800 hover:border-blue-400"
-                      size="small"
+                      className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold shadow-xs"
                     >
                       Add Product
                     </Button>

@@ -93,14 +93,14 @@ const FinalizationSummary: React.FC<FinalizationSummaryProps> = ({
           <span className="text-[11px] text-amber-700 block mt-1 font-bold bg-amber-100/50 py-0.5 rounded-full w-max mx-auto px-2">Final Unit: {unitCost.toFixed(3)} ৳</span>
         </div>
       </div>
-
-      <div className="mt-6 py-2 px-5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-md flex justify-between items-center text-white">
+      <div className="mt-6 py-2 px-5 bg-[#5C3293] rounded-xl shadow-md flex justify-between items-center text-white">
         <span className="font-bold text-base">Final Per Unit Cost (All Costs Included)</span>
         <span className="text-xl font-black drop-shadow-sm">
           {unitCost.toFixed(3)} ৳
         </span>
       </div>
     </div>
+
   );
 };
 

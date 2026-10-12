@@ -12,6 +12,7 @@ import {
   type Production,
 } from '../../../redux/features/production/production.api';
 import { getResponse } from '../../../utils/getResponse';
+import { showErrorAlert } from '../../../utils/sweetAlert';
 import { useAppDispatch, useAppSelector } from '../../../redux/hooks';
 import { setProductionStep1 } from '../../../redux/features/production/productionSlice';
 
@@ -284,19 +285,19 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
       const validMaterials = rawMaterials.filter(item => item.rawMaterialId);
 
       if (validMaterials.length === 0) {
-        message.error('Please select at least one valid Raw Material');
+        showErrorAlert('Please select at least one valid Raw Material');
         return;
       }
 
       const invalidQty = validMaterials.some(item => !item.qty || Number(item.qty) <= 0);
       if (invalidQty) {
-        message.error('Please enter a valid Quantity (greater than 0) for all raw materials');
+        showErrorAlert('Please enter a valid Quantity (greater than 0) for all raw materials');
         return;
       }
 
       const invalidRate = validMaterials.some(item => item.rate === null || Number(item.rate) < 0);
       if (invalidRate) {
-        message.error('Please enter a valid Rate for all raw materials');
+        showErrorAlert('Please enter a valid Rate for all raw materials');
         return;
       }
 
@@ -341,9 +342,9 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
       }
     } catch (error: any) {
       if (error?.errorFields) {
-        message.error('Please fill in all required fields (Product, Batch No, Date)');
+        showErrorAlert('Please fill in all required fields (Product, Batch No, Date)');
       } else {
-        message.error('An error occurred while saving Step 1');
+        showErrorAlert('An error occurred while saving Step 1');
       }
     } finally {
       setIsSubmitting(false);

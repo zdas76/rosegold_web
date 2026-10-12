@@ -229,16 +229,6 @@ const ProductionExpensesSection: React.FC<ProductionExpensesSectionProps> = ({
             </span>
           )}
         </div>
-        {!disabled && (
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleAddExpenseRow}
-            className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold shadow-xs"
-          >
-            Add Expense
-          </Button>
-        )}
       </div>
 
       <div className="rounded-lg overflow-hidden border border-gray-200/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] bg-white">
@@ -259,11 +249,10 @@ const ProductionExpensesSection: React.FC<ProductionExpensesSectionProps> = ({
                 <Table.Summary.Cell index={0} colSpan={2}>
                   {!disabled && (
                     <Button
-                      type="dashed"
+                      type="primary"
                       icon={<PlusOutlined />}
                       onClick={handleAddExpenseRow}
-                      className="text-amber-700 border-amber-300 hover:text-amber-800 hover:border-amber-400"
-                      size="small"
+                      className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold shadow-xs"
                     >
                       Add Expense
                     </Button>

@@ -21,7 +21,7 @@ export interface ProductionState {
   packingMaterials?: {
     packingMaterialId: number;
     unitPrice: number;
-    Qty: number;
+    qty: number;
     perUnitQty: number;
     perUnitCost: number;
   }[];
@@ -80,7 +80,7 @@ const productionSlice = createSlice({
         p => p.packingMaterialId === action.payload.packingMaterialId
       );
       if (item) {
-        item.Qty = action.payload.Qty;
+        item.qty = action.payload.Qty;
       }
     },
     setProductionState: (state, action: PayloadAction<Partial<ProductionState>>) => {
