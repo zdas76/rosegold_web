@@ -24,6 +24,7 @@ export interface ProductionPackingMaterial {
 }
 export interface Production {
     date: string;
+    status?: string;
     productinfo: {
         productId: number;
         quantityAdd?: number;

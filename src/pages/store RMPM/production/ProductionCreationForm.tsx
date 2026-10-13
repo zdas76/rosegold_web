@@ -409,6 +409,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
           quantity: Number(item.qty) || 0,
           unitPrice: Number(item.rate) || 0,
         })),
+        status: "PROCESSING",
       };
 
       const res = await createProduction({ data: apiPayload });

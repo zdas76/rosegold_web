@@ -91,10 +91,8 @@ const ProductionStep2Page: React.FC = () => {
     const inventoryList = productionResponse?.data?.inventory || [];
     return inventoryList.find((item: any) => Boolean(item.product?.id || item.productId)) || null;
   }, [productionResponse]);
-
   const selectedProduct = productInventoryItem?.product;
   const currentProductId = selectedProduct?.id || productInventoryItem?.productId;
-
   // Sync API response to local state and Redux
   useEffect(() => {
     if (productionResponse?.data) {
@@ -153,14 +151,18 @@ const ProductionStep2Page: React.FC = () => {
     currentProductId ? { productId: currentProductId } : undefined,
     { skip: !currentProductId }
   );
-  console.log(ingredientsData?.data, "ingredientsData")
 
   const [createProduction] = useCreateProductionMutation();
   // Populate form and lists when production data arrives
   useEffect(() => {
     if (!productionData && !productionState.productinfo?.productId) return;
     const sourceData = productionData ? 'api' : 'redux';
-    const initialProductQty = productInventoryItem?.quantityAdd ?? productInventoryItem?.quantity ?? undefined;
+    const rawProdQty =
+      productInventoryItem?.quantityAdd ??
+      productInventoryItem?.quantity ??
+      (productionData as any)?.productQuantity ??
+      productionState.productinfo?.quantityAdd;
+    const initialProductQty = rawProdQty && Number(rawProdQty) > 0 ? Number(rawProdQty) : undefined;
     form.setFieldsValue({
       productId: Number(currentProductId) || undefined,
       batchNo: productionData?.batchNo || '',
@@ -242,14 +244,29 @@ const ProductionStep2Page: React.FC = () => {
             packingItem.quantity ??
             0
           );
-          const total = Number(
-            packingItem.amount ??
-            packingItem.debitAmount ??
-            packingItem.creditAmount ??
-            (quantity > 0 && unitPrice > 0 ? quantity * unitPrice : 0)
-          );
-          const perUnitQty = packingItem.perUnitQty != null ? roundToThree(packingItem.perUnitQty) : null;
-          const perUnitCost = packingItem.perUnitCost != null ? roundToThree(packingItem.perUnitCost) : null;
+
+          // If explicit positive amount/debit/credit exists use it, otherwise compute quantity * unitPrice
+          const explicitAmount =
+            (packingItem.amount != null && Number(packingItem.amount) > 0 ? Number(packingItem.amount) : null) ??
+            (packingItem.debitAmount != null && Number(packingItem.debitAmount) > 0 ? Number(packingItem.debitAmount) : null) ??
+            (packingItem.creditAmount != null && Number(packingItem.creditAmount) > 0 ? Number(packingItem.creditAmount) : null);
+
+          const calculatedTotal = explicitAmount != null
+            ? explicitAmount
+            : (quantity > 0 && unitPrice > 0 ? quantity * unitPrice : 0);
+
+          const prodQty = Number(initialProductQty) || 0;
+          let perUnitQty = packingItem.perUnitQty != null ? roundToThree(packingItem.perUnitQty) : null;
+          let perUnitCost = packingItem.perUnitCost != null ? roundToThree(packingItem.perUnitCost) : null;
+
+          if (perUnitQty == null && prodQty > 0 && quantity > 0) {
+            perUnitQty = roundToThree(quantity / prodQty);
+          }
+          if (perUnitCost == null && prodQty > 0 && calculatedTotal > 0) {
+            perUnitCost = roundToThree(calculatedTotal / prodQty);
+          } else if (perUnitCost == null && perUnitQty != null && unitPrice > 0) {
+            perUnitCost = roundToThree(perUnitQty * unitPrice);
+          }
 
           return {
             id: packingItem.id,
@@ -262,7 +279,7 @@ const ProductionStep2Page: React.FC = () => {
             unitPrice: unitPrice > 0 ? unitPrice : null,
             perUnitQty,
             perUnitCost,
-            total: Number(total.toFixed(2)),
+            total: Number(calculatedTotal.toFixed(2)),
           };
         }
       );
@@ -348,7 +365,13 @@ const ProductionStep2Page: React.FC = () => {
             `Expense #${expenseItemId}`;
           const rate = Number(expenseItem.unitRate ?? expenseItem.rate ?? matchingExpense?.unitRate ?? 0);
           const duration = Number(expenseItem.expDuration ?? expenseItem.quantity ?? expenseItem.qty ?? 0);
-          const total = Number(expenseItem.amount ?? (duration * rate));
+          const explicitAmount =
+            expenseItem.amount != null && Number(expenseItem.amount) > 0
+              ? Number(expenseItem.amount)
+              : null;
+          const total = explicitAmount != null
+            ? explicitAmount
+            : (duration > 0 && rate > 0 ? duration * rate : 0);
 
           return {
             id: expenseItem.id,
@@ -492,7 +515,17 @@ const ProductionStep2Page: React.FC = () => {
   }, [packingMaterials]);
 
   const totalPackingTk = useMemo(() => {
-    return Number(packingMaterials.reduce((sum, item) => sum + (Number(item.total) || 0), 0).toFixed(2));
+    return Number(
+      packingMaterials
+        .reduce((sum, item) => {
+          const itemTotal =
+            item.total && Number(item.total) > 0
+              ? Number(item.total)
+              : (Number(item.qty || 0) * Number(item.unitPrice || 0));
+          return sum + (itemTotal || 0);
+        }, 0)
+        .toFixed(2)
+    );
   }, [packingMaterials]);
 
   const totalExpenseQty = useMemo(() => {
@@ -500,7 +533,17 @@ const ProductionStep2Page: React.FC = () => {
   }, [productionExpenses]);
 
   const totalExpenseTk = useMemo(() => {
-    return Number(productionExpenses.reduce((sum, item) => sum + (Number(item.total) || 0), 0).toFixed(2));
+    return Number(
+      productionExpenses
+        .reduce((sum, item) => {
+          const itemTotal =
+            item.total && Number(item.total) > 0
+              ? Number(item.total)
+              : (Number(item.qty || 0) * Number(item.rate || 0));
+          return sum + (itemTotal || 0);
+        }, 0)
+        .toFixed(2)
+    );
   }, [productionExpenses]);
 
   const productQuantity = Form.useWatch('productQuantity', form);
@@ -532,9 +575,14 @@ const ProductionStep2Page: React.FC = () => {
     if (prodQty > 0) {
       setPackingMaterials(prev =>
         prev.map(item => {
-          const qty = item.qty != null ? Number(item.qty) : null;
           const price = item.unitPrice != null ? Number(item.unitPrice) : 0;
-          const total = qty != null ? Number((qty * price).toFixed(2)) : 0;
+          const qty =
+            item.qty != null
+              ? Number(item.qty)
+              : item.perUnitQty != null && prodQty > 0
+                ? Number((item.perUnitQty * prodQty).toFixed(2))
+                : null;
+          const total = qty != null && price > 0 ? Number((qty * price).toFixed(2)) : (item.total || 0);
           const perUnitQty =
             qty != null ? roundToThree(qty / prodQty) : item.perUnitQty != null ? roundToThree(item.perUnitQty) : null;
           const perUnitCost =
@@ -542,7 +590,9 @@ const ProductionStep2Page: React.FC = () => {
               ? roundToThree(total / prodQty)
               : perUnitQty != null && price > 0
                 ? roundToThree(perUnitQty * price)
-                : null;
+                : item.perUnitCost != null
+                  ? roundToThree(item.perUnitCost)
+                  : null;
           return { ...item, perUnitQty, perUnitCost, total };
         })
       );
@@ -552,14 +602,12 @@ const ProductionStep2Page: React.FC = () => {
   const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     e.target.select();
   };
-
   // Save Raw Materials, Expenses & Packing Materials before Finalization
   const handleSaveMaterialsAndExpenses = async () => {
     if (!productionData?.id && !productionState.productinfo?.productId) {
       showErrorAlert('No production record found to update or save');
       return;
     }
-
     // Check Production Expenses
     if (productionExpenses.length > 0) {
       const hasUnselectedExpense = productionExpenses.some(item => !item.expenseItemId);
@@ -643,7 +691,6 @@ const ProductionStep2Page: React.FC = () => {
       };
       const res = await createProduction({ data: { ...payload, status: "IN_PROGRESS" }, id: productionData?.id });
       const result = getResponse(res);
-
       if (result?.success) {
         refetch?.();
         if (result.data) {
@@ -665,7 +712,6 @@ const ProductionStep2Page: React.FC = () => {
       showErrorAlert('No production record found to update or save');
       return;
     }
-
     const finishedQty = Number(form.getFieldValue('productQuantity'));
     if (!finishedQty || finishedQty <= 0) {
       showErrorAlert('Please enter a valid Finished Product Quantity (greater than 0)');
@@ -729,6 +775,7 @@ const ProductionStep2Page: React.FC = () => {
 
       const payload: any = {
         date,
+        inventoryId: productInventoryItem?.id,
         productinfo: {
           productId: Number(currentProductId || form.getFieldValue('productId')),
           quantityAdd: Number(form.getFieldValue('productQuantity')) || 0,
@@ -755,20 +802,20 @@ const ProductionStep2Page: React.FC = () => {
             amount: Number(item.total) || 0,
           })),
       };
-
       const res = await createProduction({
-        data: { ...payload, status: "COMPLETE" },
+        data: { ...payload, status: "PENDING" },
         id: productionData?.id,
       });
       const result = getResponse(res);
 
       if (result?.success) {
-        message.success('Finished goods completed and saved successfully');
+        message.success('Finished goods saved successfully! Please configure Combined Products.');
         refetch?.();
         if (result.data) {
           setProductionData(result.data);
+        } else {
+          setProductionData((prev: any) => ({ ...(prev || {}), status: "PENDING" }));
         }
-        navigate('/dashboard/production-voucher');
       }
     } catch (error: any) {
       showErrorAlert('An error occurred while saving finished goods');
@@ -789,54 +836,6 @@ const ProductionStep2Page: React.FC = () => {
         showErrorAlert('Please enter a valid Finished Product Quantity (greater than 0)');
         return;
       }
-      // Check Production Expenses
-      if (productionExpenses.length > 0) {
-        const hasUnselectedExpense = productionExpenses.some(item => !item.expenseItemId);
-        if (hasUnselectedExpense) {
-          showErrorAlert('Please select an Expense Item for all expense rows or remove unused rows');
-          return;
-        }
-        const hasInvalidExpenseQty = productionExpenses.some(
-          item => item.qty === null || item.qty === undefined || Number(item.qty) <= 0
-        );
-        if (hasInvalidExpenseQty) {
-          showErrorAlert('Please enter a valid Qty/Duration (greater than 0) for all expense items');
-          return;
-        }
-        const hasInvalidExpenseRate = productionExpenses.some(
-          item => item.rate === null || item.rate === undefined || Number(item.rate) < 0
-        );
-        if (hasInvalidExpenseRate) {
-          showErrorAlert('Please enter a valid Rate for all expense items');
-          return;
-        }
-      }
-
-      // Check Packing Materials
-      if (packingMaterials.length > 0) {
-        const hasUnselectedPacking = packingMaterials.some(item => !item.packingMaterialId);
-        if (hasUnselectedPacking) {
-          showErrorAlert('Please select a Packing Material for all packing rows or remove unused rows');
-          return;
-        }
-
-        const hasInvalidPackingQty = packingMaterials.some(
-          item => item.qty === null || item.qty === undefined || Number(item.qty) <= 0
-        );
-        if (hasInvalidPackingQty) {
-          showErrorAlert('Please enter a valid Total Qty (greater than 0) for all packing materials');
-          return;
-        }
-
-        const hasInvalidPackingPrice = packingMaterials.some(
-          item => item.unitPrice === null || item.unitPrice === undefined || Number(item.unitPrice) < 0
-        );
-        if (hasInvalidPackingPrice) {
-          showErrorAlert('Please enter a valid Unit Price for all packing materials');
-          return;
-        }
-      }
-
       // Check Combined Products
       if (combinedProducts.length > 0) {
         const hasUnselectedCombined = combinedProducts.some(item => !item.productId);
@@ -869,26 +868,6 @@ const ProductionStep2Page: React.FC = () => {
           quantityAdd: Number(values.productQuantity) || 0,
           unitPrice: unitCost || 0,
         },
-        rawMaterials: [],
-        packingMaterials: packingMaterials
-          .filter(item => item.packingMaterialId)
-          .map(item => ({
-            ...(item.id ? { id: item.id } : {}),
-            packingMaterialId: Number(item.packingMaterialId!),
-            unitPrice: Number(item.unitPrice) || 0,
-            qty: Number(item.qty) || 0,
-            perUnitQty: Number(item.perUnitQty) || 0,
-            perUnitCost: Number(item.perUnitCost) || 0,
-          })),
-        productionExpenses: productionExpenses
-          .filter(item => item.expenseItemId)
-          .map(item => ({
-            ...(item.id ? { id: item.id } : {}),
-            proExpencesItemId: Number(item.expenseItemId!),
-            unitRate: Number(item.rate) || 0,
-            expDuration: Number(item.qty) || 0,
-            amount: Number(item.total) || 0,
-          })),
         products: combinedProducts
           .filter(cp => cp.productId)
           .map(cp => ({
@@ -898,19 +877,18 @@ const ProductionStep2Page: React.FC = () => {
           })),
       };
 
-      const completePayload = { ...payload, status: "COMPLETE" };
-      console.log(completePayload, "payload");
+      const completePayload = { ...payload, status: "COMPLETE", inventoryId: productInventoryItem?.id };
+      console.log(completePayload, "completePayload")
+      // const res = await createProduction({
+      //   data: completePayload,
+      //   id: productionData?.id,
+      // });
+      // const result = getResponse(res);
 
-      const res = await createProduction({
-        data: completePayload,
-        id: productionData?.id,
-      });
-      const result = getResponse(res);
-
-      if (result?.success) {
-        message.success('Production Step 2 completed and saved successfully');
-        navigate('/dashboard/production-voucher');
-      }
+      // if (result?.success) {
+      //   message.success('Production Step 2 completed and saved successfully');
+      //   navigate('/dashboard/production-voucher');
+      // }
     } catch (error: any) {
       if (error?.errorFields) {
         showErrorAlert('Please enter finished product quantity and check required fields');
@@ -951,9 +929,12 @@ const ProductionStep2Page: React.FC = () => {
     );
   }
 
-  const currentStatus = productionData?.status || productionResponse?.data?.status || 'PENDDING';
-  const isPending = currentStatus === 'PENDDING' || currentStatus === 'PENDING';
+  const currentStatus = productionData?.status || productionResponse?.data?.status || 'PROCESSING';
+  const isProcessing = currentStatus === 'PROCESSING';
   const isInProgress = currentStatus === 'IN_PROGRESS';
+  const isPending = currentStatus === 'PENDING' || currentStatus === 'PENDDING';
+  const isCompleted = currentStatus === 'COMPLETE';
+
 
   return (
     <div className="p-4 bg-white rounded-lg shadow-sm space-y-4">
@@ -988,9 +969,9 @@ const ProductionStep2Page: React.FC = () => {
               <Form.Item
                 name="date"
                 rules={[{ required: true, message: 'Please select date' }]}
-                className="mb-0"
-              >
+                className="mb-0"              >
                 <DatePicker
+                  disabled={!isProcessing}
                   format="DD-MMM-YYYY"
                   style={{ width: '100%' }}
                   className="rounded-lg shadow-2xs font-semibold text-gray-800 bg-white"
@@ -1007,7 +988,9 @@ const ProductionStep2Page: React.FC = () => {
             </div>
             <div className="flex justify-end items-center gap-2">
               <Tag
-                color={isInProgress ? 'success' : isPending ? 'blue' : 'purple'}
+                color={
+                  isCompleted ? 'purple' : isPending ? 'blue' : isInProgress ? 'green' : 'orange'
+                }
                 className="font-bold text-xs py-1 px-3 rounded-full border-none shadow-sm m-0"
               >
                 {currentStatus}
@@ -1025,7 +1008,7 @@ const ProductionStep2Page: React.FC = () => {
           setRawMaterials={setRawMaterials}
           grandTotal={grandTotal}
           handleInputFocus={handleInputFocus}
-          hideEditButton={isInProgress}
+          hideEditButton={!isProcessing}
         />
 
         {/* Production Expenses Section */}
@@ -1035,7 +1018,7 @@ const ProductionStep2Page: React.FC = () => {
           expenseOptions={expenseOptions}
           totalExpenseQty={totalExpenseQty}
           totalExpenseTk={totalExpenseTk}
-          disabled={isInProgress}
+          disabled={!isProcessing}
         />
 
         {/* Packing Materials Section */}
@@ -1046,7 +1029,7 @@ const ProductionStep2Page: React.FC = () => {
           totalPackingQty={totalPackingQty}
           totalPackingTk={totalPackingTk}
           productQuantity={productQuantity}
-          disabled={isInProgress}
+          disabled={!isProcessing}
         />
 
         {/* Save Materials & Expenses Button */}
@@ -1055,11 +1038,11 @@ const ProductionStep2Page: React.FC = () => {
             type="primary"
             onClick={handleSaveMaterialsAndExpenses}
             loading={isSavingIntermediate}
-            disabled={isInProgress}
+            disabled={!isProcessing}
             size="large"
             className="px-8 rounded-lg bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-bold shadow-sm disabled:opacity-50"
           >
-            {isInProgress ? 'Saved (In Progress)' : isSavingIntermediate ? 'Saving...' : 'Save & Proceed'}
+            {!isProcessing ? 'Saved (In Progress)' : isSavingIntermediate ? 'Saving...' : 'Save & Proceed'}
           </Button>
         </div>
 
@@ -1074,7 +1057,14 @@ const ProductionStep2Page: React.FC = () => {
           totalPackingTk={totalPackingTk}
           packingStageUnitCost={packingStageUnitCost}
           totalProductionCost={totalProductionCost}
-          disabled={isPending}
+          disabled={!isInProgress}
+          disabledText={
+            isProcessing
+              ? 'Disabled (Save Materials & Expenses first)'
+              : isPending || isCompleted
+                ? 'Saved'
+                : 'Disabled'
+          }
         />
 
         {/* Save Finalization / Complete Button */}
@@ -1083,12 +1073,12 @@ const ProductionStep2Page: React.FC = () => {
             type="primary"
             onClick={handleSubmitFinishedGoods}
             loading={isSubmitting}
-            disabled={isPending}
+            disabled={!isInProgress}
             size="large"
             icon={<CheckCircleOutlined />}
             className="px-8 rounded-lg bg-gradient-to-r from-[#C58D2F] to-[#b07d28] hover:from-[#b07d28] hover:to-[#96691e] border-none text-white font-bold shadow-md disabled:opacity-50"
           >
-            {isSubmitting ? 'Saving...' : 'Complete & Save'}
+            {isSubmitting ? 'Saving...' : isPending || isCompleted ? 'Saved (Finished Goods)' : 'Save Finished Goods'}
           </Button>
         </div>
       </Form>
@@ -1099,7 +1089,7 @@ const ProductionStep2Page: React.FC = () => {
         setCombinedProducts={setCombinedProducts}
         productsData={productsData}
         productQuantity={productQuantity}
-        disabled={isPending}
+        disabled={!isPending}
       />
 
       <div className="mt-6 flex flex-wrap items-center justify-end gap-4 pt-4 border-t border-gray-100">
@@ -1107,12 +1097,12 @@ const ProductionStep2Page: React.FC = () => {
           type="primary"
           onClick={handleSubmit}
           loading={isSubmitting}
-          disabled={isPending}
+          disabled={!isPending}
           size="large"
           icon={<CheckCircleOutlined />}
           className="px-10 rounded-lg bg-gradient-to-r from-[#C58D2F] to-[#b07d28] hover:from-[#b07d28] hover:to-[#96691e] border-none text-white shadow-md font-bold text-base disabled:opacity-50"
         >
-          {isSubmitting ? 'Saving...' : 'Complete & Save'}
+          {isSubmitting ? 'Saving...' : isCompleted ? 'Completed' : 'Complete & Save'}
         </Button>
       </div>
     </div>

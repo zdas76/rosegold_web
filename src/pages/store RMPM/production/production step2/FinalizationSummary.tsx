@@ -13,6 +13,7 @@ interface FinalizationSummaryProps {
   packingStageUnitCost: number;
   totalProductionCost: number;
   disabled?: boolean;
+  disabledText?: string;
 }
 
 const FinalizationSummary: React.FC<FinalizationSummaryProps> = ({
@@ -26,6 +27,7 @@ const FinalizationSummary: React.FC<FinalizationSummaryProps> = ({
   packingStageUnitCost,
   totalProductionCost,
   disabled = false,
+  disabledText,
 }) => {
   return (
     <div className={`bg-slate-50/50 p-6 rounded-xl border border-slate-200/60 shadow-sm ${disabled ? 'opacity-70' : ''}`}>
@@ -33,7 +35,7 @@ const FinalizationSummary: React.FC<FinalizationSummaryProps> = ({
         <h3 className="font-bold text-lg text-gray-800 m-0">Finalization</h3>
         {disabled && (
           <span className="text-xs font-semibold px-2.5 py-0.5 bg-amber-100 text-amber-800 rounded-full border border-amber-200">
-            Disabled (Save Materials & Expenses first)
+            {disabledText || 'Disabled'}
           </span>
         )}
       </div>
@@ -49,7 +51,7 @@ const FinalizationSummary: React.FC<FinalizationSummaryProps> = ({
             precision={2}
             disabled={disabled}
             controls={false}
-            placeholder={disabled ? "Please save materials and expenses first" : "Enter final produced quantity"}
+            placeholder={disabled ? (disabledText || "Disabled") : "Enter final produced quantity"}
             style={{ width: '100%' }}
             onFocus={handleInputFocus}
             size="large"

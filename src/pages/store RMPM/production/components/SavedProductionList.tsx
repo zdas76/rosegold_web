@@ -68,7 +68,10 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
       const rawCostTotal = rawInvs.reduce((sum: number, rm: any) => {
         const qty = rm.quantityLess ?? rm.quantity ?? rm.quantityAdd ?? 0;
         const rate = rm.unitPrice ?? 0;
-        const amt = rm.creditAmount ?? (qty * rate);
+        const amt =
+          rm.creditAmount != null && Number(rm.creditAmount) > 0
+            ? Number(rm.creditAmount)
+            : qty * rate;
         return sum + Number(amt || 0);
       }, 0);
 
@@ -204,7 +207,23 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
       key: 'status',
       width: 115,
       align: 'center' as const,
-      render: (_: any, record: any) => <Tag color={record.status === "IN_PROGRESS" ? "success" : record?.status === "PENDDING" ? "blue" : "yellow"}>{record.status}</Tag>,
+      render: (_: any, record: any) => (
+        <Tag
+          color={
+            record?.status === 'COMPLETE'
+              ? 'purple'
+              : record?.status === 'IN_PROGRESS'
+                ? 'green'
+                : record?.status === 'PENDING' || record?.status === 'PENDDING'
+                  ? 'blue'
+                  : record?.status === 'PROCESSING'
+                    ? 'orange'
+                    : 'default'
+          }
+        >
+          {record?.status || 'N/A'}
+        </Tag>
+      ),
     },
     {
       title: 'Action',

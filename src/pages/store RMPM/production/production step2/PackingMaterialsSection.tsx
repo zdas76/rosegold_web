@@ -109,12 +109,14 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
           const priceVal = newPrice != null ? Number(newPrice) : 0;
           const qtyVal = item.qty != null ? Number(item.qty) : 0;
           const total = Number((qtyVal * priceVal).toFixed(2));
-          let perUnitQty = null;
-          let perUnitCost = null;
+          let perUnitQty = item.perUnitQty;
+          let perUnitCost = item.perUnitCost;
 
           if (prodQty > 0) {
             perUnitQty = roundToThree(qtyVal / prodQty);
             perUnitCost = roundToThree(total / prodQty);
+          } else if (perUnitQty != null && priceVal > 0) {
+            perUnitCost = roundToThree(perUnitQty * priceVal);
           }
 
           return {
@@ -138,8 +140,8 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
           const qtyVal = newQty != null ? Number(newQty) : 0;
           const unitPrice = item.unitPrice || 0;
           const total = Number((qtyVal * unitPrice).toFixed(2));
-          let perUnitQty = null;
-          let perUnitCost = null;
+          let perUnitQty = item.perUnitQty;
+          let perUnitCost = item.perUnitCost;
 
           if (prodQty > 0) {
             perUnitQty = roundToThree(qtyVal / prodQty);
@@ -271,9 +273,15 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
       key: 'total',
       width: 130,
       align: 'right' as const,
-      render: (value: number) => (
-        <span className="font-semibold text-gray-800">{Number(value || 0).toFixed(2)}</span>
-      ),
+      render: (value: number, record: PackingMaterialItem) => {
+        const itemTotal =
+          value && Number(value) > 0
+            ? Number(value)
+            : ((Number(record.qty) || 0) * (Number(record.unitPrice) || 0));
+        return (
+          <span className="font-semibold text-gray-800">{Number(itemTotal || 0).toFixed(2)}</span>
+        );
+      },
     },
     {
       title: 'Action',
