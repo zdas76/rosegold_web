@@ -19,6 +19,7 @@ interface CombinedProductsSectionProps {
   setCombinedProducts: React.Dispatch<React.SetStateAction<CombinedProductItem[]>>;
   productsData: any;
   productQuantity: any;
+  oldProductQty?: number | null;
   disabled?: boolean;
 }
 
@@ -26,7 +27,7 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
   combinedProducts,
   setCombinedProducts,
   productsData,
-  productQuantity,
+  oldProductQty,
   disabled = false,
 }) => {
   const productOptions = useMemo(() => {
@@ -47,8 +48,8 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
     return combinedProducts.reduce((sum, item) => sum + (Number(item.totalQty) || 0), 0);
   }, [combinedProducts]);
 
-  const prodQty = Number(productQuantity) || 0;
-  const isExceeded = prodQty > 0 && totalCombinedQty > prodQty;
+  const maxAllowedQty = oldProductQty != null ? Number(oldProductQty) : 0;
+  const isExceeded = oldProductQty != null && totalCombinedQty > maxAllowedQty;
 
   const handleAddProductRow = () => {
     const nextSi = combinedProducts.length > 0 ? Math.max(...combinedProducts.map(m => m.si)) + 1 : 1;
@@ -248,7 +249,7 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
   return (
     <div className={`bg-slate-50/50 p-6 rounded-xl border border-slate-200/60 shadow-sm mt-6 ${disabled ? 'opacity-90' : ''}`}>
       <div className="flex items-center justify-between mb-4 border-b border-gray-200 pb-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex items-center w-full">
           <h3 className="font-bold text-lg text-gray-800 m-0">Combined Products</h3>
           {disabled && (
             <span className="text-xs font-semibold px-2.5 py-0.5 bg-gray-200 text-gray-700 rounded-full">
@@ -257,13 +258,13 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
           )}
           {isExceeded && (
             <span className="text-xs font-semibold px-2.5 py-0.5 bg-red-100 text-red-700 rounded-full border border-red-200">
-              Exceeds finished product qty ({prodQty})!
+              Exceeds available product qty ({oldProductQty ?? 0})!
             </span>
           )}
+          <div className="text-xl font-semibold px-2.5 py-0.5 bg-blue-100 text-blue-900 rounded-full border border-blue-100">Available : {oldProductQty ?? 0}</div>
         </div>
       </div>
-
-      <div className="rounded-lg overflow-hidden border border-gray-200/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] bg-white">
+      <div className={`rounded-lg overflow-hidden border ${isExceeded ? 'border-red-300' : 'border-gray-200/80'} shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] bg-white`}>
         <Table
           className="combined-products-table"
           dataSource={combinedProducts}
@@ -277,7 +278,7 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
           scroll={{ x: 800 }}
           summary={() => (
             <Table.Summary fixed>
-              <Table.Summary.Row className="bg-blue-50/40 border-t border-blue-200/50 font-bold">
+              <Table.Summary.Row className={`${isExceeded ? 'bg-red-50/40 border-t border-red-200/60' : 'bg-blue-50/40 border-t border-blue-200/50'} font-bold`}>
                 <Table.Summary.Cell index={0} colSpan={2}>
                   {!disabled && (
                     <Button
@@ -295,10 +296,15 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
                   <span className={`text-base font-extrabold ${isExceeded ? 'text-red-600' : 'text-blue-800'}`}>
                     {totalCombinedQty.toLocaleString()}
                   </span>
-                  {prodQty > 0 && (
+                  {oldProductQty != null && (
                     <span className="text-xs text-gray-500 ml-1 font-normal">
-                      / {prodQty.toLocaleString()}
+                      / {Number(oldProductQty).toLocaleString()}
                     </span>
+                  )}
+                  {isExceeded && (
+                    <div className="text-xs text-red-500 font-semibold mt-0.5">
+                      Total combined qty cannot exceed available qty ({oldProductQty ?? 0})
+                    </div>
                   )}
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={2} colSpan={2} />
@@ -306,6 +312,7 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
             </Table.Summary>
           )}
         />
+
       </div>
     </div>
   );

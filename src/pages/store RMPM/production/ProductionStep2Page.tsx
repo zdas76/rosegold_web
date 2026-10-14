@@ -28,6 +28,7 @@ import FinalizationSummary from './production step2/FinalizationSummary';
 import ProductionExpensesSection from './production step2/ProductionExpensesSection';
 import PackingMaterialsSection from './production step2/PackingMaterialsSection';
 import RawMaterialsSection from './production step2/RawMaterialsSection';
+import { useGetTotalQuantityAndUnitPriceQuery } from '../../../redux/features/transactions/transactons.api';
 
 const roundToThree = (value: number | null | undefined): number | null => {
   if (value == null || isNaN(Number(value))) return null;
@@ -53,6 +54,7 @@ const ProductionStep2Page: React.FC = () => {
   const [isSavingIntermediate, setIsSavingIntermediate] = useState(false);
 
   // Queries
+
   const { data: productsData } = useGetProductsQuery({});
   const { data: allRawMaterialsData } = useGetRowMaterialsQuery({});
   const { data: allPackingMaterialsData } = useGetPackingMaterialsQuery({});
@@ -91,8 +93,17 @@ const ProductionStep2Page: React.FC = () => {
     const inventoryList = productionResponse?.data?.inventory || [];
     return inventoryList.find((item: any) => Boolean(item.product?.id || item.productId)) || null;
   }, [productionResponse]);
+
+
   const selectedProduct = productInventoryItem?.product;
-  const currentProductId = selectedProduct?.id || productInventoryItem?.productId;
+  const currentProductId = selectedProduct?.id || productInventoryItem?.productId || productionState?.productinfo?.productId;
+
+  const targetProductId = Number(currentProductId || productionState?.productinfo?.productId);
+  const { data: stockData } = useGetTotalQuantityAndUnitPriceQuery(
+    { itemType: "product", productId: targetProductId },
+    { skip: !targetProductId }
+  );
+  const oldProductQty = stockData?.data?.netQuantity;
   // Sync API response to local state and Redux
   useEffect(() => {
     if (productionResponse?.data) {
@@ -837,6 +848,7 @@ const ProductionStep2Page: React.FC = () => {
         return;
       }
       // Check Combined Products
+      let totalCombined = 0;
       if (combinedProducts.length > 0) {
         const hasUnselectedCombined = combinedProducts.some(item => !item.productId);
         if (hasUnselectedCombined) {
@@ -852,43 +864,44 @@ const ProductionStep2Page: React.FC = () => {
           return;
         }
 
-        const totalCombined = combinedProducts.reduce((sum, item) => sum + (Number(item.totalQty) || 0), 0);
-        const prodQty = Number(values.productQuantity) || 0;
-        if (prodQty > 0 && totalCombined > prodQty) {
-          showErrorAlert(`Total combined quantity (${totalCombined}) cannot exceed Finished Product Quantity (${prodQty})`);
+        totalCombined = combinedProducts.reduce((sum, item) => sum + (Number(item.totalQty) || 0), 0);
+        const maxCombinedLimit = oldProductQty != null ? Number(oldProductQty) : null;
+        if (maxCombinedLimit !== null && totalCombined > maxCombinedLimit) {
+          showErrorAlert(`Total combined quantity (${totalCombined}) cannot exceed available product quantity (${maxCombinedLimit})`);
           return;
         }
       }
+      console.log(combinedProducts, "formattedCombinedProductsformattedCombinedProducts")
+      const formattedCombinedProducts = combinedProducts
+        .filter(cp => cp.productId)
+        .map(cp => ({
+          productId: Number(cp.productId),
+          quantityAdd: Number(cp.numberOfCartoon) || 0,
+          unitPrice: (Number(unitCost) * Number(cp.qtyPerPack)) || 0,
+        }));
 
       const selectedDate = values.date || form.getFieldValue('date');
       const payload: any = {
         date: selectedDate ? dayjs(selectedDate).toISOString() : dayjs().toISOString(),
-        productinfo: {
-          productId: Number(currentProductId || form.getFieldValue('productId')),
-          quantityAdd: Number(values.productQuantity) || 0,
-          unitPrice: unitCost || 0,
-        },
-        products: combinedProducts
-          .filter(cp => cp.productId)
-          .map(cp => ({
-            productId: Number(cp.productId),
-            quantityAdd: Number(cp.totalQty) || 0,
+        products: [
+          ...formattedCombinedProducts,
+          {
+            productId: Number(currentProductId || form.getFieldValue('productId')),
+            quantityLess: Number(totalCombined) || 0,
             unitPrice: unitCost || 0,
-          })),
+          },
+        ],
       };
-
-      const completePayload = { ...payload, status: "COMPLETE", inventoryId: productInventoryItem?.id };
-      console.log(completePayload, "completePayload")
-      // const res = await createProduction({
-      //   data: completePayload,
-      //   id: productionData?.id,
-      // });
-      // const result = getResponse(res);
-
-      // if (result?.success) {
-      //   message.success('Production Step 2 completed and saved successfully');
-      //   navigate('/dashboard/production-voucher');
-      // }
+      const res = await createProduction({
+        data: payload,
+        id: productionData?.id,
+      });
+      const result = getResponse(res);
+      console.log(result, "resultresultresultresult")
+      if (result?.success) {
+        message.success('Production Step 2 completed and saved successfully');
+        navigate('/dashboard/production-voucher');
+      }
     } catch (error: any) {
       if (error?.errorFields) {
         showErrorAlert('Please enter finished product quantity and check required fields');
@@ -929,7 +942,7 @@ const ProductionStep2Page: React.FC = () => {
     );
   }
 
-  const currentStatus = productionData?.status || productionResponse?.data?.status || 'PROCESSING';
+  const currentStatus = productionData?.productionItemInfo?.status || productionResponse?.data?.productionItemInfo?.status || 'PROCESSING';
   const isProcessing = currentStatus === 'PROCESSING';
   const isInProgress = currentStatus === 'IN_PROGRESS';
   const isPending = currentStatus === 'PENDING' || currentStatus === 'PENDDING';
@@ -1089,6 +1102,7 @@ const ProductionStep2Page: React.FC = () => {
         setCombinedProducts={setCombinedProducts}
         productsData={productsData}
         productQuantity={productQuantity}
+        oldProductQty={oldProductQty}
         disabled={!isPending}
       />
 

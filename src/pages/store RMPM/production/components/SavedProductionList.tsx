@@ -146,11 +146,11 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
     },
     {
       title: 'Product',
-      dataIndex: 'productName',
+      dataIndex: 'product',
       key: 'productName',
-      render: (name: string) => (
-        <span className="font-semibold text-gray-900 text-xs sm:text-sm leading-snug block" title={name}>
-          {name}
+      render: (product: any, record: any) => (
+        <span className="font-semibold text-gray-900 text-xs sm:text-sm leading-snug block" title={product}>
+          {record?.productionItemInfo?.product?.name}
         </span>
       ),
     },
@@ -210,18 +210,18 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
       render: (_: any, record: any) => (
         <Tag
           color={
-            record?.status === 'COMPLETE'
+            record?.productionItemInfo?.status === 'COMPLETE'
               ? 'purple'
-              : record?.status === 'IN_PROGRESS'
+              : record?.productionItemInfo?.status === 'IN_PROGRESS'
                 ? 'green'
-                : record?.status === 'PENDING' || record?.status === 'PENDDING'
+                : record?.productionItemInfo?.status === 'PENDING' || record?.productionItemInfo?.status === 'PENDDING'
                   ? 'blue'
-                  : record?.status === 'PROCESSING'
+                  : record?.productionItemInfo?.status === 'PROCESSING'
                     ? 'orange'
                     : 'default'
           }
         >
-          {record?.status || 'N/A'}
+          {record?.productionItemInfo?.status || 'N/A'}
         </Tag>
       ),
     },

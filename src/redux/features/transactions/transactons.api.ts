@@ -124,4 +124,4 @@ const transactionApi = baseApi.injectEndpoints({
     })
 })
 
-export const { useGetPillersQuery, useGetAccountItemQuery, useCreateAccountItemMutation, useCreateReceiveVoucherMutation, useCreatePaymentVoucherMutation, useLazyGetTotalQuantityAndUnitPriceQuery, useGetVoucherReportQuery, useGetReportByVoucherNoQuery, useUpdateAccountItemMutation, useGetDailyReportQuery } = transactionApi;
+export const { useGetPillersQuery, useGetAccountItemQuery, useCreateAccountItemMutation, useCreateReceiveVoucherMutation, useCreatePaymentVoucherMutation, useLazyGetTotalQuantityAndUnitPriceQuery, useGetVoucherReportQuery, useGetReportByVoucherNoQuery, useUpdateAccountItemMutation, useGetDailyReportQuery, useGetTotalQuantityAndUnitPriceQuery } = transactionApi;
