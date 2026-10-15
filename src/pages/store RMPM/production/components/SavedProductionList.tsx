@@ -58,9 +58,7 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
         prodInv?.product?.name ||
         (productId ? productMap.get(productId) : null) ||
         'Unspecified Product';
-
       const finishedQty = prodInv?.quantityAdd ?? prodInv?.quantity ?? null;
-
       // Extract raw materials from inventory
       const rawInvs = item.inventory?.filter((inv: any) => inv.rawId || inv.raWMaterial) || [];
       const rawCount = rawInvs.length;

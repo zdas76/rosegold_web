@@ -88,22 +88,27 @@ const ProductionStep2Page: React.FC = () => {
     }
   }, [targetId, dispatch, form]);
 
-  // Extract selected product from API inventory
+  // Extract selected product from API inventory or productionItemInfo
   const productInventoryItem = useMemo(() => {
     const inventoryList = productionResponse?.data?.inventory || [];
     return inventoryList.find((item: any) => Boolean(item.product?.id || item.productId)) || null;
   }, [productionResponse]);
 
 
-  const selectedProduct = productInventoryItem?.product;
-  const currentProductId = selectedProduct?.id || productInventoryItem?.productId || productionState?.productinfo?.productId;
+  const productionItemInfo =
+    productionData?.productionItemInfo ||
+    productionResponse?.data?.productionItemInfo;
 
-  const targetProductId = Number(currentProductId || productionState?.productinfo?.productId);
+  const selectedProduct = productionItemInfo?.product;
+  const currentProductId = selectedProduct?.id;
+  const targetProductId = Number(currentProductId || 0);
   const { data: stockData } = useGetTotalQuantityAndUnitPriceQuery(
     { itemType: "product", productId: targetProductId },
     { skip: !targetProductId }
   );
   const oldProductQty = stockData?.data?.netQuantity;
+
+
   // Sync API response to local state and Redux
   useEffect(() => {
     if (productionResponse?.data) {
@@ -111,7 +116,9 @@ const ProductionStep2Page: React.FC = () => {
 
       const inventoryList = productionResponse.data.inventory || [];
       const productItem = inventoryList.find((item: any) => Boolean(item.product?.id || item.productId));
-      const productId = productItem?.product?.id || productItem?.productId;
+      const productId =
+        productionResponse.data.productionItemInfo?.product?.id ||
+        productionResponse.data.productionItemInfo?.productId;
 
       if (productId) {
         const rawMaterialsList = inventoryList
@@ -153,10 +160,9 @@ const ProductionStep2Page: React.FC = () => {
       rate: item.unitRate ?? item.rate ?? null,
     }));
   }, [allExpItemsData]);
-  const productName =
-    selectedProduct?.name ||
-    (currentProductId ? productsData?.data?.find((prod: any) => prod.id === Number(currentProductId))?.name : null) ||
-    'Product';
+
+  const productName = selectedProduct?.name || 'Product';
+  const batchNo = productionItemInfo?.batchNo || '-';
   // Recipe query
   const { data: ingredientsData } = useGetProductionIngredientsQuery(
     currentProductId ? { productId: currentProductId } : undefined,
@@ -176,7 +182,7 @@ const ProductionStep2Page: React.FC = () => {
     const initialProductQty = rawProdQty && Number(rawProdQty) > 0 ? Number(rawProdQty) : undefined;
     form.setFieldsValue({
       productId: Number(currentProductId) || undefined,
-      batchNo: productionData?.batchNo || '',
+      batchNo: productionItemInfo?.batchNo || '',
       date: productionData?.date
         ? dayjs(productionData.date)
         : productionState.date
@@ -942,7 +948,7 @@ const ProductionStep2Page: React.FC = () => {
     );
   }
 
-  const currentStatus = productionData?.productionItemInfo?.status || productionResponse?.data?.productionItemInfo?.status || 'PROCESSING';
+  const currentStatus = productionItemInfo?.status || 'PROCESSING';
   const isProcessing = currentStatus === 'PROCESSING';
   const isInProgress = currentStatus === 'IN_PROGRESS';
   const isPending = currentStatus === 'PENDING' || currentStatus === 'PENDDING';
@@ -956,7 +962,7 @@ const ProductionStep2Page: React.FC = () => {
         <div>
           <h2 className="text-xl font-bold text-gray-800 m-0">Production Step 2 (Packaging & Expenses)</h2>
           <span className="text-xs text-gray-500">
-            Configure finished quantity, packing materials, and expenses for batch {productionData?.batchNo || '-'}
+            Configure finished quantity, packing materials, and expenses for batch {batchNo}
           </span>
         </div>
 
@@ -975,7 +981,7 @@ const ProductionStep2Page: React.FC = () => {
             </div>
             <div>
               <span className="text-xs text-amber-600/80 block uppercase font-bold tracking-wider mb-1">Batch No</span>
-              <span className="font-semibold text-gray-800">{productionData?.batchNo || '-'}</span>
+              <span className="font-semibold text-gray-800">{batchNo}</span>
             </div>
             <div>
               <span className="text-xs text-amber-600/80 block uppercase font-bold tracking-wider mb-1">Date</span>
@@ -1104,6 +1110,7 @@ const ProductionStep2Page: React.FC = () => {
         productQuantity={productQuantity}
         oldProductQty={oldProductQty}
         disabled={!isPending}
+        selectedProduct={selectedProduct}
       />
 
       <div className="mt-6 flex flex-wrap items-center justify-end gap-4 pt-4 border-t border-gray-100">

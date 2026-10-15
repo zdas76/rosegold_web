@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useMemo } from 'react';
-import { Button, Table, Select, InputNumber } from 'antd';
+import { Button, Table, Select, InputNumber, Tag, message } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 
 export interface CombinedProductItem {
@@ -21,6 +21,7 @@ interface CombinedProductsSectionProps {
   productQuantity: any;
   oldProductQty?: number | null;
   disabled?: boolean;
+  selectedProduct?: any;
 }
 
 const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
@@ -29,20 +30,33 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
   productsData,
   oldProductQty,
   disabled = false,
+  selectedProduct,
 }) => {
+  const mainProductId = selectedProduct?.id;
+  const targetSubCategoryName = selectedProduct?.subCategory?.subCategoryName;
+
   const productOptions = useMemo(() => {
     const list = Array.isArray(productsData?.data) ? productsData.data : [];
-    return list.map((p: any) => {
+
+    // Filter products whose subCategory matches the main product's subCategory
+    const filteredList = targetSubCategoryName
+      ? list.filter((p: any) => p?.subCategory?.subCategoryName === targetSubCategoryName)
+      : list;
+
+    return filteredList.map((p: any) => {
       const catName = p?.subCategory?.category?.categoryName || p?.category?.categoryName || '';
+      const isMain = mainProductId != null && p.id === mainProductId;
+
       return {
         value: p.id,
-        label: p.name + (catName ? ` (${catName})` : ''),
+        label: `${p.name}${catName ? ` (${catName})` : ''}${isMain ? ' (Main Product)' : ''}`,
         searchStr: `${p.name} ${catName}`.toLowerCase(),
         name: p.name,
         categoryName: catName,
+        isMainProduct: isMain,
       };
     });
-  }, [productsData]);
+  }, [productsData, targetSubCategoryName, mainProductId]);
 
   const totalCombinedQty = useMemo(() => {
     return combinedProducts.reduce((sum, item) => sum + (Number(item.totalQty) || 0), 0);
@@ -67,6 +81,10 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
   };
 
   const handleProductChange = (si: number, productId: number | null) => {
+    if (mainProductId != null && Number(productId) === Number(mainProductId)) {
+      message.warning('The main production product cannot be selected as a combined product.');
+      return;
+    }
     const chosen = productOptions.find((opt: any) => opt.value === productId);
     setCombinedProducts(prev =>
       prev.map(item => {
@@ -157,27 +175,47 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
       dataIndex: 'productId',
       key: 'productId',
       width: 320,
-      render: (_: any, record: CombinedProductItem) => (
-        <Select
-          showSearch
-          disabled={disabled}
-          placeholder="Select Combined Product"
-          value={record.productId || undefined}
-          style={{ width: '100%' }}
-          options={productOptions.map((opt: any) => ({
-            ...opt,
-            disabled: selectedProductIds.has(opt.value) && opt.value !== record.productId,
-          }))}
-          filterOption={(input, option) =>
-            Boolean(
-              option?.label?.toString().toLowerCase().includes(input.toLowerCase()) ||
-              option?.searchStr?.toString().toLowerCase().includes(input.toLowerCase())
-            )
-          }
-          onChange={(val) => handleProductChange(record.si, val)}
-          allowClear
-        />
-      ),
+      render: (_: any, record: CombinedProductItem) => {
+        // If current record already has a productId not in filtered productOptions, preserve it in options
+        const currentOptions =
+          record.productId && !productOptions.some((opt: any) => opt.value === record.productId)
+            ? [
+                ...productOptions,
+                {
+                  value: record.productId,
+                  label: record.productName || `Product #${record.productId}`,
+                  searchStr: (record.productName || '').toLowerCase(),
+                  name: record.productName,
+                  categoryName: record.categoryName,
+                  isMainProduct: false,
+                },
+              ]
+            : productOptions;
+
+        return (
+          <Select
+            showSearch
+            disabled={disabled}
+            placeholder="Select Combined Product"
+            value={record.productId || undefined}
+            style={{ width: '100%' }}
+            options={currentOptions.map((opt: any) => ({
+              ...opt,
+              disabled:
+                Boolean(opt.isMainProduct) ||
+                (selectedProductIds.has(opt.value) && opt.value !== record.productId),
+            }))}
+            filterOption={(input, option) =>
+              Boolean(
+                option?.label?.toString().toLowerCase().includes(input.toLowerCase()) ||
+                option?.searchStr?.toString().toLowerCase().includes(input.toLowerCase())
+              )
+            }
+            onChange={(val) => handleProductChange(record.si, val)}
+            allowClear
+          />
+        );
+      },
     },
     {
       title: 'Qty Per Pack',
@@ -249,8 +287,13 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
   return (
     <div className={`bg-slate-50/50 p-6 rounded-xl border border-slate-200/60 shadow-sm mt-6 ${disabled ? 'opacity-90' : ''}`}>
       <div className="flex items-center justify-between mb-4 border-b border-gray-200 pb-3">
-        <div className="flex items-center gap-3 flex items-center w-full">
+        <div className="flex items-center gap-3 flex-wrap w-full">
           <h3 className="font-bold text-lg text-gray-800 m-0">Combined Products</h3>
+          {targetSubCategoryName && (
+            <Tag color="gold" className="font-semibold text-xs py-0.5 px-2.5 rounded-full border border-amber-200 m-0">
+              Subcategory: {targetSubCategoryName}
+            </Tag>
+          )}
           {disabled && (
             <span className="text-xs font-semibold px-2.5 py-0.5 bg-gray-200 text-gray-700 rounded-full">
               Locked
@@ -261,7 +304,9 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
               Exceeds available product qty ({oldProductQty ?? 0})!
             </span>
           )}
-          <div className="text-xl font-semibold px-2.5 py-0.5 bg-blue-100 text-blue-900 rounded-full border border-blue-100">Available : {oldProductQty ?? 0}</div>
+          <div className="text-xl font-semibold px-2.5 py-0.5 bg-blue-100 text-blue-900 rounded-full border border-blue-100 ml-auto">
+            Available : {oldProductQty ?? 0}
+          </div>
         </div>
       </div>
       <div className={`rounded-lg overflow-hidden border ${isExceeded ? 'border-red-300' : 'border-gray-200/80'} shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] bg-white`}>

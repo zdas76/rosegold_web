@@ -52,14 +52,16 @@ const transactionApi = baseApi.injectEndpoints({
             },
         }),
         getTotalQuantityAndUnitPrice: builder.query({
-            query: (query: { productId?: number; rawId?: string; itemType: "product" | "raw" }) => {
+            query: (query: { productId?: number; rawId?: string; packingMaterialId?: number; itemType: "product" | "raw" | "pmmaterial" }) => {
                 const params = new URLSearchParams();
                 params.append("itemType", `${query?.itemType}`)
 
                 if (query?.itemType === "product") {
                     params.append("productId", `${query?.productId}`)
-                } else {
+                } else if (query?.itemType === "raw") {
                     params.append("rawId", `${query?.rawId}`)
+                } else {
+                    params.append("packingMaterialId", `${query?.packingMaterialId}`)
                 }
 
                 return {

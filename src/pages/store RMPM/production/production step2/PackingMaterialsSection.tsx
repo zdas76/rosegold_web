@@ -35,7 +35,6 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
         .filter((id): id is number => id != null)
     );
   }, [packingMaterials]);
-
   const handleAddPackingRow = () => {
     const newRow: PackingMaterialItem = {
       si: packingMaterials.length + 1,
@@ -208,6 +207,26 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
       width: 80,
       align: 'center' as const,
       render: (unit: string) => <span className="text-gray-600 font-medium">{unit || 'Pcs'}</span>,
+    }, {
+      title: 'Total Qty',
+      dataIndex: 'qty',
+      key: 'qty',
+      width: 140,
+      align: 'right' as const,
+      render: (qty: number, record: PackingMaterialItem) => (
+        <InputNumber
+          min={0}
+          step={0.01}
+          disabled={disabled}
+          value={qty}
+          onChange={(val) => handleQuantityChange(record.si, val)}
+          onFocus={(e) => e.target.select()}
+          controls={false}
+          precision={2}
+          placeholder="0.00"
+          className="w-full text-right"
+        />
+      ),
     },
     {
       title: 'Unit Price (BDT)',
@@ -230,27 +249,7 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
         />
       ),
     },
-    {
-      title: 'Total Qty',
-      dataIndex: 'qty',
-      key: 'qty',
-      width: 140,
-      align: 'right' as const,
-      render: (qty: number, record: PackingMaterialItem) => (
-        <InputNumber
-          min={0}
-          step={0.01}
-          disabled={disabled}
-          value={qty}
-          onChange={(val) => handleQuantityChange(record.si, val)}
-          onFocus={(e) => e.target.select()}
-          controls={false}
-          precision={2}
-          placeholder="0.00"
-          className="w-full text-right"
-        />
-      ),
-    },
+
     {
       title: 'P.U. Qty',
       dataIndex: 'perUnitQty',
