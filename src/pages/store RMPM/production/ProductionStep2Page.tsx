@@ -1003,8 +1003,7 @@ const ProductionStep2Page: React.FC = () => {
                 color={
                   isCompleted ? 'purple' : isPending ? 'blue' : isInProgress ? 'green' : 'orange'
                 }
-                className="font-bold text-xs py-1 px-3 rounded-full border-none shadow-sm m-0"
-              >
+                className="font-bold text-xs py-1 px-3 rounded-full border-none shadow-sm m-0">
                 {currentStatus}
               </Tag>
               <Tag color="orange" className="font-bold text-sm py-1 px-3 rounded-full border-none shadow-sm m-0">
