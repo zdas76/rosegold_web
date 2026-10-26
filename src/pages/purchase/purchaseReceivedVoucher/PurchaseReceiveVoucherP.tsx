@@ -539,11 +539,6 @@ const PurchaseReceiveVoucherP: React.FC = () => {
                   render: (value: number) => value?.toFixed(2),
                 },
                 {
-                  title: "Total",
-                  dataIndex: "amount",
-                  render: (value: number) => value?.toFixed(2),
-                },
-                {
                   title: "Adjusted Unit R.",
                   key: "adjustedUnitR",
                   render: (_, record) => {
@@ -551,6 +546,11 @@ const PurchaseReceiveVoucherP: React.FC = () => {
                     const expPerUnit = expenseTotal / debitTotalQty;
                     return (Number(record.unitPrice) + expPerUnit).toFixed(2);
                   }
+                },
+                {
+                  title: "Total",
+                  dataIndex: "amount",
+                  render: (value: number) => value?.toFixed(2),
                 },
                 {
                   title: "Ad. Total",

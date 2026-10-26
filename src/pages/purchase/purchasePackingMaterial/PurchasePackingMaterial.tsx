@@ -98,7 +98,7 @@ const PurchasePackingMaterial: React.FC = () => {
 
     const debitTotal =
         debitItems?.reduce((total: number, item) => total + Number(item?.amount || 0), 0) ?? 0;
-    const debitTotalQty = 
+    const debitTotalQty =
         debitItems?.reduce((total: number, item) => total + Number(item?.qty || 0), 0) ?? 0;
     const expenseTotal = expenseItems?.reduce((total: number, item) => total + Number(item?.amount || 0), 0) ?? 0;
     const totalDebit = debitTotal + expenseTotal;
@@ -234,7 +234,7 @@ const PurchasePackingMaterial: React.FC = () => {
             narration: item.narration,
         }));
 
-            const res = await createReceviveVoucher({
+        const res = await createReceviveVoucher({
             partyOrcustomerId: values.partyId,
             date: values.date,
             invoiceNo: values.invoiceNo,
@@ -443,14 +443,12 @@ const PurchasePackingMaterial: React.FC = () => {
                                 const unitPrice = Number(allValues.unitPrice) || 0;
                                 debitForm.setFieldsValue({ amount: Number((qty * unitPrice).toFixed(2)) });
                             }
-                        }}
-                    >
+                        }}>
                         <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                             <Form.Item
                                 name="packingMaterialId"
                                 label="Packing Material (PM)"
-                                rules={[{ required: true, message: "Required" }]}
-                            >
+                                rules={[{ required: true, message: "Required" }]}>
                                 <Select
                                     placeholder="Select PM"
                                     options={packingMaterialsMapped?.map((opt: any) => ({
@@ -476,8 +474,7 @@ const PurchasePackingMaterial: React.FC = () => {
                                 <Button
                                     onClick={handleAddDebitItem}
                                     icon={<PlusOutlined />}
-                                    style={{ fontSize: "12px", background: "#2d1849", color: "white", width: "100%" }}
-                                >
+                                    style={{ fontSize: "12px", background: "#2d1849", color: "white", width: "100%" }}>
                                     Add
                                 </Button>
                             </Form.Item>
@@ -512,11 +509,6 @@ const PurchasePackingMaterial: React.FC = () => {
                                     render: (value: number) => (value != null ? Number(value).toFixed(2) : "-"),
                                 },
                                 {
-                                    title: "Total (Amount)",
-                                    dataIndex: "amount",
-                                    render: (value: number) => (value != null ? Number(value).toFixed(2) : "-"),
-                                },
-                                {
                                     title: "Adjusted Unit R.",
                                     key: "adjustedUnitR",
                                     render: (_, record) => {
@@ -525,6 +517,12 @@ const PurchasePackingMaterial: React.FC = () => {
                                         return (Number(record.unitPrice) + expPerUnit).toFixed(2);
                                     }
                                 },
+                                {
+                                    title: "Total (Amount)",
+                                    dataIndex: "amount",
+                                    render: (value: number) => (value != null ? Number(value).toFixed(2) : "-"),
+                                },
+
                                 {
                                     title: "Ad. Total",
                                     key: "adTotal",

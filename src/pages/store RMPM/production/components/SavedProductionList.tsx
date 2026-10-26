@@ -44,25 +44,17 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
   }, [rawMaterialsData]);
 
   const processedList = useMemo(() => {
-    const rawList: any[] = Array.isArray(productionsData?.data)
-      ? productionsData.data
-      : Array.isArray((productionsData as any)?.data?.data)
-        ? (productionsData as any).data.data
-        : [];
+    const rawList: any[] = Array.isArray(productionsData?.data) ? productionsData.data : [];
 
     return rawList.map((item: any, idx: number) => {
-      // Find finished product in inventory
-      const prodInv = item.inventory?.find((inv: any) => inv.productId || inv.product);
-      const productId = prodInv?.productId || prodInv?.product?.id;
-      const productName =
-        prodInv?.product?.name ||
-        (productId ? productMap.get(productId) : null) ||
-        'Unspecified Product';
-      const finishedQty = prodInv?.quantityAdd ?? prodInv?.quantity ?? null;
+      const products = item?.productioniteminfo?.products;
+      const productName = products?.name;
+      const productId = products?.id;
+      const status = item?.productioniteminfo?.status;
+      const batchNo = item?.productioniteminfo?.batchNo;
       // Extract raw materials from inventory
-      const rawInvs = item.inventory?.filter((inv: any) => inv.rawId || inv.raWMaterial) || [];
+      const rawInvs = item.inventory || [];
       const rawCount = rawInvs.length;
-
       const rawCostTotal = rawInvs.reduce((sum: number, rm: any) => {
         const qty = rm.quantityLess ?? rm.quantity ?? rm.quantityAdd ?? 0;
         const rate = rm.unitPrice ?? 0;
@@ -79,25 +71,27 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
         si: idx + 1,
         productName,
         productId,
-        finishedQty,
+        // finishedQty,
+        batchNo: batchNo,
+        status: status,
         rawInvs,
         rawCount,
         rawCostTotal,
       };
     });
-  }, [productionsData, productMap]);
+  }, [productionsData]);
 
   // Filter based on search text
-  const filteredList = useMemo(() => {
-    if (!searchText.trim()) return processedList;
-    const term = searchText.toLowerCase();
-    return processedList.filter((item: any) => {
-      const matchBatch = item.batchNo?.toString().toLowerCase().includes(term);
-      const matchVoucher = item.voucherNo?.toString().toLowerCase().includes(term);
-      const matchProduct = item.productName?.toLowerCase().includes(term);
-      return matchBatch || matchVoucher || matchProduct;
-    });
-  }, [processedList, searchText]);
+  // const filteredList = useMemo(() => {
+  //   if (!searchText.trim()) return processedList;
+  //   const term = searchText.toLowerCase();
+  //   return processedList.filter((item: any) => {
+  //     const matchBatch = item.batchNo?.toString().toLowerCase().includes(term);
+  //     const matchVoucher = item.voucherNo?.toString().toLowerCase().includes(term);
+  //     const matchProduct = item.productName?.toLowerCase().includes(term);
+  //     return matchBatch || matchVoucher || matchProduct;
+  //   });
+  // }, [processedList, searchText]);
 
   const columns = [
     {
@@ -124,9 +118,9 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
       key: 'batchNo',
       width: 95,
       align: 'center' as const,
-      render: (batch: string) => (
-        <span className="font-medium text-gray-800 bg-gray-100 px-1.5 py-0.5 rounded text-xs">
-          {batch || '-'}
+      render: (batchNo: string) => (
+        <span className="font-medium text-gray-800 bg-gray-100 px-1.5 py-0.5 rounded text-xs whitespace-nowrap">
+          {batchNo || '-'}
         </span>
       ),
     },
@@ -143,12 +137,12 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
       ),
     },
     {
-      title: 'Product',
-      dataIndex: 'product',
+      title: 'Product Name',
+      dataIndex: 'productName',
       key: 'productName',
-      render: (product: any, record: any) => (
-        <span className="font-semibold text-gray-900 text-xs sm:text-sm leading-snug block" title={product}>
-          {record?.productionItemInfo?.product?.name}
+      render: (_: any, record: any) => (
+        <span className="font-semibold text-gray-900 text-xs sm:text-sm leading-snug block" title={record?.productName}>
+          {record?.productName}
         </span>
       ),
     },
@@ -189,7 +183,7 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
       },
     },
     {
-      title: 'Cost',
+      title: 'Total Cost',
       dataIndex: 'rawCostTotal',
       key: 'rawCostTotal',
       width: 120,
@@ -202,24 +196,24 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
     },
     {
       title: 'Status',
-      key: 'status',
+      dataIndex: 'status',
       width: 115,
       align: 'center' as const,
       render: (_: any, record: any) => (
         <Tag
           color={
-            record?.productionItemInfo?.status === 'COMPLETE'
+            record?.status === 'COMPLETE'
               ? 'purple'
-              : record?.productionItemInfo?.status === 'IN_PROGRESS'
+              : record?.status === 'IN_PROGRESS'
                 ? 'green'
-                : record?.productionItemInfo?.status === 'PENDING' || record?.productionItemInfo?.status === 'PENDDING'
+                : record?.status === 'PENDING' || record?.status === 'PENDDING'
                   ? 'blue'
-                  : record?.productionItemInfo?.status === 'PROCESSING'
+                  : record?.status === 'PROCESSING'
                     ? 'orange'
                     : 'default'
           }
         >
-          {record?.productionItemInfo?.status || 'N/A'}
+          {record?.status || 'N/A'}
         </Tag>
       ),
     },
@@ -233,7 +227,7 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
       )
     },
   ];
-
+  console.log(processedList, "processedList")
   return (
     <div className="space-y-4">
       {/* Top action & filter bar */}
@@ -271,7 +265,7 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
       {/* Table displaying saved productions */}
       <div className="border border-slate-200/60 rounded-lg overflow-hidden bg-white shadow-xs">
         <Table
-          dataSource={filteredList}
+          dataSource={processedList}
           columns={columns}
           rowKey="id"
           loading={isLoading || isFetching}

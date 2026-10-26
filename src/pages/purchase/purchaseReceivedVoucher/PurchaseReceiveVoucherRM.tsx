@@ -567,11 +567,6 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
                   },
                 },
                 {
-                  title: "Total",
-                  dataIndex: "amount",
-                  render: (value: number) => value?.toFixed(2),
-                },
-                {
                   title: "Adjusted Unit R.",
                   key: "adjustedUnitR",
                   render: (_, record) => {
@@ -580,6 +575,12 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
                     return (Number(record.unitPrice) + expPerUnit).toFixed(2);
                   }
                 },
+                {
+                  title: "Total",
+                  dataIndex: "amount",
+                  render: (value: number) => value?.toFixed(2),
+                },
+
                 {
                   title: "Ad. Total",
                   key: "adTotal",
@@ -726,12 +727,13 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
               <Form.Item name="amount" label="Amount" rules={[{ required: true, message: "Required" }]}>
                 <Input type="number" placeholder="Amount" min={0} />
               </Form.Item>
+              <Form.Item name="checkOrRTGS" label="Check/RTGS">
+                <Input type="text" placeholder="Check/RTGS" />
+              </Form.Item>
               <Form.Item name="narration" label="Narration">
                 <Input placeholder="Narration (optional)" />
               </Form.Item>
-              <Form.Item name="checkOrRTGS" label="Check/RTGS" rules={[{ required: true, message: "Required" }]}>
-                <Input type="text" placeholder="Check/RTGS" />
-              </Form.Item>
+
               <Form.Item label=" ">
                 <Button onClick={handleAddCreditItem} icon={<PlusOutlined />} style={{ fontSize: "12px", background: "#2d1849", color: "white", width: "100%" }}>
                   Add

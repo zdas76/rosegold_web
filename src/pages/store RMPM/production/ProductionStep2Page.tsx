@@ -94,12 +94,8 @@ const ProductionStep2Page: React.FC = () => {
     return inventoryList.find((item: any) => Boolean(item.product?.id || item.productId)) || null;
   }, [productionResponse]);
 
-
-  const productionItemInfo =
-    productionData?.productionItemInfo ||
-    productionResponse?.data?.productionItemInfo;
-
-  const selectedProduct = productionItemInfo?.product;
+  const productionItemInfo = productionData?.productioniteminfo;
+  const selectedProduct = productionItemInfo?.products;
   const currentProductId = selectedProduct?.id;
   const targetProductId = Number(currentProductId || 0);
   const { data: stockData } = useGetTotalQuantityAndUnitPriceQuery(
@@ -119,7 +115,6 @@ const ProductionStep2Page: React.FC = () => {
       const productId =
         productionResponse.data.productionItemInfo?.product?.id ||
         productionResponse.data.productionItemInfo?.productId;
-
       if (productId) {
         const rawMaterialsList = inventoryList
           .filter((item: any) => Boolean(item.rawId || item.raWMaterial))
@@ -160,7 +155,6 @@ const ProductionStep2Page: React.FC = () => {
       rate: item.unitRate ?? item.rate ?? null,
     }));
   }, [allExpItemsData]);
-
   const productName = selectedProduct?.name || 'Product';
   const batchNo = productionItemInfo?.batchNo || '-';
   // Recipe query
@@ -965,7 +959,6 @@ const ProductionStep2Page: React.FC = () => {
             Configure finished quantity, packing materials, and expenses for batch {batchNo}
           </span>
         </div>
-
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/dashboard/production-voucher')}>
           Back to Production Voucher
         </Button>
