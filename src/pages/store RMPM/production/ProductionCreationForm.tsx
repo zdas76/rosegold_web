@@ -13,7 +13,7 @@ import {
 } from '../../../redux/features/production/production.api';
 import { useLazyGetTotalQuantityAndUnitPriceQuery } from '../../../redux/features/transactions/transactons.api';
 import { getResponse } from '../../../utils/getResponse';
-import { showErrorAlert } from '../../../utils/sweetAlert';
+import { showErrorAlert, showWarningAlert } from '../../../utils/sweetAlert';
 import { useAppDispatch, useAppSelector } from '../../../redux/hooks';
 import { setProductionStep1 } from '../../../redux/features/production/productionSlice';
 
@@ -308,12 +308,16 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
       prev.map(item => {
         if (item.si === si) {
           const maxAllowed = item.netQuantity !== undefined && item.netQuantity !== null ? item.netQuantity : null;
-          if (value !== null && maxAllowed !== null && value > maxAllowed) {
-            showErrorAlert(
-              `Quantity cannot exceed available stock (${maxAllowed}). You entered ${value}.`,
-              'Stock Limit Exceeded'
+          if (value !== null && maxAllowed !== null && maxAllowed <= value) {
+            showWarningAlert(
+              value > maxAllowed
+                ? `Quantity cannot exceed available stock (${maxAllowed}). You entered ${value}.`
+                : `Entered quantity (${value}) is equal to total available stock (${maxAllowed}).`,
+              'Stock Limit Warning'
             );
-            return item;
+            if (value > maxAllowed) {
+              return item;
+            }
           }
 
           const rate = item.rate || 0;
@@ -323,6 +327,28 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
         return item;
       })
     );
+  };
+
+  const handleQtyKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, currentIndex: number) => {
+    if (e.key === 'ArrowDown' || e.key === 'Enter') {
+      e.preventDefault();
+      const target = document.getElementById(`qty-input-${currentIndex + 1}`);
+      const input = target instanceof HTMLInputElement ? target : (target?.querySelector('input') as HTMLInputElement | null);
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (currentIndex > 0) {
+        const target = document.getElementById(`qty-input-${currentIndex - 1}`);
+        const input = target instanceof HTMLInputElement ? target : (target?.querySelector('input') as HTMLInputElement | null);
+        if (input) {
+          input.focus();
+          input.select();
+        }
+      }
+    }
   };
 
   const handleRateChange = (si: number, value: number | null) => {
@@ -483,29 +509,42 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
       dataIndex: 'qty',
       key: 'qty',
       width: 140,
-      render: (_: any, record: RawMaterialItem) => (
+      render: (_: any, record: RawMaterialItem, index: number) => (
         <div>
           <InputNumber
+            id={`qty-input-${index}`}
             status={
               attemptedSubmit && (!record.qty || Number(record.qty) <= 0)
                 ? 'error'
                 : record.netQuantity != null && record.qty != null && Number(record.qty) > record.netQuantity
                   ? 'error'
-                  : undefined
+                  : record.netQuantity != null && record.qty != null && Number(record.qty) === record.netQuantity
+                    ? 'warning'
+                    : undefined
             }
             min={0}
             max={record.netQuantity != null ? record.netQuantity : undefined}
             step={0.01}
             value={record.qty}
             onChange={v => handleQtyChange(record.si, v)}
+            onKeyDown={e => handleQtyKeyDown(e, index)}
+            onFocus={e => e.target.select()}
             controls={false}
+            keyboard={false}
             style={{ width: '100%' }}
             precision={2}
             placeholder="0.00"
           />
           {record.netQuantity != null && (
-            <div className="text-[11px] text-gray-400 mt-0.5 leading-tight">
-              Stock: <span className="font-medium text-gray-600">{record.netQuantity}</span>
+            <div className="text-[11px] mt-0.5 leading-tight flex items-center justify-between">
+              <span className="text-gray-400">
+                Stock: <span className="font-medium text-gray-600">{record.netQuantity}</span>
+              </span>
+              {record.qty != null && Number(record.qty) >= record.netQuantity && (
+                <span className={Number(record.qty) > record.netQuantity ? "text-red-500 font-semibold" : "text-amber-600 font-semibold"}>
+                  {Number(record.qty) > record.netQuantity ? "Exceeded!" : "Full Stock!"}
+                </span>
+              )}
             </div>
           )}
         </div>

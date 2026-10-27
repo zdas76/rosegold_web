@@ -154,15 +154,21 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
       align: 'center' as const,
       render: (_: any, record: any) => {
         const items = record.rawInvs || [];
+        const rawItem = items?.filter((m: any) => {
+          if (!m?.product) {
+            return m
+          }
+        })
+
         const tooltipContent = (
           <div className="max-h-48 overflow-y-auto text-xs space-y-1">
-            {items.map((m: any, i: number) => {
-              const rawName = m.raWMaterial?.name || rawMaterialMap.get(m.rawId)?.name || `Item #${m.rawId}`;
-              const qty = m.quantityLess ?? m.quantity ?? 0;
-              const unit = m.raWMaterial?.unit?.name || rawMaterialMap.get(m.rawId)?.unit?.name || 'Kg';
+            {rawItem?.map((m: any, i: number) => {
+              const rawName = m.raWMaterial?.name;
+              const qty = m.quantityLess ?? m.quantity;
+              const unit = m.raWMaterial?.unit?.name;
               return (
                 <div key={i} className="flex justify-between gap-3">
-                  <span>{rawName}:</span>
+                  <span className="font-semibold">{rawName}</span>
                   <span className="font-semibold">{qty} {unit}</span>
                 </div>
               );
@@ -174,7 +180,7 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
           <Tooltip title={tooltipContent} placement="topLeft">
             <span className="inline-flex items-center gap-1 cursor-pointer whitespace-nowrap">
               <Tag color="geekblue" className="font-medium text-xs m-0">
-                {record.rawCount} Item{record.rawCount === 1 ? '' : 's'}
+                {rawItem?.length} Item{rawItem?.length ? '' : 's'}
               </Tag>
               <InfoCircleOutlined className="text-gray-400 text-xs" />
             </span>

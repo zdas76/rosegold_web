@@ -1,8 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
-import { Table, Collapse, Button, InputNumber } from 'antd';
-import { EyeOutlined, EditOutlined } from '@ant-design/icons';
+import { Table, Collapse, Button, InputNumber, message } from 'antd';
+import { EyeOutlined, EditOutlined, CheckOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 import type { RawMaterialItem } from '../ProductionCreationForm';
+import { useCreateProductionMutation } from '../../../../redux/features/production/production.api';
+import { getResponse } from '../../../../utils/getResponse';
+import { showErrorAlert } from '../../../../utils/sweetAlert';
+import { useAppDispatch } from '../../../../redux/hooks';
+import { setProductionStep1 } from '../../../../redux/features/production/productionSlice';
+import { useParams } from 'react-router';
 
 interface RawMaterialsSectionProps {
   rawMaterials: RawMaterialItem[];
@@ -10,6 +17,12 @@ interface RawMaterialsSectionProps {
   grandTotal: number;
   handleInputFocus: (e: React.FocusEvent<HTMLInputElement>) => void;
   hideEditButton?: boolean;
+  productionId?: number | string;
+  productId: number;
+  date?: string;
+  refetch?: () => void;
+  onSuccess?: (updatedProduction?: any) => void;
+  inventoryId?: number;
 }
 
 const RawMaterialsSection: React.FC<RawMaterialsSectionProps> = ({
@@ -18,9 +31,113 @@ const RawMaterialsSection: React.FC<RawMaterialsSectionProps> = ({
   grandTotal,
   handleInputFocus,
   hideEditButton = false,
+  productId,
+  date,
+  refetch,
+  onSuccess,
+  inventoryId
 }) => {
+  const dispatch = useAppDispatch();
+  const [createProduction, { isLoading: isSaving }] = useCreateProductionMutation();
+
+
   const [isRawMaterialsEditable, setIsRawMaterialsEditable] = useState(false);
+  const [backupRawMaterials, setBackupRawMaterials] = useState<RawMaterialItem[]>([]);
   const effectiveIsEditable = !hideEditButton && isRawMaterialsEditable;
+  const productionId = useParams()?.id;
+  const handleSave = async () => {
+    if (!productId) {
+      showErrorAlert('No product ID found to update');
+      return;
+    }
+    if (!productionId) {
+      showErrorAlert('No production ID found to update');
+      return;
+    }
+
+    const validMaterials = rawMaterials.filter(
+      item => item.rawMaterialId || (item as any).rawId
+    );
+    if (validMaterials.length === 0) {
+      showErrorAlert('Please enter at least one valid Raw Material');
+      return;
+    }
+
+    const invalidQty = validMaterials.some(
+      item => item.qty === null || item.qty === undefined || Number(item.qty) <= 0
+    );
+    if (invalidQty) {
+      showErrorAlert('Please enter a valid Quantity (greater than 0) for all raw materials');
+      return;
+    }
+
+    const invalidRate = validMaterials.some(
+      item => item.rate === null || item.rate === undefined || Number(item.rate) < 0
+    );
+    if (invalidRate) {
+      showErrorAlert('Please enter a valid Rate for all raw materials');
+      return;
+    }
+
+    try {
+      const payloadDate = date ? dayjs(date).toISOString() : dayjs().toISOString();
+      const payload = {
+        date: payloadDate,
+        inventoryId: inventoryId,
+        productinfo: {
+          productId: Number(productId),
+          quantityAdd: 0,
+          unitPrice: 0,
+        },
+        rawMaterials: validMaterials.map(item => ({
+          rawId: Number(item.rawMaterialId || (item as any).rawId),
+          quantity: Number(item.qty ?? (item as any).quantity) || 0,
+          unitPrice: Number(item.rate ?? (item as any).unitPrice) || 0,
+        })),
+        status: 'PROCESSING',
+      };
+
+      const res = await createProduction({
+        data: payload,
+        id: productionId,
+      });
+      const result = getResponse(res);
+
+      if (result?.success) {
+        message.success('Raw materials updated successfully!');
+        dispatch(
+          setProductionStep1({
+            productId: Number(productId || 1),
+            date: payload.date,
+            rawMaterials: payload.rawMaterials,
+          })
+        );
+        refetch?.();
+        onSuccess?.(result.data);
+        setIsRawMaterialsEditable(false);
+      }
+    } catch (error: any) {
+      showErrorAlert('An error occurred while updating raw materials');
+    }
+  };
+
+  const handleToggleEdit = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isRawMaterialsEditable) {
+      setBackupRawMaterials(JSON.parse(JSON.stringify(rawMaterials)));
+      setIsRawMaterialsEditable(true);
+    } else {
+      await handleSave();
+    }
+  };
+
+  const handleCancel = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (backupRawMaterials.length > 0) {
+      setRawMaterials(backupRawMaterials);
+    }
+    setIsRawMaterialsEditable(false);
+  };
 
   const handleRawMaterialChange = (si: number, field: 'qty' | 'rate', value: number | null) => {
     setRawMaterials((prev: any) => prev.map((item: any) => {
@@ -108,18 +225,29 @@ const RawMaterialsSection: React.FC<RawMaterialsSectionProps> = ({
             </span>
           ),
           extra: !hideEditButton ? (
-            <Button
-              type="text"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsRawMaterialsEditable(!isRawMaterialsEditable);
-              }}
-              className="text-blue-600 hover:text-blue-800"
-            >
-              {isRawMaterialsEditable ? 'Done' : 'Edit'}
-            </Button>
+            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+              {isRawMaterialsEditable && (
+                <Button
+                  type="text"
+                  size="small"
+                  disabled={isSaving}
+                  onClick={handleCancel}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  Cancel
+                </Button>
+              )}
+              <Button
+                type="text"
+                size="small"
+                loading={isSaving}
+                icon={isRawMaterialsEditable ? <CheckOutlined /> : <EditOutlined />}
+                onClick={handleToggleEdit}
+                className="text-blue-600 hover:text-blue-800"
+              >
+                {isSaving ? 'Saving...' : isRawMaterialsEditable ? 'Done' : 'Edit'}
+              </Button>
+            </div>
           ) : null,
           children: (
             <Table

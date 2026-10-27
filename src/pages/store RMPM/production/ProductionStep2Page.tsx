@@ -96,14 +96,12 @@ const ProductionStep2Page: React.FC = () => {
 
   const productionItemInfo = productionData?.productioniteminfo;
   const selectedProduct = productionItemInfo?.products;
-  const currentProductId = selectedProduct?.id;
-  const targetProductId = Number(currentProductId || 0);
+  const currentProductId = Number(selectedProduct?.id);
   const { data: stockData } = useGetTotalQuantityAndUnitPriceQuery(
-    { itemType: "product", productId: targetProductId },
-    { skip: !targetProductId }
+    { itemType: "product", productId: currentProductId },
+    { skip: !currentProductId }
   );
   const oldProductQty = stockData?.data?.netQuantity;
-
 
   // Sync API response to local state and Redux
   useEffect(() => {
@@ -447,6 +445,7 @@ const ProductionStep2Page: React.FC = () => {
         : (currentProd?.combinedProducts && currentProd.combinedProducts.length > 0)
           ? currentProd.combinedProducts
           : [];
+
 
     if (existingCombined.length > 0) {
       const allProdList = Array.isArray(productsData?.data) ? productsData.data : [];
@@ -871,7 +870,6 @@ const ProductionStep2Page: React.FC = () => {
           return;
         }
       }
-      console.log(combinedProducts, "formattedCombinedProductsformattedCombinedProducts")
       const formattedCombinedProducts = combinedProducts
         .filter(cp => cp.productId)
         .map(cp => ({
@@ -1020,6 +1018,8 @@ const ProductionStep2Page: React.FC = () => {
           grandTotal={grandTotal}
           handleInputFocus={handleInputFocus}
           hideEditButton={!isProcessing}
+          productId={Number(currentProductId)}
+          inventoryId={Number(productInventoryItem?.id)}
         />
 
         {/* Production Expenses Section */}
