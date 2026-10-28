@@ -304,7 +304,7 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
               Exceeds available product qty ({oldProductQty ?? 0})!
             </span>
           )}
-          <div className="text-xl font-semibold px-2.5 py-0.5 bg-blue-100 text-blue-900 rounded-full border border-blue-100 ml-auto">
+          <div className="text-xs font-bold px-3 py-1 bg-slate-100 text-slate-700 rounded-full border border-slate-200/70 ml-auto font-mono">
             Available : {oldProductQty ?? 0}
           </div>
         </div>
@@ -318,8 +318,7 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
             record.id ? `id-${record.id}` : `row-${record.si ?? index}`
           }
           pagination={false}
-          bordered
-          size="small"
+                    size="small"
           scroll={{ x: 800 }}
           summary={() => (
             <Table.Summary fixed>

@@ -17,12 +17,14 @@ const ProductionVoucher: React.FC = () => {
   };
 
   return (
-    <div className="p-4 bg-white rounded-lg shadow-sm space-y-4">
-      <div className="border-b border-gray-100 pb-3">
-        <h2 className="text-xl font-bold text-gray-800 m-0">Production Voucher</h2>
-        <span className="text-xs text-gray-500">
-          List of saved productions. Click &quot;Next Step&quot; to open the production creation form with Step 2 enabled.
-        </span>
+    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_4px_24px_-2px_rgba(15,23,42,0.06),0_1px_3px_0_rgba(15,23,42,0.04)] p-6 space-y-5">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3.5 border-b border-slate-100">
+        <div>
+          <h1 className="text-lg font-bold text-slate-800 m-0 tracking-tight">Production Voucher</h1>
+          <p className="text-xs text-slate-400 m-0 mt-0.5">
+            List of saved productions. Click &quot;Next Step&quot; to open the production creation form with Step 2 enabled.
+          </p>
+        </div>
       </div>
 
       <SavedProductionList

@@ -205,7 +205,7 @@ const RawMaterialsSection: React.FC<RawMaterialsSectionProps> = ({
       width: 140,
       align: 'right' as const,
       render: (total: number) => (
-        <span className="font-bold text-amber-700">{Number(total || 0).toFixed(2)} ৳</span>
+        <span className="font-bold text-[#C58D2F] font-mono">{Number(total || 0).toFixed(2)} ৳</span>
       ),
     },
   ];
@@ -214,7 +214,7 @@ const RawMaterialsSection: React.FC<RawMaterialsSectionProps> = ({
     <Collapse
       defaultActiveKey={['1']}
       ghost
-      className="bg-slate-50/60 rounded-lg border border-slate-200/60"
+      className="bg-white rounded-xl border border-slate-200/80 shadow-[0_2px_12px_-3px_rgba(15,23,42,0.04)] overflow-hidden [&_.ant-collapse-header]:bg-slate-50/60 [&_.ant-collapse-header]:border-b [&_.ant-collapse-header]:border-slate-100"
       items={[
         {
           key: '1',
@@ -255,8 +255,7 @@ const RawMaterialsSection: React.FC<RawMaterialsSectionProps> = ({
               columns={rawMaterialColumns}
               rowKey="si"
               pagination={false}
-              bordered
-              size="small"
+                            size="small"
               scroll={{ x: 700 }}
               summary={() => (
                 <Table.Summary fixed>

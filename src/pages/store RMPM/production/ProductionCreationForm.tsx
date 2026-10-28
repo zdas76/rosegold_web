@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useMemo } from 'react';
-import { Form, Input, Button, Table, Select, DatePicker, message, Spin, InputNumber } from 'antd';
+import { Form, Button, Table, Select, DatePicker, message, Spin, InputNumber } from 'antd';
 import { PlusOutlined, DeleteOutlined, ArrowRightOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router';
 import dayjs from 'dayjs';
@@ -14,7 +14,7 @@ import {
 import { useLazyGetTotalQuantityAndUnitPriceQuery } from '../../../redux/features/transactions/transactons.api';
 import { getResponse } from '../../../utils/getResponse';
 import { showErrorAlert, showWarningAlert } from '../../../utils/sweetAlert';
-import { useAppDispatch, useAppSelector } from '../../../redux/hooks';
+import { useAppDispatch } from '../../../redux/hooks';
 import { setProductionStep1 } from '../../../redux/features/production/productionSlice';
 
 export interface RawMaterialItem {
@@ -461,7 +461,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
       }
     } catch (error: any) {
       if (error?.errorFields) {
-        showErrorAlert('Please fill in all required fields (Product, Batch No, Date)');
+        showErrorAlert('Please fill in all required fields (Product, Date)');
       } else {
         showErrorAlert('An error occurred while saving Step 1');
       }
@@ -472,18 +472,26 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
 
   // Raw Materials Columns
   const columns = [
-    { title: 'SI', dataIndex: 'si', key: 'si', width: 55, align: 'center' as const },
     {
-      title: 'Material Name',
+      title: 'SI',
+      dataIndex: 'si',
+      key: 'si',
+      width: 48,
+      align: 'center' as const,
+      render: (si: number) => <span className="text-slate-500 font-medium text-xs">{si}</span>,
+    },
+    {
+      title: 'Raw Material Name',
       dataIndex: 'name',
       key: 'name',
-      width: 260,
+      width: 280,
       render: (_: any, record: RawMaterialItem) => (
         <Select
           status={attemptedSubmit && !record.rawMaterialId ? 'error' : undefined}
-          placeholder="Select Material"
+          placeholder="Select Raw Material"
           value={record.rawMaterialId || undefined}
           style={{ width: '100%' }}
+          size="middle"
           onChange={v => handleMaterialChange(record.si, v as number | null)}
           options={materialOptions.map((opt: any) => ({
             ...opt,
@@ -497,28 +505,38 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
       ),
     },
     {
-      title: 'Unit',
+      title: 'Available Stock',
       dataIndex: 'unit',
       key: 'unit',
-      width: 80,
+      width: 120,
       align: 'center' as const,
-      render: (unit: string) => <span className="text-gray-600 font-medium">{unit || 'Kg'}</span>,
+      render: (_: any, record: RawMaterialItem) => {
+        const stock = record.netQuantity != null ? record.netQuantity : '-';
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-slate-100/80 text-slate-700 font-mono">
+            {stock} {record.unit || 'Kg'}
+          </span>
+        );
+      },
     },
     {
       title: 'Quantity',
       dataIndex: 'qty',
       key: 'qty',
-      width: 140,
-      render: (_: any, record: RawMaterialItem, index: number) => (
-        <div>
+      width: 130,
+      render: (_: any, record: RawMaterialItem, index: number) => {
+        const hasExceeded = record.netQuantity != null && record.qty != null && Number(record.qty) > record.netQuantity;
+        const isFullStock = record.netQuantity != null && record.qty != null && Number(record.qty) === record.netQuantity;
+
+        return (
           <InputNumber
             id={`qty-input-${index}`}
             status={
               attemptedSubmit && (!record.qty || Number(record.qty) <= 0)
                 ? 'error'
-                : record.netQuantity != null && record.qty != null && Number(record.qty) > record.netQuantity
+                : hasExceeded
                   ? 'error'
-                  : record.netQuantity != null && record.qty != null && Number(record.qty) === record.netQuantity
+                  : isFullStock
                     ? 'warning'
                     : undefined
             }
@@ -532,29 +550,18 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
             controls={false}
             keyboard={false}
             style={{ width: '100%' }}
+            size="middle"
             precision={2}
             placeholder="0.00"
           />
-          {record.netQuantity != null && (
-            <div className="text-[11px] mt-0.5 leading-tight flex items-center justify-between">
-              <span className="text-gray-400">
-                Stock: <span className="font-medium text-gray-600">{record.netQuantity}</span>
-              </span>
-              {record.qty != null && Number(record.qty) >= record.netQuantity && (
-                <span className={Number(record.qty) > record.netQuantity ? "text-red-500 font-semibold" : "text-amber-600 font-semibold"}>
-                  {Number(record.qty) > record.netQuantity ? "Exceeded!" : "Full Stock!"}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-      ),
+        );
+      },
     },
     {
       title: 'Unit Rate (BDT)',
       dataIndex: 'rate',
       key: 'rate',
-      width: 140,
+      width: 130,
       render: (_: any, record: RawMaterialItem) => (
         <InputNumber
           status={attemptedSubmit && (record.rate == null || Number(record.rate) < 0) ? 'error' : undefined}
@@ -564,6 +571,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
           onChange={v => handleRateChange(record.si, v)}
           controls={false}
           style={{ width: '100%' }}
+          size="middle"
           precision={2}
           placeholder="0.00"
         />
@@ -576,55 +584,61 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
       width: 130,
       align: 'right' as const,
       render: (total: number) => (
-        <span className="font-bold text-gray-800">{Number(total || 0).toFixed(2)} ৳</span>
+        <span className="font-semibold text-slate-800 text-xs font-mono">
+          {Number(total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
+        </span>
       ),
     },
     {
-      title: 'Action',
+      title: '',
       key: 'action',
-      width: 60,
+      width: 44,
       align: 'center' as const,
       render: (_: any, record: RawMaterialItem) => (
         <Button
           type="text"
           danger
-          icon={<DeleteOutlined />}
+          icon={<DeleteOutlined className="text-slate-400 hover:text-red-500" />}
           onClick={() => handleRemoveRow(record.si)}
           size="small"
         />
-      ),
-    },
+      )
+    }
   ];
 
   return (
-    <div className="p-4 bg-white rounded-lg shadow-sm space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-gray-100 pb-3">
+    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_4px_24px_-2px_rgba(15,23,42,0.06),0_1px_3px_0_rgba(15,23,42,0.04)] p-6 space-y-5">
+      {/* ─── Clean Header ─── */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3.5 border-b border-slate-100">
         <div>
-          <h2 className="text-xl font-bold text-gray-800 m-0">{formTitle}</h2>
-          <span className="text-xs text-gray-500">
-            Step 1: Enter production info and raw materials, then proceed to Step 2 for packaging and expenses.
-          </span>
+          <h1 className="text-lg font-bold text-slate-800 m-0 tracking-tight">{formTitle}</h1>
+          <p className="text-xs text-slate-400 m-0 mt-0.5">
+            Step 1: Select target product and allocate required raw materials for this batch
+          </p>
         </div>
 
         <Button
           icon={<UnorderedListOutlined />}
-          onClick={() => navigate('/dashboard/production-voucher')}>
+          onClick={() => navigate('/dashboard/production-voucher')}
+          className="rounded-lg border-slate-200 text-slate-600 hover:text-[#C58D2F] hover:border-[#C58D2F] text-xs h-8 font-medium shadow-[0_1px_2px_0_rgba(15,23,42,0.04)] hover:shadow-[0_2px_6px_0_rgba(15,23,42,0.08)] transition-all"
+        >
           Production Voucher
         </Button>
       </div>
 
       <Form form={form} layout="vertical" initialValues={{ date: dayjs() }}>
-        {/* Top 3 required fields */}
-        <div className="grid grid-cols-2 gap-4 bg-slate-50/60 p-3 rounded-lg border border-slate-200/60">
+        {/* ─── Compact Top Inputs ─── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50/60 border border-slate-200/80 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.03)]">
           <Form.Item
             name="productId"
-            label={<span className="font-semibold">Select Product</span>}
+            label={<span className="text-xs font-semibold text-slate-700">Select Product</span>}
             rules={[{ required: true, message: 'Please select a product' }]}
+            className="mb-0"
           >
             <Select
               placeholder="Choose product..."
               style={{ width: '100%' }}
+              size="middle"
               options={productOptions}
               loading={isProductsLoading}
               showSearch
@@ -633,56 +647,62 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
               }
             />
           </Form.Item>
+
           <Form.Item
             name="date"
-            label={<span className="font-semibold">Date</span>}
+            label={<span className="text-xs font-semibold text-slate-700">Production Date</span>}
             rules={[{ required: true, message: 'Please select date' }]}
+            className="mb-0"
           >
-            <DatePicker style={{ width: '100%' }} format="DD-MMM-YYYY" />
+            <DatePicker style={{ width: '100%' }} size="middle" format="DD-MMM-YYYY" />
           </Form.Item>
         </div>
 
-        {/* Raw Materials Section */}
-        <div className="mt-4">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-bold text-base text-gray-800 m-0">Raw Materials</h3>
-            <span className="text-xs text-gray-500">Add raw materials used in this batch</span>
+        {/* ─── Raw Materials Section ─── */}
+        <div className="space-y-2.5 pt-1">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-sm font-bold text-slate-800 m-0">Raw Materials</h2>
+              <p className="text-[11px] text-slate-400 m-0">Ingredients and quantities required for this production batch</p>
+            </div>
           </div>
 
           {selectedProductId && (isIngredientsLoading || isIngredientsFetching) ? (
-            <div className="p-8 text-center bg-slate-50/50 rounded border border-slate-200/60">
-              <Spin tip="Loading product ingredients recipe..." />
+            <div className="py-10 text-center bg-slate-50/50 rounded-xl border border-slate-200/60">
+              <Spin tip="Loading ingredients recipe..." />
             </div>
           ) : (
-            <div className="border border-slate-200/60 rounded-lg overflow-hidden">
+            <div className="border border-slate-200/80 rounded-xl overflow-hidden bg-white shadow-[0_2px_12px_-3px_rgba(15,23,42,0.05)]">
               <Table
                 dataSource={rawMaterials}
                 columns={columns}
                 rowKey="si"
                 pagination={false}
-                bordered
                 size="small"
                 scroll={{ x: 800 }}
                 summary={() => (
                   <Table.Summary fixed>
-                    <Table.Summary.Row className="bg-amber-50/40 border-t border-amber-200/50 font-bold">
+                    <Table.Summary.Row className="bg-slate-50/80 border-t border-slate-200 font-medium text-xs">
                       <Table.Summary.Cell index={0} colSpan={3}>
                         <Button
-                          type="primary"
+                          type="link"
+                          size="small"
                           icon={<PlusOutlined />}
                           onClick={handleAddRow}
-                          className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white shadow-xs"
+                          className="text-[#C58D2F] font-semibold p-0 text-xs hover:text-[#a57325]"
                         >
-                          Add Material
+                          Add Material Row
                         </Button>
                       </Table.Summary.Cell>
-                      <Table.Summary.Cell index={1} className="text-center font-bold text-slate-800">
-                        <span className="text-gray-500 mr-2 font-semibold">Total Qty:</span>
-                        <span className="text-sm font-bold text-slate-900">{totalQty.toFixed(2)}</span>
+                      <Table.Summary.Cell index={1} className="text-center font-bold text-slate-700">
+                        <span className="text-slate-400 mr-1.5 font-normal">Total Qty:</span>
+                        <span className="text-slate-900 font-semibold font-mono">{totalQty.toFixed(2)}</span>
                       </Table.Summary.Cell>
-                      <Table.Summary.Cell index={2} colSpan={3} className="text-right pr-4 font-bold">
-                        <span className="text-gray-500 mr-2 font-semibold">Grand Total:</span>
-                        <span className="text-base font-extrabold text-amber-700">{grandTotal.toFixed(2)} ৳</span>
+                      <Table.Summary.Cell index={2} colSpan={3} className="text-right pr-3 font-bold">
+                        <span className="text-slate-400 mr-2 font-normal">Grand Total:</span>
+                        <span className="text-sm font-bold text-[#C58D2F] font-mono">
+                          {grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
+                        </span>
                       </Table.Summary.Cell>
                     </Table.Summary.Row>
                   </Table.Summary>
@@ -692,18 +712,30 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
           )}
         </div>
 
-        {/* Bottom Action Button */}
-        <div className="mt-4 flex justify-end gap-3 bg-slate-50/80 rounded-lg border py-2.5 px-4 border-slate-200/60">
-          <Button
-            type="primary"
-            size="large"
-            icon={<ArrowRightOutlined />}
-            loading={isSubmitting}
-            onClick={handleSaveAndProceed}
-            className="px-8 bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white shadow-sm font-semibold"
-          >
-            {isSubmitting ? 'Saving...' : 'Save & Proceed'}
-          </Button>
+        {/* ─── Bottom Actions ─── */}
+        <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+          <span className="text-xs text-slate-400">
+            Proceeding will save Step 1 and open Step 2 (Packaging & Expenses).
+          </span>
+
+          <div className="flex items-center gap-2.5">
+            <Button
+              onClick={() => navigate('/dashboard/production-voucher')}
+              className="rounded-lg text-slate-600 border-slate-200 text-xs font-medium h-9 px-4 shadow-[0_1px_2px_0_rgba(15,23,42,0.04)] hover:shadow-[0_2px_6px_0_rgba(15,23,42,0.08)] transition-all"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="primary"
+              size="middle"
+              icon={<ArrowRightOutlined />}
+              loading={isSubmitting}
+              onClick={handleSaveAndProceed}
+              className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold rounded-lg px-6 h-9 text-xs shadow-[0_3px_12px_rgba(197,141,47,0.3)] hover:shadow-[0_4px_16px_rgba(197,141,47,0.45)] transition-all"
+            >
+              {isSubmitting ? 'Saving...' : 'Save & Proceed'}
+            </Button>
+          </div>
         </div>
       </Form>
     </div>

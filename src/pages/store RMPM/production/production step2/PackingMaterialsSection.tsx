@@ -300,10 +300,13 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
   ];
 
   return (
-    <div className={`bg-slate-50/50 p-6 rounded-xl border border-slate-200/60 shadow-sm mt-6 ${disabled ? 'opacity-90' : ''}`}>
-      <div className="flex items-center justify-between mb-4 border-b border-gray-200 pb-3">
-        <div className="flex items-center gap-3">
-          <h3 className="font-bold text-lg text-gray-800 m-0">Packing Materials</h3>
+    <div className={`bg-white p-5 rounded-xl border border-slate-200/80 shadow-[0_2px_12px_-3px_rgba(15,23,42,0.04)] mt-4 ${disabled ? 'opacity-90' : ''}`}>
+      <div className="flex items-center justify-between mb-3.5 border-b border-slate-100 pb-3">
+        <div className="flex items-center gap-2.5">
+          <h3 className="font-bold text-sm text-slate-800 m-0 tracking-tight">Packaging Materials (PM)</h3>
+          <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/50">
+            {packingMaterials.filter(p => p.packingMaterialId).length} Items
+          </span>
           {disabled && (
             <span className="text-xs font-semibold px-2.5 py-0.5 bg-gray-200 text-gray-700 rounded-full">
               Locked
@@ -312,7 +315,7 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
         </div>
       </div>
 
-      <div className="rounded-lg overflow-hidden border border-gray-200/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] bg-white">
+      <div className="rounded-xl overflow-hidden border border-slate-200/80 shadow-[0_2px_12px_-3px_rgba(15,23,42,0.04)] bg-white">
         <Table
           className="packing-materials-table"
           dataSource={packingMaterials}
@@ -321,8 +324,7 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
             record.id ? `id-${record.id}` : `row-${record.si ?? index}`
           }
           pagination={false}
-          bordered
-          size="small"
+                    size="small"
           scroll={{ x: 950 }}
           summary={() => (
             <Table.Summary fixed>
@@ -333,7 +335,7 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
                       type="primary"
                       icon={<PlusOutlined />}
                       onClick={handleAddPackingRow}
-                      className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold shadow-xs"
+                      className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold rounded-lg px-4 h-8 text-xs shadow-xs"
                     >
                       Add Item
                     </Button>

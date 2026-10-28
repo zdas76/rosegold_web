@@ -354,29 +354,32 @@ const PurchasePackingMaterial: React.FC = () => {
     };
 
     return (
-        <div className="rounded-2xl">
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_4px_24px_-2px_rgba(15,23,42,0.06),0_1px_3px_0_rgba(15,23,42,0.04)] p-6 space-y-5">
             {/* Top Header Bar */}
-            <div className="flex bg-white mb-2 shadow rounded items-center gap-2 justify-between">
-                <div className="rounded-lg px-4 py-2">
-                    <h2 className="text-xl font-semibold m-0">Purchase Received Voucher - Packing Material</h2>
-                </div>
-                <div className="flex items-center gap-2 justify-center antdMargin0">
-                    <Input
-                        placeholder="Enter requisition number"
-                        value={searchRequisitionNo}
-                        onChange={(e) => setSearchRequisitionNo(e.target.value)}
-                        onPressEnter={handleRequistionSearch}
-                    />
-                    <button
-                        type="button"
-                        disabled={isSearchingRequisition}
-                        onClick={handleRequistionSearch}
-                        className="bg-blue-500 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-1.5 px-4 rounded cursor-pointer"
-                    >
-                        {isSearchingRequisition ? "Searching..." : "Search"}
-                    </button>
-                </div>
-            </div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3.5 border-b border-slate-100">
+        <div>
+          <h1 className="text-lg font-bold text-slate-800 m-0 tracking-tight">Purchase Receive - Packing Material</h1>
+          <p className="text-xs text-slate-400 m-0 mt-0.5">Record and reconcile packaging material purchase receive vouchers</p>
+        </div>
+        <div className="flex items-center gap-2 max-w-sm w-full">
+          <Input
+            placeholder="Enter requisition number"
+            value={searchRequisitionNo}
+            onChange={(e) => setSearchRequisitionNo(e.target.value)}
+            onPressEnter={handleRequistionSearch}
+            className="rounded-lg text-xs"
+          />
+          <Button
+            type="primary"
+            disabled={isSearchingRequisition}
+            loading={isSearchingRequisition}
+            onClick={handleRequistionSearch}
+            className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold rounded-lg px-4 h-8 text-xs shadow-xs"
+          >
+            Search
+          </Button>
+        </div>
+      </div>
 
             <Form
                 form={form}
@@ -387,7 +390,7 @@ const PurchasePackingMaterial: React.FC = () => {
                 }}
             >
                 {/* Top Information Card */}
-                <div className="bg-white p-4 rounded grid grid-cols-1 md:grid-cols-4 gap-4 shadow">
+                <div className="p-4 rounded-xl bg-slate-50/60 border border-slate-200/80 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.03)] grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
                     <Form.Item
                         name="partyId"
                         label="Supplier"
@@ -428,7 +431,7 @@ const PurchasePackingMaterial: React.FC = () => {
                 </div>
 
                 {/*-------------------------- Debit Items --------------------------------------------- */}
-                <div className="mb-5 bg-white shadow rounded-lg p-3 pt-0 mt-4">
+                <div className="mb-5 bg-white border border-slate-200/80 rounded-xl p-4 pt-1 shadow-[0_2px_12px_-3px_rgba(15,23,42,0.04)]">
                     <Divider orientation="left" style={{ paddingTop: "10px" }}>
                         Debit Items
                     </Divider>
@@ -474,7 +477,7 @@ const PurchasePackingMaterial: React.FC = () => {
                                 <Button
                                     onClick={handleAddDebitItem}
                                     icon={<PlusOutlined />}
-                                    style={{ fontSize: "12px", background: "#2d1849", color: "white", width: "100%" }}>
+                                    className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold rounded-lg text-xs h-8 shadow-xs w-full">
                                     Add
                                 </Button>
                             </Form.Item>
@@ -557,7 +560,7 @@ const PurchasePackingMaterial: React.FC = () => {
                 </div>
 
                 {/*-------------------------- Expense Items --------------------------------------------- */}
-                <div className="mb-5 bg-white shadow-md rounded-lg p-3 pt-0">
+                <div className="mb-5 bg-white border border-slate-200/80 rounded-xl p-4 pt-1 shadow-[0_2px_12px_-3px_rgba(15,23,42,0.04)]">
                     <Divider orientation="left" style={{ paddingTop: "10px" }}>
                         Expense
                     </Divider>
@@ -589,7 +592,7 @@ const PurchasePackingMaterial: React.FC = () => {
                                 <Button
                                     onClick={handleAddExpenseItem}
                                     icon={<PlusOutlined />}
-                                    style={{ fontSize: "12px", background: "#2d1849", color: "white", width: "100%" }}
+                                    className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold rounded-lg text-xs h-8 shadow-xs w-full"
                                 >
                                     Add
                                 </Button>
@@ -686,7 +689,7 @@ const PurchasePackingMaterial: React.FC = () => {
                                 <Button
                                     onClick={handleAddCreditItem}
                                     icon={<PlusOutlined />}
-                                    style={{ fontSize: "12px", background: "#2d1849", color: "white", width: "100%" }}
+                                    className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold rounded-lg text-xs h-8 shadow-xs w-full"
                                 >
                                     Add
                                 </Button>
@@ -757,16 +760,7 @@ const PurchasePackingMaterial: React.FC = () => {
                         htmlType="submit"
                         loading={isSubmitting}
                         disabled={Math.abs(creditTotal - debitTotal) > 0.01 || debitTotal === 0}
-                        style={{
-                            background:
-                                Math.abs(creditTotal - debitTotal) <= 0.01 && debitTotal > 0
-                                    ? "#2d1849"
-                                    : undefined,
-                            borderColor:
-                                Math.abs(creditTotal - debitTotal) <= 0.01 && debitTotal > 0
-                                    ? "#2d1849"
-                                    : undefined,
-                        }}
+                        className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold rounded-lg px-7 h-10 text-xs shadow-[0_3px_12px_rgba(197,141,47,0.3)] hover:shadow-[0_4px_16px_rgba(197,141,47,0.45)] transition-all disabled:opacity-50"
                     >
                         {isSubmitting ? "Submitting..." : "Submit"}
                     </Button>

@@ -30,9 +30,9 @@ const FinalizationSummary: React.FC<FinalizationSummaryProps> = ({
   disabledText,
 }) => {
   return (
-    <div className={`bg-slate-50/50 p-6 rounded-xl border border-slate-200/60 shadow-sm ${disabled ? 'opacity-70' : ''}`}>
-      <div className="flex items-center justify-between mb-5 border-b border-gray-200 pb-2">
-        <h3 className="font-bold text-lg text-gray-800 m-0">Finalization</h3>
+    <div className={`bg-white p-5 rounded-xl border border-slate-200/80 shadow-[0_2px_12px_-3px_rgba(15,23,42,0.04)] mt-4 ${disabled ? 'opacity-70' : ''}`}>
+      <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+        <h3 className="font-bold text-sm text-slate-800 m-0 tracking-tight">Finalization & Yield Summary</h3>
         {disabled && (
           <span className="text-xs font-semibold px-2.5 py-0.5 bg-amber-100 text-amber-800 rounded-full border border-amber-200">
             {disabledText || 'Disabled'}
@@ -95,8 +95,8 @@ const FinalizationSummary: React.FC<FinalizationSummaryProps> = ({
           <span className="text-[11px] text-amber-700 block mt-1 font-bold bg-amber-100/50 py-0.5 rounded-full w-max mx-auto px-2">Final Unit: {unitCost.toFixed(3)} ৳</span>
         </div>
       </div>
-      <div className="mt-6 py-2 px-5 bg-[#5C3293] rounded-xl shadow-md flex justify-between items-center text-white">
-        <span className="font-bold text-base">Final Per Unit Cost (All Costs Included)</span>
+      <div className="mt-4 py-3 px-5 bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl shadow-sm flex justify-between items-center text-white">
+        <span className="font-bold text-xs uppercase tracking-wider text-slate-200">Final Per Unit Cost (All Costs Included)</span>
         <span className="text-xl font-black drop-shadow-sm">
           {unitCost.toFixed(3)} ৳
         </span>

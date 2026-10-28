@@ -948,34 +948,43 @@ const ProductionStep2Page: React.FC = () => {
 
 
   return (
-    <div className="p-4 bg-white rounded-lg shadow-sm space-y-4">
+    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_4px_24px_-2px_rgba(15,23,42,0.06),0_1px_3px_0_rgba(15,23,42,0.04)] p-6 space-y-5">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-gray-100 pb-3">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3.5 border-b border-slate-100">
         <div>
-          <h2 className="text-xl font-bold text-gray-800 m-0">Production Step 2 (Packaging & Expenses)</h2>
-          <span className="text-xs text-gray-500">
-            Configure finished quantity, packing materials, and expenses for batch {batchNo}
-          </span>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-lg font-bold text-slate-800 m-0 tracking-tight">Production Step 2</h1>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200/60">
+              Stage 2: Packaging & Overhead
+            </span>
+          </div>
+          <p className="text-xs text-slate-400 m-0 mt-0.5">
+            Configure finished quantity, packing materials, and operating expenses for batch {batchNo}
+          </p>
         </div>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/dashboard/production-voucher')}>
+        <Button
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate('/dashboard/production-voucher')}
+          className="rounded-lg border-slate-200 text-slate-600 hover:text-[#C58D2F] hover:border-[#C58D2F] text-xs h-8 font-medium shadow-[0_1px_2px_0_rgba(15,23,42,0.04)]"
+        >
           Back to Production Voucher
         </Button>
       </div>
 
       <Form form={form} layout="vertical" initialValues={{ date: dayjs() }} className="space-y-4">
         {/* Step 1 Summary Banner */}
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 px-2 py-1 rounded border border-amber-200/50 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+        <div className="p-4 rounded-xl bg-slate-50/60 border border-slate-200/80 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.03)] flex flex-wrap items-center justify-between gap-4">
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 w-full items-center">
             <div>
-              <span className="text-xs text-amber-600/80 block uppercase font-bold tracking-wider mb-1">Product</span>
-              <span className="font-bold text-gray-800 text-base">{productName}</span>
+              <span className="text-[11px] text-slate-400 block uppercase font-semibold tracking-wider">Product</span>
+              <span className="font-bold text-slate-800 text-sm block mt-0.5">{productName}</span>
             </div>
             <div>
-              <span className="text-xs text-amber-600/80 block uppercase font-bold tracking-wider mb-1">Batch No</span>
-              <span className="font-semibold text-gray-800">{batchNo}</span>
+              <span className="text-[11px] text-slate-400 block uppercase font-semibold tracking-wider">Batch No</span>
+              <span className="font-mono font-bold text-slate-700 text-xs px-2 py-0.5 rounded bg-white border border-slate-200/60 inline-block mt-0.5">{batchNo}</span>
             </div>
             <div>
-              <span className="text-xs text-amber-600/80 block uppercase font-bold tracking-wider mb-1">Date</span>
+              <span className="text-[11px] text-slate-400 block uppercase font-semibold tracking-wider mb-0.5">Date</span>
               <Form.Item
                 name="date"
                 rules={[{ required: true, message: 'Please select date' }]}
@@ -989,10 +998,8 @@ const ProductionStep2Page: React.FC = () => {
               </Form.Item>
             </div>
             <div>
-              <span className="text-xs text-amber-600/80 block uppercase font-bold tracking-wider mb-1">
-                Raw Material Cost
-              </span>
-              <span className="font-bold text-amber-700 text-base">
+              <span className="text-[11px] text-slate-400 block uppercase font-semibold tracking-wider">Raw Material Cost</span>
+              <span className="font-bold font-mono text-[#C58D2F] text-sm block mt-0.5">
                 {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
               </span>
             </div>
@@ -1044,14 +1051,15 @@ const ProductionStep2Page: React.FC = () => {
         />
 
         {/* Save Materials & Expenses Button */}
-        <div className="flex justify-end mt-4 mb-6 border-b border-gray-100 pb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-slate-50/70 border border-slate-200/70 rounded-xl shadow-xs mt-4">
+          <span className="text-xs text-slate-500 font-medium">Save intermediate raw material recipe and packaging/expense allocations.</span>
           <Button
             type="primary"
             onClick={handleSaveMaterialsAndExpenses}
             loading={isSavingIntermediate}
             disabled={!isProcessing}
             size="large"
-            className="px-8 rounded-lg bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-bold shadow-sm disabled:opacity-50"
+            className="px-8 rounded-lg bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold text-xs h-10 shadow-[0_3px_12px_rgba(197,141,47,0.3)] hover:shadow-[0_4px_16px_rgba(197,141,47,0.45)] transition-all disabled:opacity-50"
           >
             {!isProcessing ? 'Saved (In Progress)' : isSavingIntermediate ? 'Saving...' : 'Save & Proceed'}
           </Button>
@@ -1079,7 +1087,8 @@ const ProductionStep2Page: React.FC = () => {
         />
 
         {/* Save Finalization / Complete Button */}
-        <div className="flex justify-end mt-4 mb-6 border-b border-gray-100 pb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-slate-50/70 border border-slate-200/70 rounded-xl shadow-xs mt-4">
+          <span className="text-xs text-slate-500 font-medium">Save finished goods yield quantity and calculate final cost per unit.</span>
           <Button
             type="primary"
             onClick={handleSubmitFinishedGoods}
@@ -1087,7 +1096,7 @@ const ProductionStep2Page: React.FC = () => {
             disabled={!isInProgress}
             size="large"
             icon={<CheckCircleOutlined />}
-            className="px-8 rounded-lg bg-gradient-to-r from-[#C58D2F] to-[#b07d28] hover:from-[#b07d28] hover:to-[#96691e] border-none text-white font-bold shadow-md disabled:opacity-50"
+            className="px-8 rounded-lg bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold text-xs h-10 shadow-[0_3px_12px_rgba(197,141,47,0.3)] hover:shadow-[0_4px_16px_rgba(197,141,47,0.45)] transition-all disabled:opacity-50"
           >
             {isSubmitting ? 'Saving...' : isPending || isCompleted ? 'Saved (Finished Goods)' : 'Save Finished Goods'}
           </Button>
@@ -1105,7 +1114,8 @@ const ProductionStep2Page: React.FC = () => {
         selectedProduct={selectedProduct}
       />
 
-      <div className="mt-6 flex flex-wrap items-center justify-end gap-4 pt-4 border-t border-gray-100">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-white border border-slate-200/80 rounded-xl shadow-[0_4px_20px_-2px_rgba(15,23,42,0.06)] mt-5">
+        <span className="text-xs text-slate-500 font-medium">Finalize batch and complete production voucher.</span>
         <Button
           type="primary"
           onClick={handleSubmit}
@@ -1113,7 +1123,7 @@ const ProductionStep2Page: React.FC = () => {
           disabled={!isPending}
           size="large"
           icon={<CheckCircleOutlined />}
-          className="px-10 rounded-lg bg-gradient-to-r from-[#C58D2F] to-[#b07d28] hover:from-[#b07d28] hover:to-[#96691e] border-none text-white shadow-md font-bold text-base disabled:opacity-50"
+          className="px-10 rounded-lg bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-bold text-xs h-11 shadow-[0_4px_14px_rgba(197,141,47,0.35)] hover:shadow-[0_6px_20px_rgba(197,141,47,0.5)] transition-all disabled:opacity-50"
         >
           {isSubmitting ? 'Saving...' : isCompleted ? 'Completed' : 'Complete & Save'}
         </Button>
