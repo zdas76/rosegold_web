@@ -107,11 +107,29 @@
   color: #C58D2F !important;
 }
 
+/* ===== Ultra-Clean Soft Light Input Borders ===== */
+.ant-input:not(.ant-input-status-error):not(.ant-input-status-warning),
+.ant-input-number:not(.ant-input-number-status-error):not(.ant-input-number-status-warning),
+.ant-select:not(.ant-select-status-error):not(.ant-select-status-warning) .ant-select-selector,
+.ant-picker:not(.ant-picker-status-error):not(.ant-picker-status-warning) {
+  border-color: #e2e8f0 !important;
+  border-radius: 6px;
+  transition: all 0.2s ease-in-out;
+}
+
+.ant-input:not(.ant-input-status-error):not(.ant-input-status-warning):hover,
+.ant-input-number:not(.ant-input-number-status-error):not(.ant-input-number-status-warning):hover,
+.ant-select:not(.ant-select-status-error):not(.ant-select-status-warning):hover .ant-select-selector,
+.ant-picker:not(.ant-picker-status-error):not(.ant-picker-status-warning):hover {
+  border-color: #cbd5e1 !important;
+}
+
 .ant-input:focus,
 .ant-input-focused,
 .ant-input-number:focus,
 .ant-input-number-focused,
-.ant-select-focused .ant-select-selector {
+.ant-select-focused .ant-select-selector,
+.ant-picker-focused {
   border-color: #C58D2F !important;
   box-shadow: 0 0 0 2px rgba(197, 141, 47, 0.15) !important;
 }

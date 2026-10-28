@@ -237,7 +237,7 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
   return (
     <div className="space-y-4">
       {/* Top action & filter bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-4 rounded-xl bg-slate-50/60 border border-slate-200/80 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.03)]">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3 rounded-lg bg-slate-50/60 border border-slate-200/80 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.03)]">
         <div className="flex items-center gap-3 flex-1 max-w-md w-full">
           <Input
             placeholder="Search by Voucher, Batch, or Product..."

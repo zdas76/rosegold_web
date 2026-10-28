@@ -34,10 +34,32 @@ createRoot(document.getElementById('root')!).render(
           colorSuccess: '#16a34a',
           colorError: '#dc2626',
           colorWarning: '#d97706',
+          colorBorder: '#e2e8f0',
+          colorBorderSecondary: '#f1f5f9',
           borderRadius: 6,
           fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         },
         components: {
+          Input: {
+            colorBorder: '#e2e8f0',
+            hoverBorderColor: '#cbd5e1',
+            activeBorderColor: '#C58D2F',
+          },
+          InputNumber: {
+            colorBorder: '#e2e8f0',
+            hoverBorderColor: '#cbd5e1',
+            activeBorderColor: '#C58D2F',
+          },
+          Select: {
+            colorBorder: '#e2e8f0',
+            hoverBorderColor: '#cbd5e1',
+            activeBorderColor: '#C58D2F',
+          },
+          DatePicker: {
+            colorBorder: '#e2e8f0',
+            hoverBorderColor: '#cbd5e1',
+            activeBorderColor: '#C58D2F',
+          },
           Menu: {
             darkItemBg: '#2d1849',
             darkSubMenuItemBg: '#1f1035',

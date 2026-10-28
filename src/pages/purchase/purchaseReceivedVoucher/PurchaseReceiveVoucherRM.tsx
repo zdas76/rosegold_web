@@ -404,7 +404,7 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_4px_24px_-2px_rgba(15,23,42,0.06),0_1px_3px_0_rgba(15,23,42,0.04)] p-6 space-y-5">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3.5 border-b border-slate-100">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-1 border-b border-slate-100">
         <div>
           <h1 className="text-lg font-bold text-slate-800 m-0 tracking-tight">Purchase Receive - Raw Material</h1>
           <p className="text-xs text-slate-400 m-0 mt-0.5">Record and reconcile raw material purchase receive vouchers</p>
