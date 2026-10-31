@@ -16,6 +16,7 @@ import { getResponse } from '../../../utils/getResponse';
 import { showErrorAlert, showWarningAlert } from '../../../utils/sweetAlert';
 import { useAppDispatch } from '../../../redux/hooks';
 import { setProductionStep1 } from '../../../redux/features/production/productionSlice';
+import { useLazyGetLastVoucherQtyQuery } from '../../../redux/features/inventory/InventoryApi';
 
 export interface RawMaterialItem {
   id?: number;
@@ -92,9 +93,11 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
 
   const [createProduction] = useCreateProductionMutation();
   const [triggerGetTotalQuantity] = useLazyGetTotalQuantityAndUnitPriceQuery();
+  const [trigerLastVoucherQty] = useLazyGetLastVoucherQtyQuery()
+  // const [triggerLastUsedQty] =
 
   // Helper to fetch live rate and netQuantity from /inventory/inventorytotal?itemType=raw&rawId={rawId}
-  const fetchRawMaterialInfo = async (rawId: number): Promise<{ rate: number | null; netQuantity: number | null }> => {
+  const fetchRawMaterialInfo = async (rawId: number): Promise<{ rate: number | null; netQuantity: number | null, lastQty: number | null }> => {
     try {
       const res = await triggerGetTotalQuantity({
         itemType: 'raw',
@@ -107,11 +110,14 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
       if (netQty !== null && netQty > 0 && netAmount > 0) {
         rate = Number((netAmount / netQty).toFixed(2));
       }
-      return { rate, netQuantity: netQty };
+      // fetch last used qty
+      const reslastQty = await trigerLastVoucherQty(rawId).unwrap();
+      const lastUsedQty = reslastQty?.data;
+      return { rate, netQuantity: netQty, lastQty: lastUsedQty?.quantityLess };
     } catch (err) {
       console.error('Failed to fetch inventory total for raw material:', err);
     }
-    return { rate: null, netQuantity: null };
+    return { rate: null, netQuantity: null, lastQty: null };
   };
 
   // Product & Raw Material dropdown options
@@ -218,7 +224,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
       materials.forEach((m: any, idx: number) => {
         const rawId = m.rawId ?? m.rawMaterials?.id ?? m.id ?? m.rawMaterialId;
         if (rawId) {
-          fetchRawMaterialInfo(Number(rawId)).then(({ rate: liveRate, netQuantity }) => {
+          fetchRawMaterialInfo(Number(rawId)).then(({ rate: liveRate, netQuantity, lastQty }) => {
             setRawMaterials(prev =>
               prev.map((item, i) => {
                 if (i === idx) {
@@ -229,6 +235,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
                     rate: finalRate,
                     netQuantity,
                     total: itemQty > 0 && finalRate != null ? Number((itemQty * finalRate).toFixed(2)) : item.total,
+                    qty: lastQty ?? 0
                   };
                 }
                 return item;
@@ -239,7 +246,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
       });
     } else {
       setRawMaterials([
-        { si: 1, rawMaterialId: null, name: '', unit: 'Kg', unitId: null, qty: null, rate: null, total: 0, netQuantity: null },
+        { si: 1, rawMaterialId: null, name: '', unit: 'Kg', unitId: null, qty: null, rate: null, total: 0, netQuantity: null, },
       ]);
     }
   }, [selectedProductId, ingredientsData, allRawMaterialsData, existingProductionId, form]);
@@ -367,7 +374,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
   const handleAddRow = () => {
     setRawMaterials(prev => [
       ...prev,
-      { si: prev.length + 1, rawMaterialId: null, name: '', qty: null, unit: 'Kg', unitId: null, rate: null, total: 0, netQuantity: null },
+      { si: prev.length + 1, rawMaterialId: null, name: '', qty: null, unit: 'Kg', unitId: null, rate: null, total: 0, netQuantity: null, lastQty: null },
     ]);
   };
 
@@ -527,7 +534,6 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
       render: (_: any, record: RawMaterialItem, index: number) => {
         const hasExceeded = record.netQuantity != null && record.qty != null && Number(record.qty) > record.netQuantity;
         const isFullStock = record.netQuantity != null && record.qty != null && Number(record.qty) === record.netQuantity;
-
         return (
           <InputNumber
             id={`qty-input-${index}`}
@@ -689,8 +695,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
                           size="small"
                           icon={<PlusOutlined />}
                           onClick={handleAddRow}
-                          className="text-[#C58D2F] font-semibold p-0 text-xs hover:text-[#a57325]"
-                        >
+                          className="text-[#C58D2F] font-semibold p-0 text-xs hover:text-[#a57325]">
                           Add Material Row
                         </Button>
                       </Table.Summary.Cell>

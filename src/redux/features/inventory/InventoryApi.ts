@@ -28,8 +28,14 @@ const invertoryApi = baseApi.injectEndpoints({
                 },
             }),
         }),
+        getLastVoucherQty: builder.query({
+            query: (rawid: number) => ({
+                url: "/inventory/last_voucher_qty",
+                method: "GET",
+                params: { rawid }
+            }),
+        }),
     }),
-
 })
 
-export const { useGetInvertoryTotalQuery, useGetUnitQuery, useGetLastRateQuery } = invertoryApi;
+export const { useGetInvertoryTotalQuery, useGetUnitQuery, useGetLastRateQuery, useLazyGetLastVoucherQtyQuery } = invertoryApi;
