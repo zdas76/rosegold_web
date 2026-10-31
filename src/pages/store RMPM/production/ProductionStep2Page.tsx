@@ -29,6 +29,7 @@ import ProductionExpensesSection from './production step2/ProductionExpensesSect
 import PackingMaterialsSection from './production step2/PackingMaterialsSection';
 import RawMaterialsSection from './production step2/RawMaterialsSection';
 import { useGetTotalQuantityAndUnitPriceQuery } from '../../../redux/features/transactions/transactons.api';
+import { useLazyGetLastVoucherQtyQuery } from '../../../redux/features/inventory/InventoryApi';
 
 const roundToThree = (value: number | null | undefined): number | null => {
   if (value == null || isNaN(Number(value))) return null;
@@ -64,7 +65,7 @@ const ProductionStep2Page: React.FC = () => {
     targetId as string,
     { skip: !targetId }
   );
-
+  const [trigerLastVoucherQty] = useLazyGetLastVoucherQtyQuery()
   const prevTargetIdRef = useRef<string | null>(null);
   // Keep URL in sync with targetId so Ctrl+S / reload preserves the ID
   useEffect(() => {
@@ -107,7 +108,6 @@ const ProductionStep2Page: React.FC = () => {
   useEffect(() => {
     if (productionResponse?.data) {
       setProductionData(productionResponse.data);
-
       const inventoryList = productionResponse.data.inventory || [];
       const productItem = inventoryList.find((item: any) => Boolean(item.product?.id || item.productId));
       const productId =
@@ -228,18 +228,11 @@ const ProductionStep2Page: React.FC = () => {
     setRawMaterials(parsedRawMaterials);
     // 2. Packing Materials
     const currentProd = productionData || productionResponse?.data;
-    const existingPackingInventories =
-      (currentProd?.pminventories && currentProd.pminventories.length > 0)
-        ? currentProd.pminventories
-        : (currentProd?.pmInventories && currentProd.pmInventories.length > 0)
-          ? currentProd.pmInventories
-          : (currentProd?.packingMaterials && currentProd.packingMaterials.length > 0)
-            ? currentProd.packingMaterials
-            : [];
-
+    const existingPackingInventories = currentProd.pminventories || [];
     if (existingPackingInventories.length > 0) {
       const parsedPacking: PackingMaterialItem[] = existingPackingInventories.map(
         (packingItem: any, index: number) => {
+          // const lastqtyRes = trigerLastVoucherQty({ pmMaterialId: packingItem })
           const packingMaterialId = packingItem.packingMaterialId ?? packingItem.packingMaterial?.id;
           const matchingPacking = allPackingList.find((p: any) => Number(p.id) === Number(packingMaterialId));
           const name = packingItem.packingMaterial?.name || matchingPacking?.name || `Packing #${packingMaterialId}`;
@@ -307,10 +300,10 @@ const ProductionStep2Page: React.FC = () => {
         matchedRecipe?.ingredientPackingMaterial || [];
 
       if (recipePackingMaterials.length > 0) {
-        const finishedProductQty = Number(initialProductQty) || 0;
-        const initialPacking: PackingMaterialItem[] = recipePackingMaterials.map(
-          (recipeItem: any, index: number) => {
-            const packingMaterialId = recipeItem.packingMaterialId ?? recipeItem.packingMaterial?.id ?? recipeItem.id;
+        const loadedPmMaterilas = Number(initialProductQty) || 0;
+        Promise.all(
+          recipePackingMaterials.map(async (recipeItem: any, index: number) => {
+            const packingMaterialId = recipeItem.packingMaterial?.id ?? recipeItem.packingMaterialId ?? recipeItem.id;
             const matchingPacking = allPackingList.find((p: any) => Number(p.id) === Number(packingMaterialId));
             const name = recipeItem.packingMaterial?.name ?? matchingPacking?.name ?? recipeItem.name ?? '';
             const unit = recipeItem.packingMaterial?.unit?.name ?? matchingPacking?.unit?.name ?? recipeItem.unit?.name ?? 'Pcs';
@@ -318,38 +311,54 @@ const ProductionStep2Page: React.FC = () => {
             const unitPrice = recipeItem.packingMaterial?.unitPrice ?? recipeItem.unitPrice ?? recipeItem.rate ?? matchingPacking?.unitPrice ?? matchingPacking?.rate ?? 0;
             const perUnitQty = recipeItem.ingredienteQty ?? recipeItem.quantity ?? recipeItem.perUnitQty ?? null;
             const totalQty =
-              perUnitQty != null && finishedProductQty > 0
-                ? Number((perUnitQty * finishedProductQty).toFixed(2))
+              perUnitQty != null && loadedPmMaterilas > 0
+                ? Number((perUnitQty * loadedPmMaterilas).toFixed(2))
                 : (recipeItem.Qty ?? recipeItem.quantity ?? null);
-            const total = totalQty != null ? Number((totalQty * unitPrice).toFixed(2)) : 0;
+
+            let lastUsedQty: number | null = null;
+            if (packingMaterialId) {
+              try {
+                const lastUsedqtyRes = await trigerLastVoucherQty({ pmMaterialId: Number(packingMaterialId) });
+                const fetchedQty = lastUsedqtyRes?.data?.data?.quantityLess ?? lastUsedqtyRes?.data?.quantityLess;
+                if (fetchedQty != null && Number(fetchedQty) > 0) {
+                  lastUsedQty = Number(fetchedQty);
+                }
+              } catch (err) {
+                console.error('Failed to fetch last voucher qty for PM:', err);
+              }
+            }
+
+            const finalQty = lastUsedQty != null ? lastUsedQty : (totalQty ?? null);
+            const total = finalQty != null && unitPrice > 0 ? Number((finalQty * unitPrice).toFixed(2)) : 0;
             const calculatedPerUnitQty =
-              finishedProductQty > 0 && totalQty != null
-                ? roundToThree(totalQty / finishedProductQty)
+              loadedPmMaterilas > 0 && finalQty != null
+                ? roundToThree(finalQty / loadedPmMaterilas)
                 : perUnitQty != null
                   ? roundToThree(perUnitQty)
                   : null;
             const calculatedCost =
-              finishedProductQty > 0 && total > 0
-                ? roundToThree(total / finishedProductQty)
+              loadedPmMaterilas > 0 && total > 0
+                ? roundToThree(total / loadedPmMaterilas)
                 : calculatedPerUnitQty != null
                   ? roundToThree(calculatedPerUnitQty * unitPrice)
                   : null;
 
             return {
               si: index + 1,
-              packingMaterialId,
+              packingMaterialId: Number(packingMaterialId),
               name,
               unit,
               unitId,
-              qty: totalQty,
+              qty: finalQty,
               unitPrice,
               perUnitQty: calculatedPerUnitQty,
               perUnitCost: calculatedCost,
               total,
             };
-          }
-        );
-        setPackingMaterials(initialPacking);
+          })
+        ).then((resolvedPacking: PackingMaterialItem[]) => {
+          setPackingMaterials(resolvedPacking);
+        });
       } else {
         setPackingMaterials([]);
       }
@@ -358,10 +367,7 @@ const ProductionStep2Page: React.FC = () => {
     // 3. Production Expenses
     const existingExpenseInventories =
       (currentProd?.productionExpensesInventory && currentProd.productionExpensesInventory.length > 0)
-        ? currentProd.productionExpensesInventory
-        : (currentProd?.productionExpenses && currentProd.productionExpenses.length > 0)
-          ? currentProd.productionExpenses
-          : [];
+        ? currentProd.productionExpensesInventory : [];
 
     if (existingExpenseInventories.length > 0) {
       const parsedExpenses: ProductionExpenseItem[] = existingExpenseInventories.map(

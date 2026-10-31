@@ -19,6 +19,7 @@ const roundToThree = (val: number | null | undefined): number | null => {
   return Math.round((Number(val) + Number.EPSILON) * 1000) / 1000;
 };
 
+
 const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
   packingMaterials,
   setPackingMaterials,
@@ -51,6 +52,7 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
     setPackingMaterials(prev => [...prev, newRow]);
   };
 
+  // console.log(packingMaterials, "packingMaterials")
   const handlePackingItemChange = (si: number, packingMaterialId: number | null) => {
     const chosen = packingMaterialOptions.find((opt: any) => opt.value === packingMaterialId);
     const prodQty = Number(productQuantity) || 0;
@@ -324,7 +326,7 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
             record.id ? `id-${record.id}` : `row-${record.si ?? index}`
           }
           pagination={false}
-                    size="small"
+          size="small"
           scroll={{ x: 950 }}
           summary={() => (
             <Table.Summary fixed>

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useMemo } from 'react';
 import { Form, Button, Table, Select, DatePicker, message, Spin, InputNumber } from 'antd';
@@ -73,6 +74,8 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
   const dispatch = useAppDispatch();
   const [form] = Form.useForm();
 
+
+
   const [existingProductionId, setExistingProductionId] = useState<number | null>(null);
   const [rawMaterials, setRawMaterials] = useState<RawMaterialItem[]>([
     { si: 1, rawMaterialId: null, name: '', unit: 'Kg', unitId: null, qty: null, rate: null, total: 0 },
@@ -111,7 +114,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
         rate = Number((netAmount / netQty).toFixed(2));
       }
       // fetch last used qty
-      const reslastQty = await trigerLastVoucherQty(rawId).unwrap();
+      const reslastQty = await trigerLastVoucherQty({ rawid: rawId }).unwrap();
       const lastUsedQty = reslastQty?.data;
       return { rate, netQuantity: netQty, lastQty: lastUsedQty?.quantityLess };
     } catch (err) {

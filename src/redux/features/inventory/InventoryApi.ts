@@ -29,13 +29,31 @@ const invertoryApi = baseApi.injectEndpoints({
             }),
         }),
         getLastVoucherQty: builder.query({
-            query: (rawid: number) => ({
-                url: "/inventory/last_voucher_qty",
-                method: "GET",
-                params: { rawid }
-            }),
+            query: (info: { rawid?: number; rawId?: number; pmMaterialId?: number } | number) => {
+                const params: {
+                    rawId?: number;
+                    pmMaterialId?: number;
+                } = {};
+                if (typeof info === 'number') {
+                    params.rawId = info;
+                } else if (info) {
+                    if (info.rawid !== undefined || info.rawId !== undefined) {
+                        params.rawId = info.rawId ?? info.rawid;
+                    }
+
+                    if (info.pmMaterialId !== undefined) {
+                        params.pmMaterialId = info.pmMaterialId;
+                    }
+                }
+                return {
+                    url: "/inventory/last_voucher_qty",
+                    method: "GET",
+                    params: params
+                };
+            },
         }),
     }),
 })
+
 
 export const { useGetInvertoryTotalQuery, useGetUnitQuery, useGetLastRateQuery, useLazyGetLastVoucherQtyQuery } = invertoryApi;
