@@ -901,7 +901,6 @@ const ProductionStep2Page: React.FC = () => {
         id: productionData?.id,
       });
       const result = getResponse(res);
-      console.log(result, "resultresultresultresult")
       if (result?.success) {
         message.success('Production Step 2 completed and saved successfully');
         navigate('/dashboard/production-voucher');
@@ -1035,16 +1034,6 @@ const ProductionStep2Page: React.FC = () => {
           inventoryId={Number(productInventoryItem?.id)}
         />
 
-        {/* Production Expenses Section */}
-        <ProductionExpensesSection
-          productionExpenses={productionExpenses}
-          setProductionExpenses={setProductionExpenses}
-          expenseOptions={expenseOptions}
-          totalExpenseQty={totalExpenseQty}
-          totalExpenseTk={totalExpenseTk}
-          disabled={!isProcessing}
-        />
-
         {/* Packing Materials Section */}
         <PackingMaterialsSection
           packingMaterials={packingMaterials}
@@ -1055,6 +1044,17 @@ const ProductionStep2Page: React.FC = () => {
           productQuantity={productQuantity}
           disabled={!isProcessing}
         />
+        {/* Production Expenses Section */}
+        <ProductionExpensesSection
+          productionExpenses={productionExpenses}
+          setProductionExpenses={setProductionExpenses}
+          expenseOptions={expenseOptions}
+          totalExpenseQty={totalExpenseQty}
+          totalExpenseTk={totalExpenseTk}
+          disabled={!isProcessing}
+        />
+
+
 
         {/* Save Materials & Expenses Button */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-slate-50/70 border border-slate-200/70 rounded-xl shadow-xs mt-4">

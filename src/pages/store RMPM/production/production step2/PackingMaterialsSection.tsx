@@ -3,6 +3,7 @@ import React, { useMemo } from 'react';
 import { Button, Table, Select, InputNumber } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { PackingMaterialItem } from '../ProductionCreationForm';
+import { useLazyGetLastVoucherQtyQuery } from '../../../../redux/features/inventory/InventoryApi';
 
 interface PackingMaterialsSectionProps {
   packingMaterials: PackingMaterialItem[];
@@ -29,6 +30,10 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
   productQuantity,
   disabled = false,
 }) => {
+
+
+  const [trigerLastVoucherQty] = useLazyGetLastVoucherQtyQuery()
+
   const selectedPackingIds = useMemo(() => {
     return new Set(
       packingMaterials
@@ -36,7 +41,7 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
         .filter((id): id is number => id != null)
     );
   }, [packingMaterials]);
-  const handleAddPackingRow = () => {
+  const handleAddPackingRow = async () => {
     const newRow: PackingMaterialItem = {
       si: packingMaterials.length + 1,
       packingMaterialId: null,
@@ -53,12 +58,13 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
   };
 
   // console.log(packingMaterials, "packingMaterials")
-  const handlePackingItemChange = (si: number, packingMaterialId: number | null) => {
+  const handlePackingItemChange = async (si: number, packingMaterialId: number | null) => {
     const chosen = packingMaterialOptions.find((opt: any) => opt.value === packingMaterialId);
     const prodQty = Number(productQuantity) || 0;
-
+    const lastQty = await trigerLastVoucherQty({ pmMaterialId: Number(packingMaterialId) })
+    const lastUsedQty = lastQty?.data?.data?.quantityLess;
     setPackingMaterials(prev =>
-      prev.map(item => {
+      prev.map((item) => {
         if (item.si === si) {
           if (!chosen) {
             return {
@@ -95,6 +101,7 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
             total,
             perUnitQty,
             perUnitCost,
+            qty: lastUsedQty
           };
         }
         return item;
