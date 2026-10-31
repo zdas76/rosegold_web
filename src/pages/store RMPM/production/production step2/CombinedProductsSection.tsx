@@ -32,6 +32,7 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
   disabled = false,
   selectedProduct,
 }) => {
+  console.log(oldProductQty, "oldProductQty")
   const mainProductId = selectedProduct?.id;
   const targetSubCategoryName = selectedProduct?.subCategory?.subCategoryName;
 
@@ -180,16 +181,16 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
         const currentOptions =
           record.productId && !productOptions.some((opt: any) => opt.value === record.productId)
             ? [
-                ...productOptions,
-                {
-                  value: record.productId,
-                  label: record.productName || `Product #${record.productId}`,
-                  searchStr: (record.productName || '').toLowerCase(),
-                  name: record.productName,
-                  categoryName: record.categoryName,
-                  isMainProduct: false,
-                },
-              ]
+              ...productOptions,
+              {
+                value: record.productId,
+                label: record.productName || `Product #${record.productId}`,
+                searchStr: (record.productName || '').toLowerCase(),
+                name: record.productName,
+                categoryName: record.categoryName,
+                isMainProduct: false,
+              },
+            ]
             : productOptions;
 
         return (
@@ -318,7 +319,7 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
             record.id ? `id-${record.id}` : `row-${record.si ?? index}`
           }
           pagination={false}
-                    size="small"
+          size="small"
           scroll={{ x: 800 }}
           summary={() => (
             <Table.Summary fixed>

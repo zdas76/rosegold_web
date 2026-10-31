@@ -103,7 +103,6 @@ const ProductionStep2Page: React.FC = () => {
     { skip: !currentProductId }
   );
   const oldProductQty = stockData?.data?.netQuantity;
-
   // Sync API response to local state and Redux
   useEffect(() => {
     if (productionResponse?.data) {
@@ -228,7 +227,7 @@ const ProductionStep2Page: React.FC = () => {
     setRawMaterials(parsedRawMaterials);
     // 2. Packing Materials
     const currentProd = productionData || productionResponse?.data;
-    const existingPackingInventories = currentProd.pminventories || [];
+    const existingPackingInventories = currentProd?.pminventories || [];
     if (existingPackingInventories.length > 0) {
       const parsedPacking: PackingMaterialItem[] = existingPackingInventories.map(
         (packingItem: any, index: number) => {
@@ -365,9 +364,8 @@ const ProductionStep2Page: React.FC = () => {
     }
 
     // 3. Production Expenses
-    const existingExpenseInventories =
-      (currentProd?.productionExpensesInventory && currentProd.productionExpensesInventory.length > 0)
-        ? currentProd.productionExpensesInventory : [];
+    const existingExpenseInventories = currentProd?.productionExpensesInventory || [];
+
 
     if (existingExpenseInventories.length > 0) {
       const parsedExpenses: ProductionExpenseItem[] = existingExpenseInventories.map(
@@ -409,7 +407,7 @@ const ProductionStep2Page: React.FC = () => {
       const matchedRecipe =
         ingredientsList.find((recipe: any) => Number(recipe.productId) === Number(currentProductId)) ||
         ingredientsList[0];
-      const recipeExpenses = matchedRecipe?.ingredientExpneseItems || matchedRecipe?.expenseItems || [];
+      const recipeExpenses = currentProd?.currentProd?.productioniteminfo?.status === "PROCESSING" ? matchedRecipe?.ingredientExpneseItems : [];
 
       if (recipeExpenses.length > 0) {
         const initialExpenses: ProductionExpenseItem[] = recipeExpenses.map((recipeExp: any, index: number) => {
