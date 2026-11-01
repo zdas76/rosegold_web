@@ -146,7 +146,7 @@ const PaymentVoucher: React.FC = () => {
                         <Input placeholder="Enter voucher code" value={vaoucherNo} disabled className="pointer-events-none" style={{ color: "#000" }} />
                     </Form.Item>
                 </div>
-                <div className="bg-white mt-5 shadow-lg pt-0 rounded-lg p-3">
+                <div className="bg-white mt-5 pt-0 rounded-lg p-3">
                     <Divider orientation="left" style={{ paddingTop: "10px" }}>Credit Items</Divider>
                     <Form.List name="creditItem">
                         {(fields, { add, remove }) => (

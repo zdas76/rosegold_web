@@ -174,7 +174,7 @@ const AccountsReceivedVoucher: React.FC = () => {
 
                 <div className="mb-5 bg-white shadow-md rounded-lg p-3 pt-0">
                     <h3 className="text-lg font-semibold mb-1">Debit Items</h3>
-                    <Form form={debitForm} layout="vertical" className="mb-3">
+                    <Form component="div" form={debitForm} layout="vertical" className="mb-3">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <Form.Item name="accountsItemId" label="Debit Item" rules={[{ required: true, message: "Required" }]}>
                                 <Select placeholder="Select debit item" onChange={(value) => {
@@ -240,7 +240,7 @@ const AccountsReceivedVoucher: React.FC = () => {
 
                 <div className="mb-5 bg-white shadow-md rounded-lg p-3 pt-0">
                     <h3 className="text-lg font-semibold mb-1">Credit Items</h3>
-                    <Form form={creditForm} layout="vertical" className="mb-3">
+                    <Form component="div" form={creditForm} layout="vertical" className="mb-3">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <Form.Item name="accountsItemId" label="Credit Item" rules={[{ required: true, message: "Required" }]}>
                                 <Select placeholder="Select credit item" onChange={(value) => {

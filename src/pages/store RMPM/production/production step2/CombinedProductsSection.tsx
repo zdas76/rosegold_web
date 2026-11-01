@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
+import { useGetTotalQuantityAndUnitPriceQuery } from '../../../../redux/features/transactions/transactons.api';
 import { Button, Table, Select, InputNumber, Tag, message } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 
 export interface CombinedProductItem {
   id?: number | string;
   si: number;
-  productId: number | null;
+  productId: number | null | undefined;
   productName: string;
   categoryName?: string;
   qtyPerPack: number | null;
@@ -20,6 +21,7 @@ interface CombinedProductsSectionProps {
   productsData: any;
   productQuantity: any;
   oldProductQty?: number | null;
+  onStockChange?: (qty: number | null) => void;
   disabled?: boolean;
   selectedProduct?: any;
 }
@@ -29,10 +31,25 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
   setCombinedProducts,
   productsData,
   oldProductQty,
+  onStockChange,
   disabled = false,
   selectedProduct,
 }) => {
-  console.log(oldProductQty, "oldProductQty")
+  const currentProductId = selectedProduct?.id ? Number(selectedProduct.id) : undefined;
+  const { data: stockData } = useGetTotalQuantityAndUnitPriceQuery(
+    { itemType: "product", productId: currentProductId },
+    { skip: !currentProductId || disabled, refetchOnMountOrArgChange: true }
+  );
+
+  const fetchedStockQty = stockData?.data?.netQuantity;
+  const effectiveStockQty = fetchedStockQty !== undefined ? fetchedStockQty : (oldProductQty ?? null);
+
+  useEffect(() => {
+    if (onStockChange && fetchedStockQty !== undefined) {
+      onStockChange(fetchedStockQty);
+    }
+  }, [fetchedStockQty, onStockChange]);
+
   const mainProductId = selectedProduct?.id;
   const targetSubCategoryName = selectedProduct?.subCategory?.subCategoryName;
 
@@ -63,8 +80,8 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
     return combinedProducts.reduce((sum, item) => sum + (Number(item.totalQty) || 0), 0);
   }, [combinedProducts]);
 
-  const maxAllowedQty = oldProductQty != null ? Number(oldProductQty) : 0;
-  const isExceeded = oldProductQty != null && totalCombinedQty > maxAllowedQty;
+  const maxAllowedQty = effectiveStockQty != null ? Number(effectiveStockQty) : 0;
+  const isExceeded = effectiveStockQty != null && totalCombinedQty > maxAllowedQty;
 
   const handleAddProductRow = () => {
     const nextSi = combinedProducts.length > 0 ? Math.max(...combinedProducts.map(m => m.si)) + 1 : 1;
@@ -302,11 +319,11 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
           )}
           {isExceeded && (
             <span className="text-xs font-semibold px-2.5 py-0.5 bg-red-100 text-red-700 rounded-full border border-red-200">
-              Exceeds available product qty ({oldProductQty ?? 0})!
+              Exceeds available product qty ({effectiveStockQty ?? 0})!
             </span>
           )}
           <div className="text-xs font-bold px-3 py-1 bg-slate-100 text-slate-700 rounded-full border border-slate-200/70 ml-auto font-mono">
-            Available : {oldProductQty ?? 0}
+            Available : {effectiveStockQty ?? 0}
           </div>
         </div>
       </div>
@@ -341,14 +358,14 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
                   <span className={`text-base font-extrabold ${isExceeded ? 'text-red-600' : 'text-blue-800'}`}>
                     {totalCombinedQty.toLocaleString()}
                   </span>
-                  {oldProductQty != null && (
+                  {effectiveStockQty != null && (
                     <span className="text-xs text-gray-500 ml-1 font-normal">
-                      / {Number(oldProductQty).toLocaleString()}
+                      / {Number(effectiveStockQty).toLocaleString()}
                     </span>
                   )}
                   {isExceeded && (
                     <div className="text-xs text-red-500 font-semibold mt-0.5">
-                      Total combined qty cannot exceed available qty ({oldProductQty ?? 0})
+                      Total combined qty cannot exceed available qty ({effectiveStockQty ?? 0})
                     </div>
                   )}
                 </Table.Summary.Cell>

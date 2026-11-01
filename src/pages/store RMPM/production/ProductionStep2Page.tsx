@@ -28,7 +28,6 @@ import FinalizationSummary from './production step2/FinalizationSummary';
 import ProductionExpensesSection from './production step2/ProductionExpensesSection';
 import PackingMaterialsSection from './production step2/PackingMaterialsSection';
 import RawMaterialsSection from './production step2/RawMaterialsSection';
-import { useGetTotalQuantityAndUnitPriceQuery } from '../../../redux/features/transactions/transactons.api';
 import { useLazyGetLastVoucherQtyQuery } from '../../../redux/features/inventory/InventoryApi';
 
 const roundToThree = (value: number | null | undefined): number | null => {
@@ -98,11 +97,7 @@ const ProductionStep2Page: React.FC = () => {
   const productionItemInfo = productionData?.productioniteminfo;
   const selectedProduct = productionItemInfo?.products;
   const currentProductId = Number(selectedProduct?.id);
-  const { data: stockData } = useGetTotalQuantityAndUnitPriceQuery(
-    { itemType: "product", productId: currentProductId },
-    { skip: !currentProductId }
-  );
-  const oldProductQty = stockData?.data?.netQuantity;
+  const [oldProductQty, setOldProductQty] = useState<number | null>(null);
   // Sync API response to local state and Redux
   useEffect(() => {
     if (productionResponse?.data) {
@@ -407,9 +402,9 @@ const ProductionStep2Page: React.FC = () => {
       const matchedRecipe =
         ingredientsList.find((recipe: any) => Number(recipe.productId) === Number(currentProductId)) ||
         ingredientsList[0];
-      const recipeExpenses = currentProd?.currentProd?.productioniteminfo?.status === "PROCESSING" ? matchedRecipe?.ingredientExpneseItems : [];
+      const recipeExpenses = currentProd?.productioniteminfo?.status === "PROCESSING" ? matchedRecipe?.ingredientExpneseItems : [];
 
-      if (recipeExpenses.length > 0) {
+      if (recipeExpenses?.length > 0) {
         const initialExpenses: ProductionExpenseItem[] = recipeExpenses.map((recipeExp: any, index: number) => {
           const expenseItemId = recipeExp.productionExpenssItemId ?? recipeExp.productionExpenseItem?.id ?? recipeExp.id;
           const matchingExpense = allExpensesList.find((e: any) => Number(e.id) === Number(expenseItemId));
@@ -1114,6 +1109,7 @@ const ProductionStep2Page: React.FC = () => {
         productsData={productsData}
         productQuantity={productQuantity}
         oldProductQty={oldProductQty}
+        onStockChange={setOldProductQty}
         disabled={!isPending}
         selectedProduct={selectedProduct}
       />

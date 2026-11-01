@@ -218,7 +218,7 @@ const AccountsSalesVoucher = () => {
         </div>
         <div className="mb-5 bg-white shadow rounded p-3 pt-0 mt-3">
           <h3 className="text-lg font-semibold mb-1">Debit Items</h3>
-          <Form form={debitForm} layout="vertical" className="mb-3">
+          <Form component="div" form={debitForm} layout="vertical" className="mb-3">
             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
               <Form.Item name="rawOrProductId" label="Raw Material" rules={[{ required: true, message: "Required" }]}>
                 <Select placeholder="Select Product">
@@ -298,7 +298,7 @@ const AccountsSalesVoucher = () => {
         </div>
         <div className="mb-5 bg-white shadow rounded p-3 pt-0 mt-3">
           <h3 className="text-lg font-semibold mb-1">Credit Items</h3>
-          <Form form={creditForm} layout="vertical" className="mb-3">
+          <Form component="div" form={creditForm} layout="vertical" className="mb-3">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               <Form.Item name="accountsItemId" label="Account Item" rules={[{ required: true, message: "Required" }]}>
                 <Select placeholder="Select item">

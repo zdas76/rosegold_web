@@ -63,6 +63,8 @@ const AccountsPaymentVoucher: React.FC = () => {
     const debitaccountItem = debitAccounts?.data;
     const creditAccountItem = accountItems?.data;
 
+    console.log(debitAccounts, "creditAccountItem")
+
     const debitTotal = useMemo(() => {
         return debitItems.reduce((acc, item) => acc + (item?.amount || 0), 0);
     }, [debitItems]);
@@ -150,10 +152,10 @@ const AccountsPaymentVoucher: React.FC = () => {
                     </Form.Item>
                 </div>
 
-                <div className="bg-white mt-5 shadow-lg pt-0 rounded-lg p-3">
+                <div className="bg-white mt-5 shadow pt-0 rounded-lg p-3">
                     <h3 className="text-lg font-semibold mb-1">Credit Items</h3>
-                    <Form form={creditForm} layout="vertical" className="mb-3">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <Form component="div" form={creditForm} layout="vertical" className="mb-3">
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                             <Form.Item name="accountsItemId" label="Credit Item" rules={[{ required: true, message: "Required" }]}>
                                 <Select placeholder="Select Credit Item" onChange={(value) => {
                                     const selected = creditAccountItem?.find((item: TAccountsItem) => item?.id === value);
@@ -171,6 +173,9 @@ const AccountsPaymentVoucher: React.FC = () => {
                             )}
                             <Form.Item name="amount" label="Amount" rules={[{ required: true, message: "Required" }]}>
                                 <Input type="number" placeholder="Amount" min={0} />
+                            </Form.Item>
+                            <Form.Item name="checkOrRTGS" label="check No/Rtgs">
+                                <Input type="number" placeholder="check No" min={0} />
                             </Form.Item>
                             <Form.Item name="narration" label="Narration">
                                 <Input placeholder="Narration (optional)" />
@@ -216,10 +221,10 @@ const AccountsPaymentVoucher: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="bg-white shadow-md rounded-lg p-4 mt-5 pt-0">
+                <div className="bg-white shadow rounded-lg p-4 mt-5 pt-0">
                     <h3 className="text-lg font-semibold mb-1">Debit Items</h3>
-                    <Form form={debitForm} layout="vertical" className="mb-3">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <Form component="div" form={debitForm} layout="vertical" className="mb-3">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                             <Form.Item name="accountsItemId" label="Debit Item" rules={[{ required: true, message: "Required" }]}>
                                 <Select placeholder="Select debit Item">
                                     {debitaccountItem?.map((item: TAccountsItem, idx: number) => (
