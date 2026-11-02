@@ -57,7 +57,7 @@ const authApi = baseApi.injectEndpoints({
             query: (info: { partyType?: string; searchTerm?: string; sortBy?: string; sortOrder?: string; page?: number; limit?: number }) => {
                 const params = new URLSearchParams()
                 if (info?.partyType) {
-                    params.append("partyType", info?.partyType)
+                    params.append("PartyType", info?.partyType)
                 }
                 if (info?.searchTerm) {
                     params.append("searchTerm", info.searchTerm)

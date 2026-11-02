@@ -236,14 +236,14 @@ const ProductionExpensesSection: React.FC<ProductionExpensesSectionProps> = ({
 
       <div className="rounded-xl overflow-hidden border border-slate-200/80 shadow-[0_2px_12px_-3px_rgba(15,23,42,0.04)] bg-white">
         <Table
-          className="expense-materials-table"
+          className={`expense-materials-table`}
           dataSource={productionExpenses}
           columns={expenseColumns}
           rowKey={(record, index) =>
             record.id ? `id-${record.id}` : `row-${record.si ?? index}`
           }
           pagination={false}
-                    size="small"
+          size="small"
           scroll={{ x: 750 }}
           summary={() => (
             <Table.Summary fixed>

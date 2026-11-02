@@ -9,6 +9,7 @@ export type TPaymentVoucherCreditItem = {
     bankAccountId: number | null;
     amount: number;
     narration: string;
+    checkOrRTGS?: number | null;
 };
 
 type TPaymentVoucherCreditState = {

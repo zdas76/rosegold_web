@@ -292,13 +292,13 @@ export const sideBarRoutes = [
         icon: <MdAccountBalance />,
         label: "Accounts",
         children: [
-            {
-                key: "accounts_order_received",
-                path: "/dashboard/accounts_order_received",
-                icon: <BiReceipt />,
-                element: <OrderReceived />,
-                label: <Link to="/dashboard/accounts_order_received">Order Received</Link>,
-            },
+            // {
+            //     key: "accounts_order_received",
+            //     path: "/dashboard/accounts_order_received",
+            //     icon: <BiReceipt />,
+            //     element: <OrderReceived />,
+            //     label: <Link to="/dashboard/accounts_order_received">Order Received</Link>,
+            // },
             {
                 key: "accounts_sales_voucher",
                 path: "/dashboard/accounts_sales_voucher",
@@ -320,13 +320,13 @@ export const sideBarRoutes = [
                 element: <AccountsPaymentVoucher />,
                 label: <Link to="/dashboard/accounts_payment_voucher">Payment Voucher</Link>,
             },
-            {
-                key: "accounts_expense_voucher",
-                path: "/dashboard/accounts_expense_voucher",
-                icon: <FaMoneyBillWave />,
-                element: <ExpenseVoucher />,
-                label: <Link to="/dashboard/accounts_expense_voucher">Expense Voucher</Link>,
-            },
+            // {
+            //     key: "accounts_expense_voucher",
+            //     path: "/dashboard/accounts_expense_voucher",
+            //     icon: <FaMoneyBillWave />,
+            //     element: <ExpenseVoucher />,
+            //     label: <Link to="/dashboard/accounts_expense_voucher">Expense Voucher</Link>,
+            // },
             {
                 key: "accounts_gift_voucher",
                 path: "/dashboard/accounts_gift_voucher",

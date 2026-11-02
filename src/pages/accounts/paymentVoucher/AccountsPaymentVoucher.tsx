@@ -63,14 +63,12 @@ const AccountsPaymentVoucher: React.FC = () => {
     const debitaccountItem = debitAccounts?.data;
     const creditAccountItem = accountItems?.data;
 
-    console.log(debitAccounts, "creditAccountItem")
-
     const debitTotal = useMemo(() => {
-        return debitItems.reduce((acc, item) => acc + (item?.amount || 0), 0);
+        return debitItems.reduce((acc, item) => acc + (Number(item?.amount) || 0), 0);
     }, [debitItems]);
 
     const creditTotal = useMemo(() => {
-        return creditItems.reduce((acc, item) => acc + (item?.amount || 0), 0);
+        return creditItems.reduce((acc, item) => acc + (Number(item?.amount) || 0), 0);
     }, [creditItems]);
 
     if (isLoading || isPartyLoading || isAccountItemsLoading || isDebitAccountsLoading) {
@@ -84,7 +82,7 @@ const AccountsPaymentVoucher: React.FC = () => {
                 key: Date.now(),
                 accountsItemId: values.accountsItemId,
                 accountsItemName: selected?.accountsItemName || "",
-                amount: values.amount || 0,
+                amount: Number(values.amount) || 0,
                 narration: values.narration || "",
             }));
             debitForm.resetFields();
@@ -99,14 +97,14 @@ const AccountsPaymentVoucher: React.FC = () => {
                 accountsItemId: values.accountsItemId,
                 accountsItemName: selected?.accountsItemName || "",
                 bankAccountId: values.bankAccountId || null,
-                amount: values.amount || 0,
+                amount: Number(values.amount) || 0,
                 narration: values.narration || "",
+                checkOrRTGS: Number(values?.checkOrRTGS) || null
             }));
             creditForm.resetFields();
             setSelectedCreditLedgerName("");
         });
     };
-
     const onFinish = async (values: any) => {
         const data = {
             ...values,
@@ -135,8 +133,8 @@ const AccountsPaymentVoucher: React.FC = () => {
             <div className="bg-white rounded-lg px-4 py-2 mb-3">
                 <h2 className="text-xl md:text-2xl font-semibold m-0">Payment Voucher</h2>
             </div>
-            <Form form={form} layout="vertical" onFinish={onFinish} initialValues={{ voucherDate: dayjs(new Date()) }}>
-                <div className="grid bg-white grid-cols-1 sm:grid-cols-2 md:grid-cols-3 md:gap-x-4 p-4 rounded-lg">
+            <Form form={form} layout="vertical" onFinish={onFinish} initialValues={{ date: dayjs(new Date()) }}>
+                <div className="grid bg-white grid-cols-1 sm:grid-cols-2 md:grid-cols-2 md:gap-x-4 p-4 rounded-lg">
                     <Form.Item name="partyId" label="Party" rules={[{ required: true, message: "Party Is Required" }]}>
                         <Select placeholder="Select party">
                             {paymentParty?.map((item: TParty, idx: number) => (
@@ -144,12 +142,12 @@ const AccountsPaymentVoucher: React.FC = () => {
                             ))}
                         </Select>
                     </Form.Item>
-                    <Form.Item name="date" label="Voucher Date" rules={[{ required: true, message: "Please select voucher date" }]}>
+                    <Form.Item name="date" label="Voucher Date" initialValue={dayjs()} rules={[{ required: true, message: "Please select voucher date" }]}>
                         <DatePicker className="w-full" />
                     </Form.Item>
-                    <Form.Item label="Voucher No">
+                    {/* <Form.Item label="Voucher No">
                         <Input placeholder="Enter voucher code" value={voucherNo} disabled style={{ color: "#000" }} />
-                    </Form.Item>
+                    </Form.Item> */}
                 </div>
 
                 <div className="bg-white mt-5 shadow pt-0 rounded-lg p-3">
@@ -196,11 +194,17 @@ const AccountsPaymentVoucher: React.FC = () => {
                                 {
                                     title: "Credit Item",
                                     dataIndex: "accountsItemName",
+                                    render: (value: string) => <span className="font-medium">{value}</span>,
                                 },
                                 {
                                     title: "Amount",
                                     dataIndex: "amount",
-                                    render: (value: number) => <b>{value?.toFixed(2)}</b>,
+                                    render: (value: number) => <b>{Number(value)?.toFixed(2)}</b>,
+                                },
+                                {
+                                    title: "check/RTGS",
+                                    dataIndex: "checkOrRTGS",
+                                    render: (value: number) => <span className="font-medium">{Number(value)}</span>,
                                 },
                                 {
                                     title: "Narration",
@@ -217,7 +221,7 @@ const AccountsPaymentVoucher: React.FC = () => {
                         />
                     )}
                     <div className="text-right font-bold text-lg mb-4 mt-2">
-                        <b>Total Credit Amount: {creditTotal.toFixed(2)}</b>
+                        <b>Total Credit Amount: {Number(creditTotal).toFixed(2)}</b>
                     </div>
                 </div>
 
@@ -258,7 +262,7 @@ const AccountsPaymentVoucher: React.FC = () => {
                                 {
                                     title: "Amount",
                                     dataIndex: "amount",
-                                    render: (value: number) => <b>{value?.toFixed(2)}</b>,
+                                    render: (value: any) => <b>{Number(value || 0).toFixed(2)}</b>,
                                 },
                                 {
                                     title: "Narration",
@@ -275,7 +279,7 @@ const AccountsPaymentVoucher: React.FC = () => {
                         />
                     )}
                     <div className="text-right font-bold text-base mt-2">
-                        <b>Total Debit Amount: {debitTotal.toFixed(2)}</b>
+                        <b>Total Debit Amount: {Number(debitTotal || 0).toFixed(2)}</b>
                     </div>
                 </div>
 
@@ -283,7 +287,7 @@ const AccountsPaymentVoucher: React.FC = () => {
                     <div>
                         {
                             debitTotal !== creditTotal ?
-                                <span className="font-bold text-sm text-slate-900">Debit or credit Required {(debitTotal - creditTotal).toFixed(2)}</span> :
+                                <span className="font-bold text-sm text-slate-900">Debit or credit Required {Number(debitTotal - creditTotal || 0).toFixed(2)}</span> :
                                 <span className="font-bold text-green-700">Procced</span>
                         }
                     </div>

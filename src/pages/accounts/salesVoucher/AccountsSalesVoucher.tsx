@@ -64,7 +64,7 @@ const AccountsSalesVoucher = () => {
   const [addvoucher, { isLoading: isSubmitting }] = useCreateMaterialSalesVoucherMutation();
   const { data: accountItem, isLoading: isAccountItemLoading } = useGetAccountItemQuery({});
   const { data: party, isLoading: isPartiesLoading } = useGetPartiesQuery({ partyType: "PARTY" });
-  const { data: product, isLoading: isProductLoading } = useGetRowMaterialsQuery({});
+  const { data: product, isLoading: isProductLoading } = useGetProductsQuery({});
 
   const getDebitTotal = useMemo(() => {
     return debitItems.reduce((acc, item) => acc + (item?.creditAmount || 0), 0);
@@ -78,12 +78,13 @@ const AccountsSalesVoucher = () => {
     return <Loading tip="Loading Sales Voucher details..." />;
   }
 
-  const vendors = party?.data?.filter((item: any) => {
+  const parties = party?.data?.filter((item: any) => {
     if (item?.partyType === "PARTY") {
       return item;
     }
   });
 
+  console.log(parties, "parties")
   const handleAddDebitItem = () => {
     debitForm.validateFields().then((values) => {
       const quantity = Number(values.quantity) || 0;
@@ -156,7 +157,7 @@ const AccountsSalesVoucher = () => {
       </div>
       <Form form={form} name="sales_form" onFinish={onFinish} autoComplete="off" layout="vertical">
         <div className="bg-white shadow rounded p-3">
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-y-0 sm:gap-x-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-y-0 lg:gap-x-2">
             <Form.Item label="Party Type" name="partyType" rules={[{ required: true }]}>
               <Select placeholder="Select party" onChange={(value) => setSelectedPartyType(value)}>
                 <Option value="CUSTOMER">CUSTOMER</Option>
@@ -200,9 +201,9 @@ const AccountsSalesVoucher = () => {
                 </Form.Item>
               </>
             ) : (
-              <Form.Item label="Vendor Name" name="name" rules={[{ required: true, message: "Vendor Name is required" }]}>
+              <Form.Item label="Party Name" name="name" rules={[{ required: true, message: "Party Name is required" }]}>
                 <Select placeholder="Select party">
-                  {vendors?.map((item: TVendor) => (
+                  {parties?.map((item: TVendor) => (
                     <Option key={item?.id} value={item?.id}>{item?.name}</Option>
                   ))}
                 </Select>
