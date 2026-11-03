@@ -23,7 +23,7 @@ const Report = baseApi.injectEndpoints({
             // providesTags: [""]
         }),
         getPartyReport: builder.query({
-            query: (info: { partyId: string; startDate?: any; endDate?: any; partyType: "PARTY" | "VENDOR" }) => {
+            query: (info: { partyId: string; startDate?: any; endDate?: any; partyType: "PARTY" | "VENDOR" | "DISTRIBUTOR" | string }) => {
 
                 const params = new URLSearchParams();
                 if (info.startDate && info.endDate) {

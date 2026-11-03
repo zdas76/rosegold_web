@@ -52,7 +52,7 @@ const ProductionSales = () => {
   })
   const [addvoucher, { isLoading: isSubmitting }] = useCreateSalesVoucherMutation()
   const { data: accountItem, isLoading: isAccountItemLoading } = useGetAccountItemQuery({})
-  const { data: party, isLoading: isPartiesLoading } = useGetPartiesQuery({ partyType: "PARTY" })
+  const { data: party, isLoading: isPartiesLoading } = useGetPartiesQuery({ partyType: "DISTRIBUTOR" })
 
   const { data: product, isLoading: isProductLoading } = useGetProductsQuery({})
 
@@ -79,7 +79,7 @@ const ProductionSales = () => {
   }
 
   const vendors = party?.data?.filter((item: any) => {
-    if (item?.partyType === "PARTY") {
+    if (item?.partyType === "DISTRIBUTOR" || item?.partyType === "PARTY") {
       return item
     }
   })
@@ -126,6 +126,7 @@ const ProductionSales = () => {
             <Form.Item label="Party Type" name="partyType" rules={[{ required: true }]}>
               <Select placeholder="Select party" onChange={(value) => setSelectedPartyType(value)}>
                 <Option value="CUSTOMER">CUSTOMER</Option>
+                <Option value="DISTRIBUTOR">DISTRIBUTOR</Option>
                 <Option value="PARTY">PARTY</Option>
               </Select>
             </Form.Item>

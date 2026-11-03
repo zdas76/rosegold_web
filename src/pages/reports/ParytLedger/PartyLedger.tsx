@@ -15,7 +15,7 @@ import { useGetPartiesQuery } from '../../../redux/features/auth/authApi';
 import PartyLedgerPrint from './PartyLedgerPrint';
 
 const PartyLedger = () => {
-    const [selectedPartyType] = useState<string>('PARTY');
+    const [selectedPartyType] = useState<string>('DISTRIBUTOR');
     const [form] = Form.useForm();
     const componentRef = useRef<HTMLDivElement>(null);
     const { data } = useGetPartiesQuery({ partyType: selectedPartyType });
@@ -34,7 +34,7 @@ const PartyLedger = () => {
     const onFinish = async (values: any) => {
         const res = await getReport({
             partyId: values.partyId,
-            partyType: "PARTY",
+            partyType: "DISTRIBUTOR",
             startDate: values.startDate ? values.startDate.format('YYYY-MM-DD') : null,
             endDate: values.endDate ? values.endDate.format('YYYY-MM-DD') : null,
         });

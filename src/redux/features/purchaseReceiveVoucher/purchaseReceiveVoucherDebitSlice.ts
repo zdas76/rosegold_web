@@ -12,6 +12,9 @@ export type TReceiveVoucherDebitItem = {
     unitPrice: number;
     amount: number;
     narration: string;
+    accountsItemId?: number;
+    accountsItemName?: string;
+    bankAccountId?: number;
 };
 
 type TReceiveVoucherDebitState = {

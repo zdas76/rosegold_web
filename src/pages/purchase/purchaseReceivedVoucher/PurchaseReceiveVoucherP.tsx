@@ -23,7 +23,7 @@ import {
   setReceiveVoucherDebitItems,
   removeReceiveVoucherDebitItem,
   clearReceiveVoucherDebitItems,
-} from "../../../redux/features/purchaseReceiveVoucher/receiveVoucherDebitSlice";
+} from "../../../redux/features/purchaseReceiveVoucher/purchaseReceiveVoucherDebitSlice";
 import {
   addReceiveVoucherCreditItem,
   removeReceiveVoucherCreditItem,

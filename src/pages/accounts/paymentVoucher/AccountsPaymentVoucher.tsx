@@ -29,7 +29,7 @@ const AccountsPaymentVoucher: React.FC = () => {
     const [form] = Form.useForm();
     const [debitForm] = Form.useForm();
     const [creditForm] = Form.useForm();
-    const [voucherNo] = useState(generateInvoiceNumber("PV"));
+    // const [voucherNo] = useState(generateInvoiceNumber("PV"));
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedCreditLedgerName, setSelectedCreditLedgerName] = useState("");
     const dispatch = useAppDispatch();
@@ -108,7 +108,7 @@ const AccountsPaymentVoucher: React.FC = () => {
     const onFinish = async (values: any) => {
         const data = {
             ...values,
-            voucherNo,
+            // voucherNo,
             debitItem: debitItems.map(({ key, ...rest }) => rest),
             creditItem: creditItems.map(({ key, ...rest }) => rest),
         };
@@ -296,7 +296,7 @@ const AccountsPaymentVoucher: React.FC = () => {
                     </Button>
                 </div>
             </Form>
-            <PostSubmitModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} voucherNo={voucherNo} onNewVoucher={handleNewVoucher} />
+            <PostSubmitModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onNewVoucher={handleNewVoucher} />
         </div>
     );
 };

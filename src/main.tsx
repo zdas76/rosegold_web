@@ -17,6 +17,7 @@ import LogVoucherPrint from './pages/logManagement/logOrder/LogOrderVoucher'
 import RawMaterialsDetails from './pages/inventory/rowMaterial/RawMaterialsDetails'
 import ProductStockReportDetails from './pages/production/createProduction/ProductStockReportDetails'
 import CallanVoucher from './pages/sales/challan/CallanVoucher'
+import Party from './pages/sales/party/Party'
 import PurchaseOrderDetails from './pages/purchase/purchaseOrder/PurchaseOrderDetails'
 import ProductionCreationForm from './pages/store RMPM/production/ProductionCreationForm'
 import ProductionVoucher from './pages/store RMPM/production/ProductionVoucher'
@@ -102,6 +103,7 @@ createRoot(document.getElementById('root')!).render(
                   return generateRoutes(sideBarRoutes as TrouteItems[]);
                 })()
               }
+              <Route path="/dashboard/party" element={<Party />} />
               <Route path="/dashboard/log-order/logorder-voucher" element={<LogVoucherPrint />} />
               <Route path="/dashboard/row-material/:id" element={<RawMaterialsDetails />} />
               <Route path="/dashboard/product_stock_report/:productId" element={<ProductStockReportDetails />} />

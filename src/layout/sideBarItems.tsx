@@ -264,6 +264,13 @@ export const sideBarRoutes = [
                 element: <SalesReturn />,
                 label: <Link to="/dashboard/store_fg_sales_return">Sales Return</Link>,
             },
+            {
+                key: "store_fg_distributor",
+                path: "/dashboard/distributor",
+                element: <Party />,
+                icon: <UserAddOutlined />,
+                label: <Link to="/dashboard/distributor">Distributor</Link>,
+            },
         ]
     },
     {

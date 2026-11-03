@@ -15,7 +15,7 @@ import { useGetProductsQuery } from "../../../redux/features/product/product.api
 import { useGetAccountItemQuery, useLazyGetTotalQuantityAndUnitPriceQuery } from "../../../redux/features/transactions/transactons.api";
 import { TAccountsItem, TBankAccount, TCustomer, TProduct, TVendor } from "../../../types/types";
 import { useGetPartiesQuery } from "../../../redux/features/auth/authApi";
-import { useCreateMaterialSalesVoucherMutation } from "../../../redux/features/journal/journal.api";
+import { useCreateSalesVoucherMutation } from "../../../redux/features/journal/journal.api";
 import { useGetBankQuery } from "../../../redux/features/bank/bank.api";
 import { getResponse } from "../../../utils/getResponse";
 import { generateInvoiceNumber } from "../../../utils/generateRandomNumber";
@@ -35,6 +35,7 @@ import {
   removeSalesCreditItem,
   clearSalesCreditItems,
 } from "../../../redux/features/accountsSales/salesCreditSlice";
+import dayjs from "dayjs";
 
 const { Option } = Select;
 const AccountsSalesVoucher = () => {
@@ -43,7 +44,7 @@ const AccountsSalesVoucher = () => {
   const [form] = Form.useForm();
   const [debitForm] = Form.useForm();
   const [creditForm] = Form.useForm();
-  const [voucherNo] = useState(generateInvoiceNumber("SV"));
+  // const [voucherNo] = useState(generateInvoiceNumber("SV"));
   const [totalDiscount, setTotalDiscount] = useState<number>(0);
   const [selectedPartyType, setSelectedPartyType] = useState("");
   const { data, isLoading } = useGetBankQuery({});
@@ -61,9 +62,9 @@ const AccountsSalesVoucher = () => {
       ...item,
     };
   });
-  const [addvoucher, { isLoading: isSubmitting }] = useCreateMaterialSalesVoucherMutation();
+  const [addvoucher, { isLoading: isSubmitting }] = useCreateSalesVoucherMutation();
   const { data: accountItem, isLoading: isAccountItemLoading } = useGetAccountItemQuery({});
-  const { data: party, isLoading: isPartiesLoading } = useGetPartiesQuery({ partyType: "PARTY" });
+  const { data: party, isLoading: isPartiesLoading } = useGetPartiesQuery({ partyType: "DISTRIBUTOR" });
   const { data: product, isLoading: isProductLoading } = useGetProductsQuery({});
 
   const getDebitTotal = useMemo(() => {
@@ -79,12 +80,11 @@ const AccountsSalesVoucher = () => {
   }
 
   const parties = party?.data?.filter((item: any) => {
-    if (item?.partyType === "PARTY") {
+    if (item?.partyType === "DISTRIBUTOR") {
       return item;
     }
   });
 
-  console.log(parties, "parties")
   const handleAddDebitItem = () => {
     debitForm.validateFields().then((values) => {
       const quantity = Number(values.quantity) || 0;
@@ -126,7 +126,6 @@ const AccountsSalesVoucher = () => {
   const onFinish = async (values: any) => {
     const salesVoucherData = {
       ...values,
-      voucherNo,
       totalDiscount,
       grandTotal: getDebitTotal,
       grandDebitTotal: getCreditTotal,
@@ -155,13 +154,17 @@ const AccountsSalesVoucher = () => {
       <div className="bg-white rounded-lg px-4 py-2 mb-3">
         <h2 className="text-lg md:text-xl font-semibold m-0">Sales Entry Form</h2>
       </div>
-      <Form form={form} name="sales_form" onFinish={onFinish} autoComplete="off" layout="vertical">
+      <Form form={form} name="sales_form" onFinish={onFinish} initialValues={{
+        partyType: "DISTRIBUTOR",
+        date: dayjs()
+      }} autoComplete="off" layout="vertical">
         <div className="bg-white shadow rounded p-3">
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-y-0 lg:gap-x-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-0 lg:gap-x-2">
             <Form.Item label="Party Type" name="partyType" rules={[{ required: true }]}>
               <Select placeholder="Select party" onChange={(value) => setSelectedPartyType(value)}>
-                <Option value="CUSTOMER">CUSTOMER</Option>
-                <Option value="PARTY">PARTY</Option>
+                {/* <Option value="CUSTOMER">CUSTOMER</Option> */}
+                <Option value="DISTRIBUTOR">DISTRIBUTOR</Option>
+                {/* <Option value="PARTY">PARTY</Option> */}
               </Select>
             </Form.Item>
             {selectedPartyType === "CUSTOMER" ? (
@@ -201,7 +204,7 @@ const AccountsSalesVoucher = () => {
                 </Form.Item>
               </>
             ) : (
-              <Form.Item label="Party Name" name="name" rules={[{ required: true, message: "Party Name is required" }]}>
+              <Form.Item label="Name" name="name" rules={[{ required: true, message: "Party Name is required" }]}>
                 <Select placeholder="Select party">
                   {parties?.map((item: TVendor) => (
                     <Option key={item?.id} value={item?.id}>{item?.name}</Option>
@@ -212,9 +215,9 @@ const AccountsSalesVoucher = () => {
             <Form.Item label="Date" name="date" rules={[{ required: true }]}>
               <DatePicker className="w-full" />
             </Form.Item>
-            <Form.Item label="Voucher No">
+            {/* <Form.Item label="Voucher No">
               <Input placeholder="Voucher No" value={voucherNo} disabled style={{ color: "black" }} />
-            </Form.Item>
+            </Form.Item> */}
           </div>
         </div>
         <div className="mb-5 bg-white shadow rounded p-3 pt-0 mt-3">
@@ -379,7 +382,7 @@ const AccountsSalesVoucher = () => {
           </Button>
         </div>
       </Form>
-      <PostSubmitModal voucherNo={voucherNo} isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onNewVoucher={handleNewVoucher} />
+      <PostSubmitModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onNewVoucher={handleNewVoucher} />
     </div>
   );
 };

@@ -30,7 +30,7 @@ const Party = () => {
   }, [searchTerm]);
 
   const { data, isLoading, isFetching } = useGetPartiesQuery({
-    partyType: "PARTY",
+    partyType: "DISTRIBUTOR",
     searchTerm: debouncedSearch,
     sortBy: "createdAt",
     sortOrder: sortOrder,
@@ -65,11 +65,11 @@ const Party = () => {
       <div className="mb-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="bg-white rounded-lg px-4 py-2">
-            <h1 className="font-bold text-lg md:text-xl m-0">Party</h1>
+            <h1 className="font-bold text-lg md:text-xl m-0">Distributor</h1>
           </div>
           <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
             <Search
-              placeholder="Search party..."
+              placeholder="Search distributor..."
               allowClear
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{ width: 250 }}
@@ -85,12 +85,12 @@ const Party = () => {
             />
             <CommonModal
               btnClass="px-4 bg-slate-800 text-white py-2"
-              title="Add Party"
+              title="Add Distributor"
               isModalOpen={isAddModalOpen}
               setIsModalOpen={setIsAddModalOpen}
               btnText={
                 <span className="flex items-center gap-1 justify-center">
-                  <FaPlus size={10} /> <small>Create Party</small>
+                  <FaPlus size={10} /> <small>Create Distributor</small>
                 </span>
               }
             >
@@ -114,7 +114,7 @@ const Party = () => {
           <Column title="Contact" dataIndex="contactNo" key="contact" />
           <Column title="Address" dataIndex="address" key="address" />
           <Column
-            title="Party Type"
+            title="Distributor Type"
             dataIndex="partyType"
             key="Type"
             render={(type) => (
@@ -137,7 +137,7 @@ const Party = () => {
               <div className="flex gap-4">
                 {/* Edit Modal Trigger */}
                 <CommonModal
-                  title="Edit Party"
+                  title="Edit Distributor"
                   isModalOpen={editModalData?.id === item.id}
                   setIsModalOpen={(state: TParty | null) =>
                     setEditModalData(state ? item : null)

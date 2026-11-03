@@ -155,6 +155,7 @@ const ReceivedVoucher: React.FC = () => {
                             setPartyType(value)
                         }}>
                             <Option value={"VENDOR"}>Vendor</Option>
+                            <Option value={"DISTRIBUTOR"}>Distributor</Option>
                             <Option value={"PARTY"}>Party</Option>
                         </Select>
                     </Form.Item>

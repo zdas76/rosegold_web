@@ -17,12 +17,11 @@ import {
     addReceiveVoucherDebitItem,
     removeReceiveVoucherDebitItem,
     clearReceiveVoucherDebitItems,
-} from "../../../redux/features/purchaseReceiveVoucher/receiveVoucherDebitSlice";
-import {
     addReceiveVoucherCreditItem,
     removeReceiveVoucherCreditItem,
     clearReceiveVoucherCreditItems,
-} from "../../../redux/features/purchaseReceiveVoucher/receiveVoucherCreditSlice";
+    clearAllReceiveVoucherItems,
+} from "./AccountsReceiveVoucher";
 
 const { Option } = Select;
 
@@ -36,8 +35,8 @@ const AccountsReceivedVoucher: React.FC = () => {
     const [selectedDebitLedgerName, setSelectedDebitLedgerName] = useState("");
     const [selectedCreditLedgerName, setSelectedCreditLedgerName] = useState("");
     const dispatch = useAppDispatch();
-    const debitItems = useAppSelector((state) => state.receiveVoucherDebit.debitItems);
-    const creditItems = useAppSelector((state) => state.receiveVoucherCredit.creditItems);
+    const debitItems = useAppSelector((state) => state.accountsReceiveVoucher.debitItems);
+    const creditItems = useAppSelector((state) => state.accountsReceiveVoucher.creditItems);
 
     const { data: party, isLoading } = useGetPartiesQuery({ partyType: partyType });
 
@@ -91,20 +90,19 @@ const AccountsReceivedVoucher: React.FC = () => {
     }));
 
     const handleAddDebitItem = () => {
-        console.log("debitAccountsItems", debitAccountsItems)
-        // debitForm.validateFields().then((values) => {
-        //     const selected = debitAccountsItems?.find((item: TAccountsItem) => item?.id === values.accountsItemId);
-        //     dispatch(addReceiveVoucherDebitItem({
-        //         key: Date.now(),
-        //         accountsItemId: values.accountsItemId,
-        //         accountsItemName: selected?.accountsItemName || "",
-        //         bankAccountId: values.bankAccountId || null,
-        //         amount: values.amount || 0,
-        //         narration: values.narration || "",
-        //     }));
-        //     debitForm.resetFields();
-        //     setSelectedDebitLedgerName("");
-        // });
+        debitForm.validateFields().then((values) => {
+            const selected = debitAccountsItems?.find((item: TAccountsItem) => item?.id === values.accountsItemId);
+            dispatch(addReceiveVoucherDebitItem({
+                key: Date.now(),
+                accountsItemId: values.accountsItemId,
+                accountsItemName: selected?.accountsItemName || "",
+                bankAccountId: values.bankAccountId || null,
+                amount: Number(values.amount) || 0,
+                narration: values.narration || "",
+            }));
+            debitForm.resetFields();
+            setSelectedDebitLedgerName("");
+        });
     };
 
     const handleAddCreditItem = () => {
@@ -114,7 +112,8 @@ const AccountsReceivedVoucher: React.FC = () => {
                 key: Date.now(),
                 accountsItemId: values.accountsItemId,
                 accountsItemName: selected?.accountsItemName || "",
-                amount: values.amount || 0,
+                bankAccountId: values.bankAccountId || null,
+                amount: Number(values.amount) || 0,
                 narration: values.narration || "",
             }));
             creditForm.resetFields();
@@ -137,8 +136,7 @@ const AccountsReceivedVoucher: React.FC = () => {
 
     const handleNewVoucher = () => {
         form.resetFields();
-        dispatch(clearReceiveVoucherDebitItems());
-        dispatch(clearReceiveVoucherCreditItems());
+        dispatch(clearAllReceiveVoucherItems());
         setIsModalOpen(false);
     };
 
@@ -150,10 +148,11 @@ const AccountsReceivedVoucher: React.FC = () => {
                 <h2 className="text-2xl font-semibold m-0">Received Voucher</h2>
             </div>
             <Form form={form} layout="vertical" onFinish={onFinish} initialValues={{ date: dayjs(new Date()) }}>
-                <div className="bg-white p-4 rounded grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white p-4 shadow rounded grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     <Form.Item name="partyType" label="Party Type" rules={[{ required: true, message: "Please select a party" }]}>
                         <Select placeholder="Select party" onChange={(value) => setPartyType(value)}>
                             <Option value={"VENDOR"}>Vendor</Option>
+                            <Option value={"DISTRIBUTOR"}>Distributor</Option>
                             <Option value={"PARTY"}>Party</Option>
                         </Select>
                     </Form.Item>
@@ -172,10 +171,10 @@ const AccountsReceivedVoucher: React.FC = () => {
                     </Form.Item>
                 </div>
 
-                <div className="mb-5 bg-white shadow-md rounded-lg p-3 pt-0">
+                <div className="mb-5 mt-5 bg-white shadow rounded-lg p-3 pt-0">
                     <h3 className="text-lg font-semibold mb-1">Debit Items</h3>
                     <Form component="div" form={debitForm} layout="vertical" className="mb-3">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                             <Form.Item name="accountsItemId" label="Debit Item" rules={[{ required: true, message: "Required" }]}>
                                 <Select placeholder="Select debit item" onChange={(value) => {
                                     const selected = debitAccountsItems?.find((item: TAccountsItem) => item?.id === value);
@@ -238,10 +237,10 @@ const AccountsReceivedVoucher: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="mb-5 bg-white shadow-md rounded-lg p-3 pt-0">
+                <div className="mb-5 bg-white shadow rounded-lg p-3 pt-0">
                     <h3 className="text-lg font-semibold mb-1">Credit Items</h3>
                     <Form component="div" form={creditForm} layout="vertical" className="mb-3">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                             <Form.Item name="accountsItemId" label="Credit Item" rules={[{ required: true, message: "Required" }]}>
                                 <Select placeholder="Select credit item" onChange={(value) => {
                                     const selected = CreditAccountsData?.data?.find((item: TAccountsItem) => item?.id === value);

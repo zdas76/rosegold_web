@@ -97,7 +97,7 @@ export interface Party {
   name: string;
   contactNo: string;
   address: string;
-    partyType: "PARTY" | "CUSTOMER";
+    partyType: "PARTY" | "CUSTOMER" | "DISTRIBUTOR";
 }
 export interface JournalEntry {
   accountsItemId: number;

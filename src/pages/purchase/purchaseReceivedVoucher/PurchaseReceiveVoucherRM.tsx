@@ -25,7 +25,7 @@ import {
   removeReceiveVoucherDebitItem,
   updateReceiveVoucherDebitUnitPrice,
   clearReceiveVoucherDebitItems,
-} from "../../../redux/features/purchaseReceiveVoucher/receiveVoucherDebitSlice";
+} from "../../../redux/features/purchaseReceiveVoucher/purchaseReceiveVoucherDebitSlice";
 import {
   addReceiveVoucherCreditItem,
   removeReceiveVoucherCreditItem,

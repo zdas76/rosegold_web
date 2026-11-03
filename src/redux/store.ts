@@ -9,7 +9,7 @@ import authReducer from './features/auth/authSlice';
 import logOrderVoucher from './features/logAndGrade/logOrderVoucherSlice'
 import purchaseOrderRMReducer from './features/purchaseOrder/purchaseOrderRMSlice'
 import purchaseCreditReducer from './features/purchaseOrder/purchaseCreditSlice'
-import receiveVoucherDebitReducer from './features/purchaseReceiveVoucher/receiveVoucherDebitSlice'
+import receiveVoucherDebitReducer from './features/purchaseReceiveVoucher/purchaseReceiveVoucherDebitSlice'
 import receiveVoucherCreditReducer from './features/purchaseReceiveVoucher/receiveVoucherCreditSlice'
 import packingMaterialDebitReducer from './features/packingMaterials/packingMaterialDebitSlice'
 import packingMaterialCreditReducer from './features/packingMaterials/packingMaterialCreditSlice'
@@ -18,6 +18,8 @@ import salesCreditReducer from './features/accountsSales/salesCreditSlice'
 import paymentVoucherDebitReducer from './features/paymentVoucher/paymentVoucherDebitSlice'
 import paymentVoucherCreditReducer from './features/paymentVoucher/paymentVoucherCreditSlice'
 import productionReducer from './features/production/productionSlice'
+import accountsReceiveVoucherReducer from '../pages/accounts/receivedVoucher/AccountsReceiveVoucher';
+
 const persistConfig = {
     key: "auth",
     storage,
@@ -44,7 +46,8 @@ export const store = configureStore({
         salesCredit: salesCreditReducer,
         paymentVoucherDebit: paymentVoucherDebitReducer,
         paymentVoucherCredit: paymentVoucherCreditReducer,
-        production: productionReducer
+        production: productionReducer,
+        accountsReceiveVoucher: accountsReceiveVoucherReducer,
     },
     middleware: (getDefaultMiddleware) => getDefaultMiddleware({
         serializableCheck: {
