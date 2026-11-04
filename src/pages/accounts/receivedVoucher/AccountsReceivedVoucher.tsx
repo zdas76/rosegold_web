@@ -29,7 +29,6 @@ const AccountsReceivedVoucher: React.FC = () => {
     const [form] = Form.useForm();
     const [debitForm] = Form.useForm();
     const [creditForm] = Form.useForm();
-    const [receiveVoucherCode] = useState(generateInvoiceNumber("RV"));
     const [partyType, setPartyType] = useState<string>("");
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedDebitLedgerName, setSelectedDebitLedgerName] = useState("");
@@ -124,7 +123,6 @@ const AccountsReceivedVoucher: React.FC = () => {
     const onFinish = async (values: any) => {
         const res = await createReceviveVoucher({
             ...values,
-            voucherNo: receiveVoucherCode,
             debitItem: debitItems.map(({ key, ...rest }) => rest),
             creditItem: creditItems.map(({ key, ...rest }) => rest),
         });
@@ -148,7 +146,7 @@ const AccountsReceivedVoucher: React.FC = () => {
                 <h2 className="text-2xl font-semibold m-0">Received Voucher</h2>
             </div>
             <Form form={form} layout="vertical" onFinish={onFinish} initialValues={{ date: dayjs(new Date()) }}>
-                <div className="bg-white p-4 shadow rounded grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white p-4 shadow rounded grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     <Form.Item name="partyType" label="Party Type" rules={[{ required: true, message: "Please select a party" }]}>
                         <Select placeholder="Select party" onChange={(value) => setPartyType(value)}>
                             <Option value={"VENDOR"}>Vendor</Option>
@@ -163,9 +161,9 @@ const AccountsReceivedVoucher: React.FC = () => {
                             ))}
                         </Select>
                     </Form.Item>
-                    <Form.Item label="Voucher No">
-                        <Input placeholder="Enter voucher number" disabled value={receiveVoucherCode} style={{ color: "#000" }} />
-                    </Form.Item>
+                    {/* <Form.Item label="Voucher No">
+                        <Input placeholder="Enter voucher number" disabled style={{ color: "#000" }} />
+                    </Form.Item> */}
                     <Form.Item name="date" label="Date" rules={[{ required: true, message: "Please select date" }]}>
                         <DatePicker className="w-full" />
                     </Form.Item>
@@ -316,7 +314,7 @@ const AccountsReceivedVoucher: React.FC = () => {
                     </Button>
                 </div>
             </Form>
-            <PostSubmitModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} voucherNo={receiveVoucherCode} onNewVoucher={handleNewVoucher} />
+            <PostSubmitModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onNewVoucher={handleNewVoucher} />
         </div>
     );
 };

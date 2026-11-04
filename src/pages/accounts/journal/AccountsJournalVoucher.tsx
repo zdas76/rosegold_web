@@ -23,7 +23,7 @@ const AccountsJournalVoucher = () => {
     const { data: party, isLoading: isPartyLoading } = useGetPartiesQuery({})
     const partyData = formateData(party?.data, "name")
 
-    const [voucherNo, setVoucherNo] = useState(generateInvoiceNumber("JV"))
+    // const [voucherNo, setVoucherNo] = useState(generateInvoiceNumber("JV"))
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [form] = Form.useForm();
 
@@ -34,7 +34,6 @@ const AccountsJournalVoucher = () => {
     const onFinish = async (values: any) => {
         const data = {
             ...values,
-            voucherNo,
         }
         const res = await addJournal(data)
         const result = getResponse(res)
@@ -44,7 +43,6 @@ const AccountsJournalVoucher = () => {
     };
 
     const handleNewVoucher = () => {
-        setVoucherNo(generateInvoiceNumber("JV"));
         form.resetFields();
         setIsModalOpen(false);
     };
@@ -75,11 +73,12 @@ const AccountsJournalVoucher = () => {
                     </Form.Item>
 
                     {/* Voucher No. (optional) */}
-                    <Form.Item label="Voucher No.">
+                    {/* <Form.Item label="Voucher No.">
                         <Input placeholder="Enter voucher number" value={voucherNo} readOnly />
-                    </Form.Item>
+                    </Form.Item> */}
 
                     {/* Debit Item (required) */}
+                    <div></div>
                     <div className='flex flex-col'>
                         <Form.Item
                             name="debitItem"
@@ -132,7 +131,6 @@ const AccountsJournalVoucher = () => {
                     >
                         <Select placeholder="Select a debit item" options={creditAccountItem} onChange={(value) => setSelectedCreditItem(value)} />
                     </Form.Item> */}
-
                     {/* Amount (required) */}
                     <Form.Item
                         name="amount"
@@ -161,7 +159,6 @@ const AccountsJournalVoucher = () => {
             <PostSubmitModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                voucherNo={voucherNo}
                 onNewVoucher={handleNewVoucher}
             />
         </div>

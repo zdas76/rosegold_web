@@ -7,8 +7,8 @@ export type TSalesDebitItem = {
     rawOrProductId: number | null;
     quantity: number;
     unitPrice: number;
-    discountRate: number;
-    discount: number;
+    discountRate?: number;
+    discount?: number;
     creditAmount: number;
     existingQuantity?: number;
     narration: string;
@@ -37,10 +37,10 @@ const salesDebitSlice = createSlice({
             const item = state.items.find((item) => item.key === key);
             if (item) {
                 (item as any)[field] = value;
-                if (field === "quantity" || field === "unitPrice" || field === "discountRate") {
+                if (field === "quantity" || field === "unitPrice") {
                     const quantity = field === "quantity" ? value : item.quantity;
                     const unitPrice = field === "unitPrice" ? value : item.unitPrice;
-                    const discountRate = field === "discountRate" ? value : item.discountRate;
+                    const discountRate = item.discountRate || 0;
                     const discount = Number((((quantity * unitPrice) * discountRate) / 100).toFixed(2)) || 0;
                     item.discount = discount;
                     item.creditAmount = (quantity * unitPrice) - discount;

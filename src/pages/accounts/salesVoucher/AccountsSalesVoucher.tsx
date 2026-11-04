@@ -10,7 +10,6 @@ import {
   Table,
 } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
-import { FaTrash } from "react-icons/fa";
 import { useGetProductsQuery } from "../../../redux/features/product/product.api";
 import { useGetAccountItemQuery, useLazyGetTotalQuantityAndUnitPriceQuery } from "../../../redux/features/transactions/transactons.api";
 import { TAccountsItem, TBankAccount, TCustomer, TProduct, TVendor } from "../../../types/types";
@@ -18,12 +17,9 @@ import { useGetPartiesQuery } from "../../../redux/features/auth/authApi";
 import { useCreateSalesVoucherMutation } from "../../../redux/features/journal/journal.api";
 import { useGetBankQuery } from "../../../redux/features/bank/bank.api";
 import { getResponse } from "../../../utils/getResponse";
-import { generateInvoiceNumber } from "../../../utils/generateRandomNumber";
 import { useLazyGetCustomerByPhoneQuery } from "../../../redux/features/OthersApi/othersApi";
-import { toast } from "sonner";
 import PostSubmitModal from "../../../components/shared/PostSubmitModal";
 import Loading from "../../../components/shared/Loading";
-import { useGetRowMaterialsQuery } from "../../../redux/features/rowMaterials/rowMaterials.api";
 import { useAppDispatch, useAppSelector } from "../../../redux/hooks";
 import {
   addSalesDebitItem,
@@ -44,8 +40,6 @@ const AccountsSalesVoucher = () => {
   const [form] = Form.useForm();
   const [debitForm] = Form.useForm();
   const [creditForm] = Form.useForm();
-  // const [voucherNo] = useState(generateInvoiceNumber("SV"));
-  const [totalDiscount, setTotalDiscount] = useState<number>(0);
   const [selectedPartyType, setSelectedPartyType] = useState("");
   const { data, isLoading } = useGetBankQuery({});
   const [getCustomer] = useLazyGetCustomerByPhoneQuery();
@@ -89,17 +83,13 @@ const AccountsSalesVoucher = () => {
     debitForm.validateFields().then((values) => {
       const quantity = Number(values.quantity) || 0;
       const unitPrice = Number(values.unitPrice) || 0;
-      const discountRate = Number(values.discountRate) || 0;
-      const discount = Number((((quantity * unitPrice) * discountRate) / 100).toFixed(2)) || 0;
-      const creditAmount = (quantity * unitPrice) - discount;
+      const creditAmount = quantity * unitPrice;
 
       dispatch(addSalesDebitItem({
         key: Date.now(),
         rawOrProductId: values.rawOrProductId,
         quantity,
         unitPrice,
-        discountRate,
-        discount,
         creditAmount,
         existingQuantity: values.existingQuantity || 0,
         narration: values.narration || "",
@@ -126,7 +116,7 @@ const AccountsSalesVoucher = () => {
   const onFinish = async (values: any) => {
     const salesVoucherData = {
       ...values,
-      totalDiscount,
+      totalDiscount: 0,
       grandTotal: getDebitTotal,
       grandDebitTotal: getCreditTotal,
       salseItem: debitItems,
@@ -143,11 +133,10 @@ const AccountsSalesVoucher = () => {
     form.resetFields();
     dispatch(clearSalesDebitItems());
     dispatch(clearSalesCreditItems());
-    setTotalDiscount(0);
     setIsModalOpen(false);
   };
 
-  const isSubmitDisabled = getDebitTotal !== (getCreditTotal + totalDiscount) || debitItems.length === 0 || creditItems.length === 0;
+  const isSubmitDisabled = getDebitTotal !== getCreditTotal || debitItems.length === 0 || creditItems.length === 0;
 
   return (
     <div className="">
@@ -162,9 +151,7 @@ const AccountsSalesVoucher = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-0 lg:gap-x-2">
             <Form.Item label="Party Type" name="partyType" rules={[{ required: true }]}>
               <Select placeholder="Select party" onChange={(value) => setSelectedPartyType(value)}>
-                {/* <Option value="CUSTOMER">CUSTOMER</Option> */}
                 <Option value="DISTRIBUTOR">DISTRIBUTOR</Option>
-                {/* <Option value="PARTY">PARTY</Option> */}
               </Select>
             </Form.Item>
             {selectedPartyType === "CUSTOMER" ? (
@@ -215,15 +202,12 @@ const AccountsSalesVoucher = () => {
             <Form.Item label="Date" name="date" rules={[{ required: true }]}>
               <DatePicker className="w-full" />
             </Form.Item>
-            {/* <Form.Item label="Voucher No">
-              <Input placeholder="Voucher No" value={voucherNo} disabled style={{ color: "black" }} />
-            </Form.Item> */}
           </div>
         </div>
         <div className="mb-5 bg-white shadow rounded p-3 pt-0 mt-3">
           <h3 className="text-lg font-semibold mb-1">Debit Items</h3>
           <Form component="div" form={debitForm} layout="vertical" className="mb-3">
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
               <Form.Item name="rawOrProductId" label="Raw Material" rules={[{ required: true, message: "Required" }]}>
                 <Select placeholder="Select Product">
                   {product?.data?.map((item: TProduct) => (
@@ -236,9 +220,6 @@ const AccountsSalesVoucher = () => {
               </Form.Item>
               <Form.Item name="unitPrice" label="Unit Price" rules={[{ required: true, message: "Required" }]}>
                 <InputNumber style={{ width: "100%" }} min={0} placeholder="Unit Price" />
-              </Form.Item>
-              <Form.Item name="discountRate" label="Discount Rate (%)">
-                <InputNumber style={{ width: "100%" }} min={0} max={100} placeholder="Discount %" />
               </Form.Item>
               <Form.Item name="narration" label="Narration">
                 <Input placeholder="Narration" />
@@ -268,16 +249,6 @@ const AccountsSalesVoucher = () => {
                 {
                   title: "Unit Price",
                   dataIndex: "unitPrice",
-                  render: (value: number) => value?.toFixed(2),
-                },
-                {
-                  title: "Discount Rate",
-                  dataIndex: "discountRate",
-                  render: (value: number) => `${value}%`,
-                },
-                {
-                  title: "Discount",
-                  dataIndex: "discount",
                   render: (value: number) => value?.toFixed(2),
                 },
                 {
@@ -353,26 +324,16 @@ const AccountsSalesVoucher = () => {
               pagination={false}
             />
           )}
-          <div className="flex justify-between items-center mt-2 border-t pt-2">
-            <div>
-              <b>Total Discount: </b>
-              <InputNumber placeholder="Discount" style={{ minWidth: "140px" }} value={totalDiscount} onChange={(value) => setTotalDiscount(Number(value) || 0)} />
-            </div>
-            <div className="text-right">
-              <b>Credit Total = {getCreditTotal.toFixed(2)}</b>
-              {totalDiscount > 0 && <div><b>Discount = - {totalDiscount}</b></div>}
-            </div>
-          </div>
-          <div className="flex justify-end items-center mt-2">
-            <b>Grand Total = {(getCreditTotal + totalDiscount).toFixed(2)}</b>
+          <div className="flex justify-end items-center mt-2 border-t pt-2">
+            <b>Credit Total = {getCreditTotal.toFixed(2)}</b>
           </div>
         </div>
         <div className="bg-white px-3 pb-2 rounded-b-md shadow">
           <div className="flex justify-end items-center mt-2">
             {
-              getDebitTotal === (getCreditTotal + totalDiscount) ?
-                <span className="font-bold text-green-600">Procced</span> :
-                <span className="font-bold text-red-500">Need Debit/Credit: {(getDebitTotal - (getCreditTotal + totalDiscount)).toFixed(2)}</span>
+              getDebitTotal === getCreditTotal ?
+                <span className="font-bold text-green-600">Proceed</span> :
+                <span className="font-bold text-red-500">Need Debit/Credit: {(getDebitTotal - getCreditTotal).toFixed(2)}</span>
             }
           </div>
         </div>
