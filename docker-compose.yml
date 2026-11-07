@@ -1,0 +1,12 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ./roseGold_web/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./roseGold_web:/app/roseGold_web
+    environment:
+      - NODE_ENV=development

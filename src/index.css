@@ -1,0 +1,160 @@
+@import "tailwindcss";
+
+@theme {
+  /* ===== GOLD (Primary) ===== */
+  --color-gold-50: #fdf8ed;
+  --color-gold-100: #f9edcf;
+  --color-gold-200: #f3d99e;
+  --color-gold-300: #edc26d;
+  --color-gold-400: #e8ad47;
+  --color-gold-500: #C58D2F;
+  --color-gold-600: #a57325;
+  --color-gold-700: #855820;
+  --color-gold-800: #6e4721;
+  --color-gold-900: #5c3b20;
+
+  /* ===== PURPLE (Secondary) ===== */
+  --color-brand-50: #f5f0fc;
+  --color-brand-100: #ede3f8;
+  --color-brand-200: #dccbf2;
+  --color-brand-300: #c5a5e9;
+  --color-brand-400: #a875dc;
+  --color-brand-500: #5C3293;
+  --color-brand-600: #4e2a7e;
+  --color-brand-700: #3f2168;
+  --color-brand-800: #351c57;
+  --color-brand-900: #2d1849;
+
+  /* ===== Neutrals (warm-tinted) ===== */
+  --color-surface-50: #faf9f7;
+  --color-surface-100: #f7f7f7;
+  --color-surface-200: #e8e5e0;
+  --color-surface-300: #d4d0ca;
+  --color-surface-400: #a8a29e;
+  --color-surface-500: #78716c;
+  --color-surface-600: #57534e;
+  --color-surface-700: #44403c;
+  --color-surface-800: #292524;
+  --color-surface-900: #1c1917;
+
+  /* ===== Semantic Colors ===== */
+  --color-success: #16a34a;
+  --color-danger: #dc2626;
+  --color-warning: #d97706;
+  --color-info: #5C3293;
+}
+
+/* ===== Ant Design Global Overrides ===== */
+:root {
+  --ant-primary-color: #C58D2F;
+  --ant-primary-color-hover: #d49e3f;
+  --ant-primary-color-active: #a57325;
+}
+
+.btn {
+  @apply bg-gold-500 text-white font-bold py-2 px-4 rounded cursor-pointer hover:bg-gold-600 transition-colors;
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* ===== Ant Design Component Overrides ===== */
+.ant-btn-primary {
+  background-color: #C58D2F !important;
+  border-color: #C58D2F !important;
+}
+
+.ant-btn-primary:hover {
+  background-color: #d49e3f !important;
+  border-color: #d49e3f !important;
+}
+
+.ant-menu-dark {
+  background-color: #2d1849 !important;
+}
+
+.ant-menu-dark .ant-menu-item-selected {
+  background-color: #C58D2F !important;
+}
+
+.ant-menu-dark .ant-menu-item:hover {
+  background-color: rgba(197, 141, 47, 0.3) !important;
+}
+
+.ant-layout-sider {
+  background: #2d1849 !important;
+}
+
+.ant-table-thead>tr>th {
+  background-color: #f5f0fc !important;
+  color: #4e2a7e !important;
+  font-weight: 600 !important;
+}
+
+.ant-pagination .ant-pagination-item-active {
+  border-color: #C58D2F !important;
+}
+
+.ant-pagination .ant-pagination-item-active a {
+  color: #C58D2F !important;
+}
+
+/* ===== Ultra-Clean Soft Light Input Borders ===== */
+.ant-input:not(.ant-input-status-error):not(.ant-input-status-warning),
+.ant-input-number:not(.ant-input-number-status-error):not(.ant-input-number-status-warning),
+.ant-select:not(.ant-select-status-error):not(.ant-select-status-warning) .ant-select-selector,
+.ant-picker:not(.ant-picker-status-error):not(.ant-picker-status-warning) {
+  border-color: #e2e8f0 !important;
+  border-radius: 6px;
+  transition: all 0.2s ease-in-out;
+}
+
+.ant-input:not(.ant-input-status-error):not(.ant-input-status-warning):hover,
+.ant-input-number:not(.ant-input-number-status-error):not(.ant-input-number-status-warning):hover,
+.ant-select:not(.ant-select-status-error):not(.ant-select-status-warning):hover .ant-select-selector,
+.ant-picker:not(.ant-picker-status-error):not(.ant-picker-status-warning):hover {
+  border-color: #cbd5e1 !important;
+}
+
+.ant-input:focus,
+.ant-input-focused,
+.ant-input-number:focus,
+.ant-input-number-focused,
+.ant-select-focused .ant-select-selector,
+.ant-picker-focused {
+  border-color: #C58D2F !important;
+  box-shadow: 0 0 0 2px rgba(197, 141, 47, 0.15) !important;
+}
+
+.antdMargin0 .ant-form-item {
+  margin-bottom: 0 !important;
+}
+
+.ant-form-item-explain-error {
+  color: #dc2626 !important;
+}
+
+.partyReport .ant-card-body {
+  margin: 10px !important;
+  padding: 10px !important;
+}
+
+.ant-form-item {
+  margin-bottom: 20px !important;
+}
+
+.purchaseVoucher .ant-table-cell {
+  padding-bottom: 0 !important;
+}
+
+.custom-margin-5px .ant-form-item {
+  margin-bottom: 5px !important;
+}
