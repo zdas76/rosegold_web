@@ -4,7 +4,7 @@ import { RootState } from "../store";
 
 const baseQuery = fetchBaseQuery({
   // baseUrl: `https://rosegoldbd.vercel.app/api/v1`,
-  baseUrl: `http://localhost:5000/api/v1`,
+  baseUrl: `http://192.168.0.191:8082/api/v1`,
   credentials: "include",
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as RootState).auth?.token;
