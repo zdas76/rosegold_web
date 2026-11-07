@@ -5,6 +5,4 @@ services:
       dockerfile: ./Dockerfile
     restart: unless-stopped
     ports:
-      - "5173:5173"
-    volumes:
-      - ./roseGold_web:/app/roseGold_web
+      - "8081:5173"
