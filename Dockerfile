@@ -7,5 +7,4 @@ COPY . .
 
 EXPOSE 5173
 
-# Vite needs --host to accept connections from outside the container
 CMD ["npm", "run", "dev", "--", "--host"]
