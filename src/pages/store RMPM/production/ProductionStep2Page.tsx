@@ -160,11 +160,7 @@ const ProductionStep2Page: React.FC = () => {
   useEffect(() => {
     if (!productionData && !productionState.productinfo?.productId) return;
     const sourceData = productionData ? 'api' : 'redux';
-    const rawProdQty =
-      productInventoryItem?.quantityAdd ??
-      productInventoryItem?.quantity ??
-      (productionData as any)?.productQuantity ??
-      productionState.productinfo?.quantityAdd;
+    const rawProdQty = productInventoryItem?.quantityAdd;
     const initialProductQty = rawProdQty && Number(rawProdQty) > 0 ? Number(rawProdQty) : undefined;
     form.setFieldsValue({
       productId: Number(currentProductId) || undefined,
@@ -234,11 +230,9 @@ const ProductionStep2Page: React.FC = () => {
           const unitId = packingItem.packingMaterial?.unitId || matchingPacking?.unitId || null;
           const unitPrice = Number(packingItem.unitPrice ?? matchingPacking?.unitPrice ?? 0);
           const quantity = Number(
-            packingItem.Qty ??
             packingItem.quantityLess ??
             packingItem.quantityAdd ??
-            packingItem.quantity ??
-            0
+            packingItem.quantity
           );
 
           // If explicit positive amount/debit/credit exists use it, otherwise compute quantity * unitPrice
@@ -863,9 +857,9 @@ const ProductionStep2Page: React.FC = () => {
         }
 
         totalCombined = combinedProducts.reduce((sum, item) => sum + (Number(item.totalQty) || 0), 0);
-        const maxCombinedLimit = oldProductQty != null ? Number(oldProductQty) : null;
-        if (maxCombinedLimit !== null && totalCombined > maxCombinedLimit) {
-          showErrorAlert(`Total combined quantity (${totalCombined}) cannot exceed available product quantity (${maxCombinedLimit})`);
+        const maxCombinedLimit = (oldProductQty != null ? Number(oldProductQty) : 0) + (finishedQty || 0);
+        if (totalCombined > maxCombinedLimit) {
+          showErrorAlert(`Total combined quantity (${totalCombined}) cannot exceed total available product quantity (${maxCombinedLimit})`);
           return;
         }
       }

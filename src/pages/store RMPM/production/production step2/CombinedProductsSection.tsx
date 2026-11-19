@@ -30,6 +30,7 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
   combinedProducts,
   setCombinedProducts,
   productsData,
+  productQuantity,
   oldProductQty,
   onStockChange,
   disabled = false,
@@ -49,6 +50,10 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
       onStockChange(fetchedStockQty);
     }
   }, [fetchedStockQty, onStockChange]);
+
+  const oldStock = Number(effectiveStockQty) || 0;
+  const finishedQty = Number(productQuantity) || 0;
+  const totalAvailableQty = Number((oldStock + finishedQty).toFixed(2));
 
   const mainProductId = selectedProduct?.id;
   const targetSubCategoryName = selectedProduct?.subCategory?.subCategoryName;
@@ -80,8 +85,8 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
     return combinedProducts.reduce((sum, item) => sum + (Number(item.totalQty) || 0), 0);
   }, [combinedProducts]);
 
-  const maxAllowedQty = effectiveStockQty != null ? Number(effectiveStockQty) : 0;
-  const isExceeded = effectiveStockQty != null && totalCombinedQty > maxAllowedQty;
+  const maxAllowedQty = totalAvailableQty;
+  const isExceeded = totalCombinedQty > maxAllowedQty;
 
   const handleAddProductRow = () => {
     const nextSi = combinedProducts.length > 0 ? Math.max(...combinedProducts.map(m => m.si)) + 1 : 1;
@@ -306,24 +311,46 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
     <div className={`bg-slate-50/50 p-6 rounded-xl border border-slate-200/60 shadow-sm mt-6 ${disabled ? 'opacity-90' : ''}`}>
       <div className="flex items-center justify-between mb-4 border-b border-gray-200 pb-3">
         <div className="flex items-center gap-3 flex-wrap w-full">
-          <h3 className="font-bold text-lg text-gray-800 m-0">Combined Products</h3>
-          {targetSubCategoryName && (
-            <Tag color="gold" className="font-semibold text-xs py-0.5 px-2.5 rounded-full border border-amber-200 m-0">
-              Subcategory: {targetSubCategoryName}
-            </Tag>
-          )}
-          {disabled && (
-            <span className="text-xs font-semibold px-2.5 py-0.5 bg-gray-200 text-gray-700 rounded-full">
-              Locked
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            <h3 className="font-bold text-lg text-gray-800 m-0">Combined Products</h3>
+            {targetSubCategoryName && (
+              <Tag color="gold" className="font-semibold text-xs py-0.5 px-2.5 rounded-full border border-amber-200 m-0">
+                Subcategory: {targetSubCategoryName}
+              </Tag>
+            )}
+            {disabled && (
+              <span className="text-xs font-semibold px-2.5 py-0.5 bg-gray-200 text-gray-700 rounded-full">
+                Locked
+              </span>
+            )}
+          </div>
+
           {isExceeded && (
             <span className="text-xs font-semibold px-2.5 py-0.5 bg-red-100 text-red-700 rounded-full border border-red-200">
-              Exceeds available product qty ({effectiveStockQty ?? 0})!
+              Exceeds total available product qty ({totalAvailableQty.toLocaleString()})!
             </span>
           )}
-          <div className="text-xs font-bold px-3 py-1 bg-slate-100 text-slate-700 rounded-full border border-slate-200/70 ml-auto font-mono">
-            Available : {effectiveStockQty ?? 0}
+
+          {/* Breakdown: Old Stock + Finished Product Qty = Total Available */}
+          <div className="flex items-center gap-2 ml-auto flex-wrap text-xs">
+            <div className="px-3 py-1 bg-white text-slate-700 rounded-lg border border-slate-200 shadow-2xs flex items-center gap-1.5">
+              <span className="text-slate-500 font-medium">Old Stock:</span>
+              <span className="font-bold font-mono text-slate-800">{oldStock.toLocaleString()}</span>
+            </div>
+            <span className="text-slate-400 font-bold">+</span>
+            <div className="px-3 py-1 bg-white text-slate-700 rounded-lg border border-slate-200 shadow-2xs flex items-center gap-1.5">
+              <span className="text-slate-500 font-medium">Finished Qty:</span>
+              <span className="font-bold font-mono text-blue-700">{finishedQty.toLocaleString()}</span>
+            </div>
+            <span className="text-slate-400 font-bold">=</span>
+            <div className={`px-3 py-1 rounded-lg border font-semibold shadow-2xs flex items-center gap-1.5 ${
+              isExceeded
+                ? 'bg-red-50 text-red-800 border-red-200'
+                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+            }`}>
+              <span className="font-medium">Total Available:</span>
+              <span className="font-bold font-mono text-sm">{totalAvailableQty.toLocaleString()}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -358,14 +385,12 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
                   <span className={`text-base font-extrabold ${isExceeded ? 'text-red-600' : 'text-blue-800'}`}>
                     {totalCombinedQty.toLocaleString()}
                   </span>
-                  {effectiveStockQty != null && (
-                    <span className="text-xs text-gray-500 ml-1 font-normal">
-                      / {Number(effectiveStockQty).toLocaleString()}
-                    </span>
-                  )}
+                  <span className="text-xs text-gray-500 ml-1 font-normal">
+                    / {totalAvailableQty.toLocaleString()} (Old: {oldStock.toLocaleString()} + Finished: {finishedQty.toLocaleString()})
+                  </span>
                   {isExceeded && (
                     <div className="text-xs text-red-500 font-semibold mt-0.5">
-                      Total combined qty cannot exceed available qty ({effectiveStockQty ?? 0})
+                      Total combined qty cannot exceed total available qty ({totalAvailableQty.toLocaleString()})
                     </div>
                   )}
                 </Table.Summary.Cell>

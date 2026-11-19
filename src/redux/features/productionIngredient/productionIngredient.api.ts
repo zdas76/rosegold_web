@@ -40,7 +40,7 @@ export const productionIngredientApi = baseApi.injectEndpoints({
                 ingredientExpneseItems?: number[];
             }) => ({
                 url: `/product-ingradient/${id}`,
-                method: "PUT",
+                method: "PATCH",
                 body: data,
             }),
             invalidatesTags: ["productIngradient", "rowMaterials"],
