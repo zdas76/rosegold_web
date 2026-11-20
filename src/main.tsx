@@ -16,6 +16,7 @@ import VoucherDetails from './pages/voucherList/VoucherDetails'
 import LogVoucherPrint from './pages/logManagement/logOrder/LogOrderVoucher'
 import RawMaterialsDetails from './pages/inventory/rowMaterial/RawMaterialsDetails'
 import ProductStockReportDetails from './pages/production/createProduction/ProductStockReportDetails'
+import PackingMaterialStockReportDetails from './pages/inventory/packingMaterial/PackingMaterialStockReportDetails'
 import CallanVoucher from './pages/sales/challan/CallanVoucher'
 import Party from './pages/sales/party/Party'
 import PurchaseOrderDetails from './pages/purchase/purchaseOrder/PurchaseOrderDetails'
@@ -107,6 +108,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/dashboard/log-order/logorder-voucher" element={<LogVoucherPrint />} />
               <Route path="/dashboard/row-material/:id" element={<RawMaterialsDetails />} />
               <Route path="/dashboard/product_stock_report/:productId" element={<ProductStockReportDetails />} />
+              <Route path="/dashboard/packing_material_stock_report/:id" element={<PackingMaterialStockReportDetails />} />
               <Route path="/dashboard/purchase-order/:id" element={<PurchaseOrderDetails />} />
               <Route path="/dashboard/store_rmpm_production_soap" element={<ProductionCreationForm />} />
               <Route path="/dashboard/store_rmpm_production_detergent" element={<ProductionCreationForm />} />

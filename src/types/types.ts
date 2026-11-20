@@ -441,6 +441,36 @@ export type TRawMaterialStockReport = {
     };
 };
 
+export type TPackingMaterialStockReport = {
+    pm: {
+        id: number;
+        name: string;
+        description: string | null;
+        unitId: number;
+        openingDate: string;
+        unitPrice: number;
+        openingAmount: number;
+        quantity: number;
+        alertQuantity: number;
+        isDeleted: boolean;
+        status: string;
+        createdAt: string;
+        updateAt: string;
+        unit?: {
+            id: number;
+            name: string;
+        };
+    };
+    total: {
+        _sum: {
+            debitAmount: number | null;
+            creditAmount: number | null;
+            quantityAdd: number | null;
+            quantityLess: number | null;
+        };
+    };
+};
+
 export type TProductionExpItem = {
     id: number;
     expItemName: string;

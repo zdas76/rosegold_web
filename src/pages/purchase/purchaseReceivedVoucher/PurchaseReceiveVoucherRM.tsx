@@ -97,10 +97,10 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
   const { data: rawMaterialData, isLoading: isRawMaterialLoading } = useGetRowMaterialsQuery({});
 
   const { data: CreditAccountsData, isLoading: isCreditAccountsLoading } =
-    useGetAccountItemQuery({});
+    useGetAccountItemQuery({ accountMainPillerId: ["02", "01", "04"] });
 
   const { data: expItemsData, isLoading: isExpItemsLoading } =
-    useGetAccountItemQuery({});
+    useGetAccountItemQuery({ accountMainPillerId: ["03"] });
 
   const debitTotal = debitItems?.reduce((total: number, item) => total + Number(item?.amount || 0), 0) ?? 0;
   const debitTotalQty = debitItems?.reduce((total: number, item) => total + Number(item?.qty || 0), 0) ?? 0;
@@ -230,6 +230,12 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
     const result = getResponse(res);
     if (result?.success) {
       setIsModalOpen(true);
+      // here reset the whole form
+      form.resetFields();
+      expenseForm.resetFields();
+      setExpenseItems([]);
+      dispatch(clearReceiveVoucherDebitItems());
+      dispatch(clearReceiveVoucherCreditItems());
     }
   };
 
@@ -451,8 +457,7 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
           </Form.Item>
           <Form.Item
             name="requisitionNo"
-            label="Requisition No"
-            rules={[{ required: true, message: "Please enter requisition number" }]}>
+            label="Requisition No">
             <Input placeholder="Enter requisition number" />
           </Form.Item>
           <Form.Item
@@ -505,7 +510,12 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
                 <Input type="number" placeholder="Total" readOnly style={{ backgroundColor: "#f5f5f5" }} />
               </Form.Item>
               <Form.Item label=" ">
-                <Button onClick={handleAddDebitItem} icon={<PlusOutlined />} className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold rounded-lg text-xs h-8 shadow-xs w-full">
+                <Button
+                  onClick={handleAddDebitItem}
+                  icon={<PlusOutlined />}
+                  style={{ backgroundColor: "#e0f2fe", color: "#0284c7", borderColor: "#bae6fd" }}
+                  className="font-bold rounded-lg text-xs h-8 shadow-xs w-full transition-all hover:!bg-[#bae6fd] hover:!border-[#38bdf8] hover:!text-[#0369a1]"
+                >
                   Add
                 </Button>
               </Form.Item>
@@ -650,7 +660,8 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
                 <Button
                   onClick={handleAddExpenseItem}
                   icon={<PlusOutlined />}
-                  className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold rounded-lg text-xs h-8 shadow-xs w-full"
+                  style={{ backgroundColor: "#e0f2fe", color: "#0284c7", borderColor: "#bae6fd" }}
+                  className="font-bold rounded-lg text-xs h-8 shadow-xs w-full transition-all hover:!bg-[#bae6fd] hover:!border-[#38bdf8] hover:!text-[#0369a1]"
                 >
                   Add
                 </Button>
@@ -738,7 +749,12 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
               </Form.Item>
 
               <Form.Item label=" ">
-                <Button onClick={handleAddCreditItem} icon={<PlusOutlined />} className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold rounded-lg text-xs h-8 shadow-xs w-full">
+                <Button
+                  onClick={handleAddCreditItem}
+                  icon={<PlusOutlined />}
+                  style={{ backgroundColor: "#e0f2fe", color: "#0284c7", borderColor: "#bae6fd" }}
+                  className="font-bold rounded-lg text-xs h-8 shadow-xs w-full transition-all hover:!bg-[#bae6fd] hover:!border-[#38bdf8] hover:!text-[#0369a1]"
+                >
                   Add
                 </Button>
               </Form.Item>

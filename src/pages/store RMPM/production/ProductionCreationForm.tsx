@@ -318,16 +318,12 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
       prev.map(item => {
         if (item.si === si) {
           const maxAllowed = item.netQuantity !== undefined && item.netQuantity !== null ? item.netQuantity : null;
-          if (value !== null && maxAllowed !== null && maxAllowed <= value) {
+          if (value !== null && maxAllowed !== null && value > maxAllowed) {
             showWarningAlert(
-              value > maxAllowed
-                ? `Quantity cannot exceed available stock (${maxAllowed}). You entered ${value}.`
-                : `Entered quantity (${value}) is equal to total available stock (${maxAllowed}).`,
+              `Quantity cannot exceed available stock (${maxAllowed}). You entered ${value}.`,
               'Stock Limit Warning'
             );
-            if (value > maxAllowed) {
-              return item;
-            }
+            return item;
           }
 
           const rate = item.rate || 0;
@@ -522,8 +518,20 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
       align: 'center' as const,
       render: (_: any, record: RawMaterialItem) => {
         const stock = record.netQuantity != null ? record.netQuantity : '-';
+        const hasStock = record.netQuantity != null && record.netQuantity > 0;
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-slate-100/80 text-slate-700 font-mono">
+          <span
+            onClick={() => {
+              if (hasStock) {
+                handleQtyChange(record.si, record.netQuantity!);
+              }
+            }}
+            title={hasStock ? 'Click to use full stock' : undefined}
+            className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold font-mono ${hasStock
+              ? 'bg-slate-100/80 text-slate-700 hover:bg-amber-100 hover:text-amber-800 cursor-pointer transition-colors'
+              : 'bg-slate-100/80 text-slate-400'
+              }`}
+          >
             {stock} {record.unit || 'Kg'}
           </span>
         );
@@ -536,7 +544,6 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
       width: 130,
       render: (_: any, record: RawMaterialItem, index: number) => {
         const hasExceeded = record.netQuantity != null && record.qty != null && Number(record.qty) > record.netQuantity;
-        const isFullStock = record.netQuantity != null && record.qty != null && Number(record.qty) === record.netQuantity;
         return (
           <InputNumber
             id={`qty-input-${index}`}
@@ -545,9 +552,7 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
                 ? 'error'
                 : hasExceeded
                   ? 'error'
-                  : isFullStock
-                    ? 'warning'
-                    : undefined
+                  : undefined
             }
             min={0}
             max={record.netQuantity != null ? record.netQuantity : undefined}

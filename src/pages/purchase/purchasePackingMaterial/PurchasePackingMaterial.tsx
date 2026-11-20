@@ -10,6 +10,7 @@ import { TAccountsItem, TBankAccount, TParty } from "../../../types/types";
 import {
     useAddPurchaseReceiveMutation,
     useLazyGetPurchaseOrderByOrderNoQuery,
+    usePurchasePackingMaterialsMutation,
 } from "../../../redux/features/journal/journal.api";
 import { getResponse } from "../../../utils/getResponse";
 import { useGetPartiesQuery } from "../../../redux/features/auth/authApi";
@@ -50,6 +51,7 @@ const PurchasePackingMaterial: React.FC = () => {
     const [selectedCreditLedgerName, setSelectedCreditLedgerName] = useState<string>("");
     const [searchRequisitionNo, setSearchRequisitionNo] = useState<string>("");
 
+    const [purchasepmaterials] = usePurchasePackingMaterialsMutation()
     const dispatch = useAppDispatch();
     const debitItems = useAppSelector((state) => state.packingMaterialDebit.debitItems);
     const creditItemsRedux = useAppSelector((state) => state.packingMaterialCredit.creditItems);
@@ -91,10 +93,10 @@ const PurchasePackingMaterial: React.FC = () => {
         useGetPackingMaterialsQuery({});
 
     const { data: CreditAccountsData, isLoading: isCreditAccountsLoading } =
-        useGetAccountItemQuery({});
+        useGetAccountItemQuery({ accountMainPillerId: ["01", "02", "04"] });
 
     const { data: expItemsData, isLoading: isExpItemsLoading } =
-        useGetAccountItemQuery({});
+        useGetAccountItemQuery({ accountMainPillerId: ["03"] });
 
     const debitTotal =
         debitItems?.reduce((total: number, item) => total + Number(item?.amount || 0), 0) ?? 0;
@@ -234,7 +236,7 @@ const PurchasePackingMaterial: React.FC = () => {
             narration: item.narration,
         }));
 
-        const res = await createReceviveVoucher({
+        const res = await purchasepmaterials({
             partyOrcustomerId: values.partyId,
             date: values.date,
             invoiceNo: values.invoiceNo,
@@ -407,9 +409,7 @@ const PurchasePackingMaterial: React.FC = () => {
 
                     <Form.Item
                         name="requisitionNo"
-                        label="Requisition No"
-                        rules={[{ required: true, message: "Please enter requisition number" }]}
-                    >
+                        label="Requisition No">
                         <Input placeholder="Enter requisition number" />
                     </Form.Item>
 
@@ -477,7 +477,8 @@ const PurchasePackingMaterial: React.FC = () => {
                                 <Button
                                     onClick={handleAddDebitItem}
                                     icon={<PlusOutlined />}
-                                    className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold rounded-lg text-xs h-8 shadow-xs w-full">
+                                    style={{ backgroundColor: "#e0f2fe", color: "#0284c7", borderColor: "#bae6fd" }}
+                                    className="font-bold rounded-lg text-xs h-8 shadow-xs w-full transition-all hover:!bg-[#bae6fd] hover:!border-[#38bdf8] hover:!text-[#0369a1]">
                                     Add
                                 </Button>
                             </Form.Item>
@@ -592,7 +593,8 @@ const PurchasePackingMaterial: React.FC = () => {
                                 <Button
                                     onClick={handleAddExpenseItem}
                                     icon={<PlusOutlined />}
-                                    className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold rounded-lg text-xs h-8 shadow-xs w-full"
+                                    style={{ backgroundColor: "#e0f2fe", color: "#0284c7", borderColor: "#bae6fd" }}
+                                    className="font-bold rounded-lg text-xs h-8 shadow-xs w-full transition-all hover:!bg-[#bae6fd] hover:!border-[#38bdf8] hover:!text-[#0369a1]"
                                 >
                                     Add
                                 </Button>
@@ -689,7 +691,8 @@ const PurchasePackingMaterial: React.FC = () => {
                                 <Button
                                     onClick={handleAddCreditItem}
                                     icon={<PlusOutlined />}
-                                    className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold rounded-lg text-xs h-8 shadow-xs w-full"
+                                    style={{ backgroundColor: "#e0f2fe", color: "#0284c7", borderColor: "#bae6fd" }}
+                                    className="font-bold rounded-lg text-xs h-8 shadow-xs w-full transition-all hover:!bg-[#bae6fd] hover:!border-[#38bdf8] hover:!text-[#0369a1]"
                                 >
                                     Add
                                 </Button>

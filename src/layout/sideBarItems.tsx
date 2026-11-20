@@ -44,6 +44,7 @@ import BalanceSheet from '../pages/reports/BalanceSheet/BalanceSheet';
 import VendorLedger from '../pages/reports/VendorLedger/VendorLedger';
 import EmployeeLedger from '../pages/reports/EmployeeLedger/EmployeeLedger';
 import { MaterialStockReport } from '../pages/inventory/rowMaterial/RawStockReport';
+import { PackingMaterialStockReport } from '../pages/inventory/packingMaterial/PackingMaterialStockReport';
 import Party from '../pages/sales/party/Party';
 import PurchaseReceiveVoucher from '../pages/purchase/purchaseReceivedVoucher/PurchaseReceiveVoucherP';
 import PurchaseReceiveVoucherRM from '../pages/purchase/purchaseReceivedVoucher/PurchaseReceiveVoucherRM';
@@ -99,6 +100,13 @@ export const sideBarRoutes = [
                 element: <ProductStockReport />,
                 icon: <MdRawOn />,
                 label: <Link to="/dashboard/product_stock_report">Product</Link>,
+            },
+            {
+                key: 'inventory_packing_material',
+                path: "/dashboard/packing_material_stock_report",
+                element: <PackingMaterialStockReport />,
+                icon: <BiPackage />,
+                label: <Link to="/dashboard/packing_material_stock_report">Packing Material</Link>,
             },
         ]
     },
@@ -222,20 +230,20 @@ export const sideBarRoutes = [
             //     element: <Packaging />,
             //     label: <Link to="/dashboard/store_rmpm_packaging">Packaging</Link>,
             // },
-            {
-                key: "store_rmpm_request_sent_fg",
-                path: "/dashboard/store_rmpm_request_sent_fg",
-                icon: <MdRequestPage />,
-                element: <RequestSendFG />,
-                label: <Link to="/dashboard/store_rmpm_request_sent_fg">Request sent(FG)</Link>,
-            },
-            {
-                key: "store_rmpm_requisition_slip",
-                path: "/dashboard/store_rmpm_requisition_slip",
-                icon: <MdRequestPage />,
-                element: <RequsitionSlip />,
-                label: <Link to="/dashboard/store_rmpm_requisition_slip">Requisition Slip</Link>,
-            },
+            // {
+            //     key: "store_rmpm_request_sent_fg",
+            //     path: "/dashboard/store_rmpm_request_sent_fg",
+            //     icon: <MdRequestPage />,
+            //     element: <RequestSendFG />,
+            //     label: <Link to="/dashboard/store_rmpm_request_sent_fg">Request sent(FG)</Link>,
+            // },
+            // {
+            //     key: "store_rmpm_requisition_slip",
+            //     path: "/dashboard/store_rmpm_requisition_slip",
+            //     icon: <MdRequestPage />,
+            //     element: <RequsitionSlip />,
+            //     label: <Link to="/dashboard/store_rmpm_requisition_slip">Requisition Slip</Link>,
+            // },
         ]
     },
     {

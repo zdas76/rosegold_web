@@ -4,6 +4,7 @@ import { Button, Table, Select, InputNumber } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { PackingMaterialItem } from '../ProductionCreationForm';
 import { useLazyGetLastVoucherQtyQuery } from '../../../../redux/features/inventory/InventoryApi';
+import { showWarningAlert } from '../../../../utils/sweetAlert';
 
 interface PackingMaterialsSectionProps {
   packingMaterials: PackingMaterialItem[];
@@ -145,6 +146,15 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
     setPackingMaterials(prev =>
       prev.map(item => {
         if (item.si === si) {
+          const maxStock = packingMaterialOptions.find((opt: any) => opt.value === item.packingMaterialId)?.item?.quantity;
+          if (maxStock != null && newQty != null && newQty > maxStock) {
+            showWarningAlert(
+              `Quantity cannot exceed available stock (${maxStock} ${item.unit || 'Pcs'}). You entered ${newQty}.`,
+              'Stock Limit Warning'
+            );
+            return item;
+          }
+
           const qtyVal = newQty != null ? Number(newQty) : 0;
           const unitPrice = item.unitPrice || 0;
           const total = Number((qtyVal * unitPrice).toFixed(2));
@@ -213,10 +223,14 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
       title: 'Unit',
       dataIndex: 'unit',
       key: 'unit',
-      width: 80,
+      width: 100,
       align: 'center' as const,
-      render: (unit: string) => <span className="text-gray-600 font-medium">{unit || 'Pcs'}</span>,
-    }, {
+      render: (_: any, record: PackingMaterialItem) => {
+        const stock = packingMaterialOptions.find((opt: any) => opt.value === record.packingMaterialId)?.item?.quantity;
+        return <span className="text-gray-600 font-medium">{stock != null ? `${stock} ${record.unit || 'Pcs'}` : record.unit || 'Pcs'}</span>;
+      },
+    },
+    {
       title: 'Total Qty',
       dataIndex: 'qty',
       key: 'qty',
