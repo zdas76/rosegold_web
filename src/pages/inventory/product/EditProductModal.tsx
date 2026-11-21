@@ -88,8 +88,7 @@ const EdiitProduct = ({ item, setIsEditModal }: { item: TProduct | any, setIsEdi
                     <div className='col-span-2'>
                         <Form.Item
                             label="Description"
-                            name="description"
-                            rules={[{ required: true, message: 'Please input the product description!' }]}>
+                            name="description">
                             <Input.TextArea placeholder="Enter product description" />
                         </Form.Item>
                     </div>
@@ -105,8 +104,9 @@ const EdiitProduct = ({ item, setIsEditModal }: { item: TProduct | any, setIsEdi
                         </Select>
                     </Form.Item>
                     <Form.Item
-                        label="Size"
-                        name="size">
+                        label="N. Of Product"
+                        name="size"
+                        rules={[{ required: true, message: "Please enter a value" }]}>
                         <InputNumber min={0} placeholder="Enter size" style={{ width: '100%' }} />
                     </Form.Item>
 

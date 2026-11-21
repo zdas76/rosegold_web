@@ -155,6 +155,13 @@ const ProductionStep2Page: React.FC = () => {
     { skip: !currentProductId }
   );
 
+  const currentStatus = productionItemInfo?.status || 'PROCESSING';
+  const isProcessing = currentStatus === 'PROCESSING';
+  const isInProgress = currentStatus === 'IN_PROGRESS';
+  const isPending = currentStatus === 'PENDING' || currentStatus === 'PENDDING';
+  const isCompleted = currentStatus === 'COMPLETE';
+
+
   const [createProduction] = useCreateProductionMutation();
   // Populate form and lists when production data arrives
   useEffect(() => {
@@ -284,10 +291,8 @@ const ProductionStep2Page: React.FC = () => {
       const matchedRecipe =
         ingredientsList.find((recipe: any) => Number(recipe.productId) === Number(currentProductId)) ||
         ingredientsList[0];
-      const recipePackingMaterials =
-        matchedRecipe?.ingredientPackingMaterial || [];
-
-      if (recipePackingMaterials.length > 0) {
+      const recipePackingMaterials = matchedRecipe?.ingredientPackingMaterial || [];
+      if (isProcessing && recipePackingMaterials.length > 0) {
         const loadedPmMaterilas = Number(initialProductQty) || 0;
         Promise.all(
           recipePackingMaterials.map(async (recipeItem: any, index: number) => {
@@ -355,7 +360,6 @@ const ProductionStep2Page: React.FC = () => {
     // 3. Production Expenses
     const existingExpenseInventories = currentProd?.productionExpensesInventory || [];
 
-
     if (existingExpenseInventories.length > 0) {
       const parsedExpenses: ProductionExpenseItem[] = existingExpenseInventories.map(
         (expenseItem: any, index: number) => {
@@ -411,8 +415,7 @@ const ProductionStep2Page: React.FC = () => {
             recipeExp.productionExpenseItem?.unitRate ??
             recipeExp.unitRate ??
             matchingExpense?.unitRate ??
-            matchingExpense?.rate ??
-            null;
+            matchingExpense?.rate
           const qty = recipeExp.qty !== undefined && recipeExp.qty !== null ? Number(recipeExp.qty) : null;
           const total = qty != null && rate != null ? Number((qty * rate).toFixed(2)) : 0;
 
@@ -451,7 +454,7 @@ const ProductionStep2Page: React.FC = () => {
           matchingProd?.category?.categoryName ||
           cp.categoryName ||
           '';
-        const qtyPerPack = cp.qtyPerPack ?? cp.quantityPerPack ?? 1;
+        const qtyPerPack = cp.qtyPerPack ?? cp.quantityPerPack ?? (matchingProd?.size ? Number(matchingProd.size) : 1);
         const totalQty = Number(cp.quantityAdd ?? cp.quantity ?? cp.totalQty ?? 0);
         const numberOfCartoon = cp.numberOfCartoon ?? cp.carton ?? (qtyPerPack > 0 ? Math.floor(totalQty / qtyPerPack) : 0);
 
@@ -932,13 +935,6 @@ const ProductionStep2Page: React.FC = () => {
     );
   }
 
-  const currentStatus = productionItemInfo?.status || 'PROCESSING';
-  const isProcessing = currentStatus === 'PROCESSING';
-  const isInProgress = currentStatus === 'IN_PROGRESS';
-  const isPending = currentStatus === 'PENDING' || currentStatus === 'PENDDING';
-  const isCompleted = currentStatus === 'COMPLETE';
-
-
   return (
     <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_4px_24px_-2px_rgba(15,23,42,0.06),0_1px_3px_0_rgba(15,23,42,0.04)] p-6 space-y-5">
       {/* Top Header */}
@@ -1040,7 +1036,6 @@ const ProductionStep2Page: React.FC = () => {
           totalExpenseTk={totalExpenseTk}
           disabled={!isProcessing}
         />
-
 
 
         {/* Save Materials & Expenses Button */}

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { numberToWords } from "../../utils/numberToWords";
 
 const CreateProductTable = ({ data }: { data: any }) => {

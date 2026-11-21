@@ -22,6 +22,7 @@ import {
     addPackingMaterialDebitItem,
     setPackingMaterialDebitItems,
     removePackingMaterialDebitItem,
+    updateAllIntegratedUnitPrice,
     clearPackingMaterialDebitItems,
 } from "../../../redux/features/packingMaterials/packingMaterialDebitSlice";
 import {
@@ -107,6 +108,23 @@ const PurchasePackingMaterial: React.FC = () => {
     const creditTotal =
         creditItemsRedux?.reduce((total: number, item) => total + Number(item?.amount || 0), 0) ?? 0;
 
+    // Keep integratedUnitPrice in Redux slice synced with UI across all actions
+    useEffect(() => {
+        if (!debitItems || debitItems.length === 0) return;
+
+        const totalQty = debitItems.reduce((sum, item) => sum + (Number(item?.qty) || 0), 0);
+        const expPerUnit = totalQty > 0 ? expenseTotal / totalQty : 0;
+
+        const needsUpdate = debitItems.some((item) => {
+            const expected = Number((Number(item.unitPrice) + expPerUnit).toFixed(2));
+            return item.integratedUnitPrice !== expected;
+        });
+
+        if (needsUpdate) {
+            dispatch(updateAllIntegratedUnitPrice(expenseTotal));
+        }
+    }, [expenseTotal, debitItems, dispatch]);
+
     if (
         isPartyLoading ||
         isBanksLoading ||
@@ -163,6 +181,10 @@ const PurchasePackingMaterial: React.FC = () => {
             const selected = packingMaterialsMapped?.find((item: any) => item?.value === values.packingMaterialId);
             const qty = Number(values.qty) || 0;
             const unitPrice = Number(values.unitPrice) || 0;
+            const newTotalQty = debitTotalQty + qty;
+            const expPerUnit = newTotalQty > 0 ? expenseTotal / newTotalQty : 0;
+            const calculatedIntegratedUnitPrice = Number((unitPrice + expPerUnit).toFixed(2));
+
             dispatch(
                 addPackingMaterialDebitItem({
                     key: Date.now(),
@@ -170,6 +192,7 @@ const PurchasePackingMaterial: React.FC = () => {
                     packingMaterialName: selected?.label || "",
                     qty,
                     unitPrice,
+                    integratedUnitPrice: calculatedIntegratedUnitPrice,
                     amount: Number((qty * unitPrice).toFixed(2)),
                     narration: values.narration || "",
                 })
@@ -221,6 +244,7 @@ const PurchasePackingMaterial: React.FC = () => {
             packingMaterialId: item.packingMaterialId,
             quantityAdd: item.qty,
             unitPrice: item.unitPrice,
+            integratedUnitPrice: item.integratedUnitPrice ?? item.unitPrice,
             discount: 0,
             debitAmount: item.amount,
             narration: item.narration,
@@ -336,6 +360,7 @@ const PurchasePackingMaterial: React.FC = () => {
                             packingMaterialName: pmName,
                             qty,
                             unitPrice,
+                            integratedUnitPrice: unitPrice,
                             amount,
                             narration: item?.narration || "",
                         };
@@ -514,8 +539,12 @@ const PurchasePackingMaterial: React.FC = () => {
                                 },
                                 {
                                     title: "Adjusted Unit R.",
+                                    dataIndex: "integratedUnitPrice",
                                     key: "adjustedUnitR",
-                                    render: (_, record) => {
+                                    render: (val: number, record: any) => {
+                                        if (val !== undefined && val !== null) {
+                                            return Number(val).toFixed(2);
+                                        }
                                         if (debitTotalQty === 0) return Number(record.unitPrice).toFixed(2);
                                         const expPerUnit = expenseTotal / debitTotalQty;
                                         return (Number(record.unitPrice) + expPerUnit).toFixed(2);
@@ -531,10 +560,10 @@ const PurchasePackingMaterial: React.FC = () => {
                                     title: "Ad. Total",
                                     key: "adTotal",
                                     render: (_, record) => {
-                                        if (debitTotalQty === 0) return Number(record.amount).toFixed(2);
-                                        const expPerUnit = expenseTotal / debitTotalQty;
-                                        const adjUnitPrice = Number(record.unitPrice) + expPerUnit;
-                                        return (Number(record.qty) * adjUnitPrice).toFixed(2);
+                                        const adjUnitPrice = record.integratedUnitPrice !== undefined && record.integratedUnitPrice !== null
+                                            ? record.integratedUnitPrice
+                                            : (debitTotalQty === 0 ? Number(record.unitPrice) : Number(record.unitPrice) + (expenseTotal / debitTotalQty));
+                                        return (Number(record.qty) * Number(adjUnitPrice)).toFixed(2);
                                     }
                                 },
                                 {
@@ -682,9 +711,7 @@ const PurchasePackingMaterial: React.FC = () => {
                             </Form.Item>
                             <Form.Item
                                 name="checkOrRTGS"
-                                label="Check/RTGS"
-                                rules={[{ required: true, message: "Required" }]}
-                            >
+                                label="Check/RTGS">
                                 <Input type="text" placeholder="Check/RTGS" />
                             </Form.Item>
                             <Form.Item label=" ">

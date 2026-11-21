@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Form, Input, Button, DatePicker, Select, Divider, Table, message } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ import {
   setReceiveVoucherDebitItems,
   removeReceiveVoucherDebitItem,
   updateReceiveVoucherDebitUnitPrice,
+  updateAllIntegratedUnitPrice,
   clearReceiveVoucherDebitItems,
 } from "../../../redux/features/purchaseReceiveVoucher/purchaseReceiveVoucherDebitSlice";
 import {
@@ -69,6 +70,8 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
   const debitItems = useAppSelector((state) => state.receiveVoucherDebit.debitItems);
   const creditItemsRedux = useAppSelector((state) => state.receiveVoucherCredit.creditItems);
 
+
+
   const [triggerGetPurchaseOrder, { isFetching: isSearchingRequisition }] =
     useLazyGetPurchaseOrderByOrderNoQuery();
 
@@ -108,6 +111,23 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
   const totalDebit = debitTotal + expenseTotal;
   const creditTotal = creditItemsRedux?.reduce((total: number, item) => total + Number(item?.amount || 0), 0) ?? 0;
 
+  // Keep integratedUnitPrice in Redux slice synced with UI across all actions (add/remove item, add/remove expense, edit unit price, PO load)
+  useEffect(() => {
+    if (!debitItems || debitItems.length === 0) return;
+
+    const totalQty = debitItems.reduce((sum, item) => sum + (Number(item?.qty) || 0), 0);
+    const expPerUnit = totalQty > 0 ? expenseTotal / totalQty : 0;
+
+    const needsUpdate = debitItems.some((item) => {
+      const expected = Number((Number(item.unitPrice) + expPerUnit).toFixed(2));
+      return item.integratedUnitPrice !== expected;
+    });
+
+    if (needsUpdate) {
+      dispatch(updateAllIntegratedUnitPrice(expenseTotal));
+    }
+  }, [expenseTotal, debitItems, dispatch]);
+
   if (
     isLoading ||
     isBanksLoading ||
@@ -135,7 +155,6 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
     value: item.id,
     label: item.accountsItemName,
   }));
-
   const handleAddExpenseItem = () => {
     expenseForm.validateFields().then((values) => {
       const selected = expItemsMapped?.find((item: any) => item?.value === values.expItemId);
@@ -162,12 +181,17 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
       const selected = rawMaterialsMapped?.find((item: any) => item?.value === values.rawMaterialId);
       const qty = Number(values.qty) || 0;
       const unitPrice = Number(values.unitPrice) || 0;
+      const newTotalQty = debitTotalQty + qty;
+      const expPerUnit = newTotalQty > 0 ? expenseTotal / newTotalQty : 0;
+      const calculatedIntegratedUnitPrice = Number((unitPrice + expPerUnit).toFixed(2));
+
       dispatch(addReceiveVoucherDebitItem({
         key: Date.now(),
         rawMaterialId: values.rawMaterialId,
         rawMaterialName: selected?.label || "",
         qty,
         unitPrice,
+        integratedUnitPrice: calculatedIntegratedUnitPrice,
         amount: qty * unitPrice,
         narration: values.narration || "",
       }));
@@ -192,21 +216,23 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
     });
   };
 
+
+
+
   const onFinish = async (values: any) => {
     const subTotal = totalDebit;
     const grandTotal = totalDebit;
 
     const formattedItems = debitItems.map((item) => ({
       key: item.key,
-      itemType: "RAW_MATERIAL",
       rawOrProductId: item.rawMaterialId,
       quantityAdd: item.qty,
       unitPrice: item.unitPrice,
+      integratedUnitPrice: item.integratedUnitPrice ?? item.unitPrice,
       discount: 0,
       debitAmount: item.amount,
       narration: item.narration,
     }));
-
     const formattedCreditItems = creditItemsRedux.map((item) => ({
       key: item.key,
       accountsItemId: item.accountsItemId,
@@ -221,6 +247,7 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
       partyOrcustomerId: values.partyId,
       date: values.date,
       invoiceNo: values.invoiceNo,
+      itemType: "RAW_MATERIAL",
       subTotal,
       grandTotal,
       items: formattedItems,
@@ -247,10 +274,10 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
     dispatch(clearReceiveVoucherCreditItems());
     setIsModalOpen(false);
   };
+
   // handle requisition search
   const handleRequistionSearch = async () => {
     const requisitionNo = searchRequisitionNo || form.getFieldValue("requisitionNo");
-    console.log("Searching requisition:", requisitionNo);
     if (!requisitionNo) {
       toast.warning("Please enter a requisition number to search");
       message.warning("Please enter a requisition number to search");
@@ -258,7 +285,6 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
     }
     try {
       const res = await triggerGetPurchaseOrder(requisitionNo).unwrap();
-      console.log("Purchase Order Data:", res?.data);
       if (res?.data) {
         const orderItems =
           (Array.isArray(res.data) ? res.data : null) ||
@@ -337,8 +363,6 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
               item?.rawId ??
               item?.rawMaterialId ??
               item?.raw_material_id ??
-              item?.raWMaterial?.id ??
-              item?.rawMaterial?.id ??
               item?.rawOrProductId ??
               null;
 
@@ -389,6 +413,7 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
               rawMaterialName: rawMaterialName,
               qty,
               unitPrice,
+              integratedUnitPrice: unitPrice,
               amount,
               narration: item?.narration || "",
             };
@@ -402,11 +427,12 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
         message.warning("No purchase order found with this requisition number");
       }
     } catch (error: any) {
-      console.error("Error fetching purchase order:", error);
       toast.error(error?.data?.message || "Failed to fetch purchase order");
       message.error(error?.data?.message || "Failed to fetch purchase order");
     }
   };
+
+
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_4px_24px_-2px_rgba(15,23,42,0.06),0_1px_3px_0_rgba(15,23,42,0.04)] p-6 space-y-5">
@@ -581,8 +607,12 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
                 },
                 {
                   title: "Adjusted Unit R.",
+                  dataIndex: "integratedUnitPrice",
                   key: "adjustedUnitR",
-                  render: (_, record) => {
+                  render: (val: number, record: any) => {
+                    if (val !== undefined && val !== null) {
+                      return Number(val).toFixed(2);
+                    }
                     if (debitTotalQty === 0) return Number(record.unitPrice).toFixed(2);
                     const expPerUnit = expenseTotal / debitTotalQty;
                     return (Number(record.unitPrice) + expPerUnit).toFixed(2);
@@ -598,10 +628,10 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
                   title: "Ad. Total",
                   key: "adTotal",
                   render: (_, record) => {
-                    if (debitTotalQty === 0) return Number(record.amount).toFixed(2);
-                    const expPerUnit = expenseTotal / debitTotalQty;
-                    const adjUnitPrice = Number(record.unitPrice) + expPerUnit;
-                    return (Number(record.qty) * adjUnitPrice).toFixed(2);
+                    const adjUnitPrice = record.integratedUnitPrice !== undefined && record.integratedUnitPrice !== null
+                      ? record.integratedUnitPrice
+                      : (debitTotalQty === 0 ? Number(record.unitPrice) : Number(record.unitPrice) + (expenseTotal / debitTotalQty));
+                    return (Number(record.qty) * Number(adjUnitPrice)).toFixed(2);
                   }
                 },
                 {
@@ -705,7 +735,7 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
         </div>
 
         {/*-------------------------- Credit Items --------------------------------------------- */}
-        <div className="mb-5 bg-white shadow rounded-lg p-3 pt-0">
+        {/* <div className="mb-5 bg-white shadow rounded-lg p-3 pt-0">
           <Divider orientation="left" style={{ paddingTop: "10px" }}>
             Credit Items
           </Divider>
@@ -798,9 +828,9 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
           <div className="text-right font-bold mt-2 text-base">
             Total Credit: {creditTotal}
           </div>
-        </div>
+        </div> */}
 
-        <div className="flex items-center justify-end gap-4">
+        {/* <div className="flex items-center justify-end gap-4">
           <div className="">
             {creditTotal !== debitTotal ? (
               <h3 className="font-bold text-sm text-slate-900">
@@ -816,6 +846,9 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
               </p>
             )}
           </div>
+         
+        </div> */}
+        <div className="flex justify-end">
           <Button
             type="primary"
             size="middle"
@@ -837,3 +870,4 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
 };
 
 export default PurchaseReceiveVoucherRM;
+

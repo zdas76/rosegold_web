@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { Form, Input, Button, DatePicker, Select, Divider, Table, message } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ import {
   addReceiveVoucherDebitItem,
   setReceiveVoucherDebitItems,
   removeReceiveVoucherDebitItem,
+  updateAllIntegratedUnitPrice,
   clearReceiveVoucherDebitItems,
 } from "../../../redux/features/purchaseReceiveVoucher/purchaseReceiveVoucherDebitSlice";
 import {
@@ -105,6 +106,23 @@ const PurchaseReceiveVoucherP: React.FC = () => {
   const totalDebit = debitTotal + expenseTotal;
   const creditTotal = creditItemsRedux?.reduce((total: number, item) => total + Number(item?.amount || 0), 0) ?? 0;
 
+  // Keep integratedUnitPrice in Redux slice synced with UI across all actions
+  useEffect(() => {
+    if (!debitItems || debitItems.length === 0) return;
+
+    const totalQty = debitItems.reduce((sum, item) => sum + (Number(item?.qty) || 0), 0);
+    const expPerUnit = totalQty > 0 ? expenseTotal / totalQty : 0;
+
+    const needsUpdate = debitItems.some((item) => {
+      const expected = Number((Number(item.unitPrice) + expPerUnit).toFixed(2));
+      return item.integratedUnitPrice !== expected;
+    });
+
+    if (needsUpdate) {
+      dispatch(updateAllIntegratedUnitPrice(expenseTotal));
+    }
+  }, [expenseTotal, debitItems, dispatch]);
+
   if (
     isLoading ||
     isBanksLoading ||
@@ -167,19 +185,23 @@ const PurchaseReceiveVoucherP: React.FC = () => {
       const selected = productsMapped?.find((item: any) => item?.value === values.productId);
       const qty = Number(values.qty) || 0;
       const unitPrice = Number(values.unitPrice) || 0;
+      const newTotalQty = debitTotalQty + qty;
+      const expPerUnit = newTotalQty > 0 ? expenseTotal / newTotalQty : 0;
+      const calculatedIntegratedUnitPrice = Number((unitPrice + expPerUnit).toFixed(2));
+
       dispatch(addReceiveVoucherDebitItem({
         key: Date.now(),
         productId: values.productId,
         productName: selected?.label || "",
         qty,
         unitPrice,
+        integratedUnitPrice: calculatedIntegratedUnitPrice,
         amount: qty * unitPrice,
         narration: values.narration || "",
       }));
       debitForm.resetFields();
     });
   };
-
 
   const handleAddCreditItem = () => {
     creditForm.validateFields().then((values) => {
@@ -204,10 +226,10 @@ const PurchaseReceiveVoucherP: React.FC = () => {
 
     const formattedItems = debitItems.map((item) => ({
       key: item.key,
-      itemType: "PRODUCT",
       rawOrProductId: item.productId,
       quantityAdd: item.qty,
       unitPrice: item.unitPrice,
+      integratedUnitPrice: item.integratedUnitPrice ?? item.unitPrice,
       discount: 0,
       debitAmount: item.amount,
       narration: item.narration,
@@ -229,6 +251,7 @@ const PurchaseReceiveVoucherP: React.FC = () => {
       invoiceNo: values.invoiceNo,
       subTotal,
       grandTotal,
+      itemType: "PRODUCT",
       items: formattedItems,
       expenseItems: expenseItems,
       creditItem: formattedCreditItems,
@@ -392,6 +415,7 @@ const PurchaseReceiveVoucherP: React.FC = () => {
               productName: productName,
               qty,
               unitPrice,
+              integratedUnitPrice: unitPrice,
               amount,
               narration: item?.narration || "",
             };
@@ -548,8 +572,12 @@ const PurchaseReceiveVoucherP: React.FC = () => {
                 },
                 {
                   title: "Adjusted Unit R.",
+                  dataIndex: "integratedUnitPrice",
                   key: "adjustedUnitR",
-                  render: (_, record) => {
+                  render: (val: number, record: any) => {
+                    if (val !== undefined && val !== null) {
+                      return Number(val).toFixed(2);
+                    }
                     if (debitTotalQty === 0) return Number(record.unitPrice).toFixed(2);
                     const expPerUnit = expenseTotal / debitTotalQty;
                     return (Number(record.unitPrice) + expPerUnit).toFixed(2);
@@ -564,10 +592,10 @@ const PurchaseReceiveVoucherP: React.FC = () => {
                   title: "Ad. Total",
                   key: "adTotal",
                   render: (_, record) => {
-                    if (debitTotalQty === 0) return Number(record.amount).toFixed(2);
-                    const expPerUnit = expenseTotal / debitTotalQty;
-                    const adjUnitPrice = Number(record.unitPrice) + expPerUnit;
-                    return (Number(record.qty) * adjUnitPrice).toFixed(2);
+                    const adjUnitPrice = record.integratedUnitPrice !== undefined && record.integratedUnitPrice !== null
+                      ? record.integratedUnitPrice
+                      : (debitTotalQty === 0 ? Number(record.unitPrice) : Number(record.unitPrice) + (expenseTotal / debitTotalQty));
+                    return (Number(record.qty) * Number(adjUnitPrice)).toFixed(2);
                   }
                 },
                 {
@@ -709,7 +737,7 @@ const PurchaseReceiveVoucherP: React.FC = () => {
               <Form.Item name="narration" label="Narration">
                 <Input placeholder="Narration (optional)" />
               </Form.Item>
-              <Form.Item name="checkOrRTGS" label="Check/RTGS" rules={[{ required: true, message: "Required" }]}>
+              <Form.Item name="checkOrRTGS" label="Check/RTGS">
                 <Input type="text" placeholder="Check/RTGS" />
               </Form.Item>
               <Form.Item label=" ">

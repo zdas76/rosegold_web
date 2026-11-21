@@ -72,6 +72,7 @@ import PurchaseOrderRM from '../pages/purchase/purchaseOrder/PurchaseOrderRMList
 import ProductIngredient from '../pages/inventory/productionIngredient/ProductIngredient';
 import PackingMaterial from '../pages/inventory/packingMaterial/PackingMaterial';
 import ProductionExpItem from '../pages/inventory/productionExpItem/ProductionExpItem';
+import ProductTransfer from '../pages/store RMPM/productTransfer/ProductTranser';
 
 
 export const sideBarRoutes = [
@@ -223,13 +224,13 @@ export const sideBarRoutes = [
                 label: <Link to="/dashboard/production-voucher">Production Voucher</Link>,
             },
 
-            // {
-            //     key: "store_rmpm_packaging",
-            //     path: "/dashboard/store_rmpm_packaging",
-            //     icon: <BiPackage />,
-            //     element: <Packaging />,
-            //     label: <Link to="/dashboard/store_rmpm_packaging">Packaging</Link>,
-            // },
+            {
+                key: "store_rmpm_product_transfer",
+                path: "/dashboard/product_transfer",
+                icon: <BiPackage />,
+                element: <ProductTransfer />,
+                label: <Link to="/dashboard/product_transfer">Product Transfer</Link>,
+            },
             // {
             //     key: "store_rmpm_request_sent_fg",
             //     path: "/dashboard/store_rmpm_request_sent_fg",
