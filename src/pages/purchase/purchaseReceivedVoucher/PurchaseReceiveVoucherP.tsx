@@ -546,6 +546,8 @@ const PurchaseReceiveVoucherP: React.FC = () => {
           </Form>
           {debitItems.length > 0 && (
             <Table
+              size="small"
+              className="[&_.ant-table-tbody_>_tr_>_td]:!py-1.5 [&_.ant-table-thead_>_tr_>_th]:!py-2 text-xs"
               dataSource={debitItems}
               rowKey="key"
               columns={[
@@ -664,6 +666,8 @@ const PurchaseReceiveVoucherP: React.FC = () => {
           </Form>
           {expenseItems.length > 0 && (
             <Table
+              size="small"
+              className="[&_.ant-table-tbody_>_tr_>_td]:!py-1.5 [&_.ant-table-thead_>_tr_>_th]:!py-2 text-xs"
               dataSource={expenseItems}
               rowKey="key"
               columns={[
@@ -754,6 +758,8 @@ const PurchaseReceiveVoucherP: React.FC = () => {
           </Form>
           {creditItemsRedux.length > 0 && (
             <Table
+              size="small"
+              className="[&_.ant-table-tbody_>_tr_>_td]:!py-1.5 [&_.ant-table-thead_>_tr_>_th]:!py-2 text-xs"
               dataSource={creditItemsRedux}
               rowKey="key"
               columns={[

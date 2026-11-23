@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Form, Input, Button, Select, DatePicker, Table, InputNumber } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -31,19 +31,30 @@ const PurchaseVoucherProduct: React.FC = () => {
     const { data: party, isLoading: isPartiesLoading } = useGetPartiesQuery({});
     const { data: product, isLoading: isProductLoading } = useGetProductsQuery({});
 
+    const partyData = useMemo(() => {
+        return party?.data?.map((item: TParty) => {
+            if (item?.partyType === "SUPPLIER") {
+                return { key: item?.id, label: item?.name, value: item?.id };
+            }
+        }).filter(Boolean) || [];
+    }, [party]);
+
+    const addedProductIds = useMemo(() => {
+        return new Set(items.map((item: any) => item.productId));
+    }, [items]);
+
+    const productData = useMemo(() => {
+        return product?.data?.map((item: TProduct) => ({
+            key: item?.id,
+            label: item?.name,
+            value: item?.id,
+            disabled: addedProductIds.has(item?.id),
+        })) || [];
+    }, [product, addedProductIds]);
+
     if (isPartiesLoading || isProductLoading) {
         return <Loading tip="Loading Purchase Voucher details..." />;
     }
-
-    const partyData = party?.data?.map((item: TParty) => {
-        if (item?.partyType === "SUPPLIER") {
-            return { key: item?.id, label: item?.name, value: item?.id };
-        }
-    }).filter(Boolean);
-
-    const productData = product?.data?.map((item: TProduct) => {
-        return { key: item?.id, label: item?.name, value: item?.id };
-    });
 
     const handleAddItem = () => {
         itemForm.validateFields().then((values) => {
@@ -107,7 +118,14 @@ const PurchaseVoucherProduct: React.FC = () => {
                     <Form component="div" form={itemForm} layout="vertical" className="mb-3">
                         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5 gap-3">
                             <Form.Item name="productId" label="Product" rules={[{ required: true, message: "Required" }]}>
-                                <Select placeholder="Select Name" options={productData} />
+                                <Select
+                                    showSearch
+                                    placeholder="Select Name"
+                                    options={productData}
+                                    filterOption={(input, option) =>
+                                        (option?.label ?? "").toString().toLowerCase().includes(input.toLowerCase())
+                                    }
+                                />
                             </Form.Item>
                             <Form.Item name="quantity" label="Qty" initialValue={1}>
                                 <InputNumber style={{ width: "100%" }} min={1} />

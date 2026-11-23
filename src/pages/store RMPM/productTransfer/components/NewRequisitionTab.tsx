@@ -25,7 +25,10 @@ import dayjs from 'dayjs';
 import { useGetProductsQuery } from '../../../../redux/features/product/product.api';
 import { useLazyGetTotalQuantityAndUnitPriceQuery } from '../../../../redux/features/transactions/transactons.api';
 import { showSuccessAlert, showWarningAlert } from '../../../../utils/sweetAlert';
-import type { ProductRequisitionItem, RequisitionRecord } from '../types';
+import { Department, departmentOptions, type ProductRequisitionItem, type RequisitionRecord } from '../types';
+import { useCreateProductTransferRequestMutation, useGetRequestAllQuery } from '../../../../redux/features/internalTranscation/internalTranscation.api';
+import { VoucherType } from '../../../../types/types';
+import { getResponse } from '../../../../utils/getResponse';
 
 interface NewRequisitionTabProps {
   onSuccess?: (newRecord: RequisitionRecord) => void;
@@ -42,6 +45,10 @@ const NewRequisitionTab: React.FC<NewRequisitionTabProps> = ({ onSuccess }) => {
   const [requisitionNo, setRequisitionNo] = useState<string>(generateReqNo());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const { data: tranreqVoucher } = useGetRequestAllQuery(VoucherType.TRANSFER)
+  console.log(tranreqVoucher, "transfer request voucher")
+  const [createProductTransferRequest, { isLoading: isCreatingRequest }] =
+    useCreateProductTransferRequestMutation();
   // Queries
   const { data: productsData, isLoading: isProductsLoading } = useGetProductsQuery({});
   const [triggerGetTotalQuantity] = useLazyGetTotalQuantityAndUnitPriceQuery();
@@ -70,6 +77,7 @@ const NewRequisitionTab: React.FC<NewRequisitionTabProps> = ({ onSuccess }) => {
         label: `${p.name}${catName ? ` (${catName})` : ''}`,
         name: p.name,
         unit: p?.unit?.name || 'Pcs',
+        unitId: p?.unitId ?? p?.unit?.id ?? null,
         categoryName: catName,
         stock: p?.quantity != null ? Number(p.quantity) : 0,
       };
@@ -131,21 +139,21 @@ const NewRequisitionTab: React.FC<NewRequisitionTabProps> = ({ onSuccess }) => {
 
   // Product change: fetch real-time available stock
   const handleProductChange = async (key: string, productId: number | null) => {
-    const chosen = productOptions.find(opt => opt.value === productId);
+    const chosen = productOptions.find((opt: any) => opt.value === productId);
 
     if (!chosen || !productId) {
       setItems(prev =>
         prev.map(item =>
           item.key === key
             ? {
-                ...item,
-                productId: null,
-                productName: '',
-                unit: 'Pcs',
-                availableStock: null,
-                quantity: null,
-                isLoadingStock: false,
-              }
+              ...item,
+              productId: null,
+              productName: '',
+              unit: 'Pcs',
+              availableStock: null,
+              quantity: null,
+              isLoadingStock: false,
+            }
             : item
         )
       );
@@ -156,15 +164,16 @@ const NewRequisitionTab: React.FC<NewRequisitionTabProps> = ({ onSuccess }) => {
       prev.map(item =>
         item.key === key
           ? {
-              ...item,
-              productId,
-              productName: chosen.name,
-              unit: chosen.unit || 'Pcs',
-              categoryName: chosen.categoryName,
-              availableStock: chosen.stock ?? null,
-              isLoadingStock: true,
-              quantity: null,
-            }
+            ...item,
+            productId,
+            productName: chosen.name,
+            unit: chosen.unit || 'Pcs',
+            unitId: chosen.unitId,
+            categoryName: chosen.categoryName,
+            availableStock: chosen.stock ?? null,
+            isLoadingStock: true,
+            quantity: null,
+          }
           : item
       )
     );
@@ -181,10 +190,10 @@ const NewRequisitionTab: React.FC<NewRequisitionTabProps> = ({ onSuccess }) => {
         prev.map(item =>
           item.key === key
             ? {
-                ...item,
-                availableStock: liveNetQty,
-                isLoadingStock: false,
-              }
+              ...item,
+              availableStock: liveNetQty,
+              isLoadingStock: false,
+            }
             : item
         )
       );
@@ -194,9 +203,9 @@ const NewRequisitionTab: React.FC<NewRequisitionTabProps> = ({ onSuccess }) => {
         prev.map(item =>
           item.key === key
             ? {
-                ...item,
-                isLoadingStock: false,
-              }
+              ...item,
+              isLoadingStock: false,
+            }
             : item
         )
       );
@@ -274,45 +283,60 @@ const NewRequisitionTab: React.FC<NewRequisitionTabProps> = ({ onSuccess }) => {
       const requisitionPayload = {
         requisitionNo,
         date: formValues.date ? dayjs(formValues.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
-        fromStore: formValues.fromStore || 'Production / Store RMPM',
-        toStore: formValues.toStore || 'Finished Goods (FG) Store',
+        fromDepartment: formValues.fromStore || Department.PRODUCTION,
+        toDepartment: formValues.toStore || Department.FG_STORE,
+        totalQuantity,
         remarks: formValues.remarks || '',
-        totalQty: totalQuantity,
-        items: validItems.map(item => ({
+        products: validItems.map(item => ({
           productId: item.productId,
           productName: item.productName,
-          categoryName: item.categoryName,
-          unit: item.unit,
+          unitId: item.unitId,
           availableStock: item.availableStock,
-          transferQuantity: item.quantity,
-          remarks: item.remarks,
+          requestQty: Number(item.quantity),
+          quantity: Number(item.quantity),
+          remarks: item.remarks || '',
         })),
       };
 
-      console.log('Product Transfer Requisition Payload:', requisitionPayload);
+      console.log('Product Transfer Requisition Data Submitted:', requisitionPayload);
 
-      const newRecord: RequisitionRecord = {
-        id: `rec-${Date.now()}`,
-        requisitionNo,
-        date: formValues.date ? dayjs(formValues.date).format('DD-MMM-YYYY') : dayjs().format('DD-MMM-YYYY'),
-        fromStore: formValues.fromStore || 'Production / Store RMPM',
-        toStore: formValues.toStore || 'Finished Goods (FG) Store',
-        items: [...validItems],
-        totalQty: totalQuantity,
-        status: 'PENDING',
-        remarks: formValues.remarks,
-        createdAt: dayjs().format('DD-MMM-YYYY hh:mm A'),
-      };
+      const res: any = await createProductTransferRequest(requisitionPayload);
+      const response = getResponse(res);
 
-      await showSuccessAlert(
-        `Requisition ${requisitionNo} created successfully! Total ${validItems.length} product(s) requested for transfer to ${requisitionPayload.toStore}.`,
-        'Requisition Submitted'
-      );
+      if (response?.success || res?.data?.success) {
+        const newRecord: RequisitionRecord = {
+          id: res?.data?.data?.id ? String(res.data.data.id) : `rec-${Date.now()}`,
+          requisitionNo,
+          date: formValues.date ? dayjs(formValues.date).format('DD-MMM-YYYY') : dayjs().format('DD-MMM-YYYY'),
+          fromStore: formValues.fromStore || Department.PRODUCTION,
+          toStore: formValues.toStore || Department.FG_STORE,
+          eInvoiceNo: formValues.eInvoiceNo || '',
+          items: [...validItems],
+          totalQty: totalQuantity,
+          status: 'PENDING',
+          remarks: formValues.remarks,
+          createdAt: dayjs().format('DD-MMM-YYYY hh:mm A'),
+        };
 
-      handleResetForm();
-      onSuccess?.(newRecord);
+        await showSuccessAlert(
+          response?.message || `Requisition ${requisitionNo} created successfully! Total ${validItems.length} product(s) requested for transfer to ${requisitionPayload.toDepartment}.`,
+          'Requisition Submitted'
+        );
+
+        handleResetForm();
+        onSuccess?.(newRecord);
+      } else {
+        showWarningAlert(
+          response?.message || res?.error?.data?.message || 'Failed to submit product transfer request.',
+          'Submission Failed'
+        );
+      }
     } catch (err: any) {
-      console.error('Validation failed:', err);
+      console.error('Submission failed:', err);
+      showWarningAlert(
+        err?.data?.message || err?.message || 'Failed to submit requisition. Please check all fields.',
+        'Error'
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -333,7 +357,7 @@ const NewRequisitionTab: React.FC<NewRequisitionTabProps> = ({ onSuccess }) => {
       title: 'Product Name',
       dataIndex: 'productId',
       key: 'productId',
-      width: 320,
+      width: 300,
       render: (_: any, record: ProductRequisitionItem) => (
         <Select
           showSearch
@@ -341,7 +365,7 @@ const NewRequisitionTab: React.FC<NewRequisitionTabProps> = ({ onSuccess }) => {
           value={record.productId || undefined}
           style={{ width: '100%' }}
           loading={isProductsLoading}
-          options={productOptions.map(opt => ({
+          options={productOptions.map((opt: any) => ({
             ...opt,
             disabled: selectedProductIds.has(opt.value) && opt.value !== record.productId,
           }))}
@@ -369,7 +393,7 @@ const NewRequisitionTab: React.FC<NewRequisitionTabProps> = ({ onSuccess }) => {
       title: 'Available Stock',
       dataIndex: 'availableStock',
       key: 'availableStock',
-      width: 150,
+      width: 140,
       align: 'center' as const,
       render: (_: any, record: ProductRequisitionItem) => {
         if (!record.productId) {
@@ -395,11 +419,10 @@ const NewRequisitionTab: React.FC<NewRequisitionTabProps> = ({ onSuccess }) => {
                   handleQuantityChange(record.key, stock);
                 }
               }}
-              className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold font-mono transition-all ${
-                hasStock
-                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/80 hover:bg-amber-100 hover:text-amber-900 cursor-pointer shadow-2xs'
-                  : 'bg-rose-50 text-rose-700 border border-rose-200 cursor-not-allowed'
-              }`}
+              className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold font-mono transition-all ${hasStock
+                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/80 hover:bg-amber-100 hover:text-amber-900 cursor-pointer shadow-2xs'
+                : 'bg-rose-50 text-rose-700 border border-rose-200 cursor-not-allowed'
+                }`}
             >
               {stock.toLocaleString()} {record.unit}
             </span>
@@ -411,7 +434,7 @@ const NewRequisitionTab: React.FC<NewRequisitionTabProps> = ({ onSuccess }) => {
       title: 'Transfer Quantity',
       dataIndex: 'quantity',
       key: 'quantity',
-      width: 160,
+      width: 150,
       align: 'right' as const,
       render: (qty: number | null, record: ProductRequisitionItem) => {
         const hasExceeded =
@@ -441,24 +464,9 @@ const NewRequisitionTab: React.FC<NewRequisitionTabProps> = ({ onSuccess }) => {
       },
     },
     {
-      title: 'Item Remarks',
-      dataIndex: 'remarks',
-      key: 'remarks',
-      width: 180,
-      render: (remarks: string, record: ProductRequisitionItem) => (
-        <Input
-          placeholder="Optional remarks"
-          value={remarks}
-          onChange={e => handleRemarksChange(record.key, e.target.value)}
-          disabled={!record.productId}
-          className="text-xs"
-        />
-      ),
-    },
-    {
       title: 'Action',
       key: 'action',
-      width: 60,
+      width: 50,
       align: 'center' as const,
       render: (_: any, record: ProductRequisitionItem) => (
         <Button
@@ -496,12 +504,13 @@ const NewRequisitionTab: React.FC<NewRequisitionTabProps> = ({ onSuccess }) => {
           layout="vertical"
           initialValues={{
             date: dayjs(),
-            fromStore: 'Production / Store RMPM',
-            toStore: 'Finished Goods (FG) Store',
+            fromStore: Department.PRODUCTION,
+            toStore: Department.FG_STORE,
             requisitionNo,
+            eInvoiceNo: '',
           }}
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Form.Item
               name="date"
               label={<span className="font-semibold text-xs text-slate-600">Requisition Date</span>}
@@ -516,41 +525,23 @@ const NewRequisitionTab: React.FC<NewRequisitionTabProps> = ({ onSuccess }) => {
 
             <Form.Item
               name="fromStore"
-              label={<span className="font-semibold text-xs text-slate-600">From Department / Store</span>}
-              rules={[{ required: true, message: 'Please specify source store' }]}
+              label={<span className="font-semibold text-xs text-slate-600">From Department</span>}
+              rules={[{ required: true, message: 'Please select from department' }]}
             >
               <Select
-                options={[
-                  { value: 'Production / Store RMPM', label: 'Production / Store RMPM' },
-                  { value: 'Packaging Department', label: 'Packaging Department' },
-                  { value: 'Main Store', label: 'Main Store' },
-                ]}
+                options={departmentOptions}
                 className="rounded-lg font-medium"
               />
             </Form.Item>
 
             <Form.Item
               name="toStore"
-              label={<span className="font-semibold text-xs text-slate-600">To Destination Store</span>}
-              rules={[{ required: true, message: 'Please select destination store' }]}
+              label={<span className="font-semibold text-xs text-slate-600">To Destination</span>}
+              rules={[{ required: true, message: 'Please select to destination' }]}
             >
               <Select
-                options={[
-                  { value: 'Finished Goods (FG) Store', label: 'Finished Goods (FG) Store' },
-                  { value: 'Central Warehouse', label: 'Central Warehouse' },
-                  { value: 'Distribution Depot', label: 'Distribution Depot' },
-                ]}
+                options={departmentOptions}
                 className="rounded-lg font-medium"
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="remarks"
-              label={<span className="font-semibold text-xs text-slate-600">General Note / Purpose</span>}
-            >
-              <Input
-                placeholder="e.g. Batch #45 finished goods handover"
-                className="rounded-lg text-xs"
               />
             </Form.Item>
           </div>
@@ -630,7 +621,7 @@ const NewRequisitionTab: React.FC<NewRequisitionTabProps> = ({ onSuccess }) => {
             type="primary"
             icon={<SendOutlined />}
             onClick={handleSubmit}
-            loading={isSubmitting}
+            loading={isCreatingRequest || isSubmitting}
             disabled={validItemsCount === 0 || totalQuantity <= 0}
             className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold text-xs px-6 h-9 rounded-lg shadow-sm transition-all disabled:opacity-50"
           >

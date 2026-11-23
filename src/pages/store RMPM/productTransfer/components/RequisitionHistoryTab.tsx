@@ -25,16 +25,22 @@ const RequisitionHistoryTab: React.FC<RequisitionHistoryTabProps> = ({ history }
       key: 'date',
     },
     {
-      title: 'From Store',
+      title: 'From Department',
       dataIndex: 'fromStore',
       key: 'fromStore',
       render: (text: string) => <Tag color="blue">{text}</Tag>,
     },
     {
-      title: 'To Store',
+      title: 'To Destination',
       dataIndex: 'toStore',
       key: 'toStore',
       render: (text: string) => <Tag color="green">{text}</Tag>,
+    },
+    {
+      title: 'E-Invoice No',
+      dataIndex: 'eInvoiceNo',
+      key: 'eInvoiceNo',
+      render: (text: string) => text ? <span className="font-mono font-medium text-slate-700">{text}</span> : <span className="text-slate-400">-</span>,
     },
     {
       title: 'Items',
@@ -107,15 +113,15 @@ const RequisitionHistoryTab: React.FC<RequisitionHistoryTabProps> = ({ history }
         open={isDetailModalOpen}
         onCancel={() => setIsDetailModalOpen(false)}
         footer={[
-          <Button key="close" onClick={() => setIsDetailModalOpen(false)}>
+          <Button key="close" size="middle" onClick={() => setIsDetailModalOpen(false)} className="text-xs">
             Close
           </Button>,
         ]}
-        width={750}
+        width="min(950px, 94vw)"
       >
         {selectedRecord && (
           <div className="space-y-4 pt-2">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200/60 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200/60 text-xs">
               <div>
                 <span className="text-slate-400 block font-medium">Date</span>
                 <span className="font-semibold text-slate-700">{selectedRecord.date}</span>
@@ -127,6 +133,10 @@ const RequisitionHistoryTab: React.FC<RequisitionHistoryTabProps> = ({ history }
               <div>
                 <span className="text-slate-400 block font-medium">To</span>
                 <span className="font-semibold text-slate-700">{selectedRecord.toStore}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block font-medium">E-Invoice</span>
+                <span className="font-semibold text-slate-700">{selectedRecord.eInvoiceNo || '-'}</span>
               </div>
               <div>
                 <span className="text-slate-400 block font-medium">Total Qty</span>

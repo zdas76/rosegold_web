@@ -73,6 +73,7 @@ import ProductIngredient from '../pages/inventory/productionIngredient/ProductIn
 import PackingMaterial from '../pages/inventory/packingMaterial/PackingMaterial';
 import ProductionExpItem from '../pages/inventory/productionExpItem/ProductionExpItem';
 import ProductTransfer from '../pages/store RMPM/productTransfer/ProductTranser';
+import RequestRaw from '../pages/store RMPM/requestRaw/RequestRaw';
 
 
 export const sideBarRoutes = [
@@ -205,16 +206,16 @@ export const sideBarRoutes = [
         ]
     },
     {
-        key: "store_rmpm",
+        key: "PRODUCTION",
         icon: <BiStore />,
-        label: "Store (RMPM)",
+        label: "PRODUCTION",
         children: [
             {
-                key: "store_rmpm_production",
-                path: "/dashboard/store_rmpm_production",
+                key: "PRODUCTION",
+                path: "/dashboard/production-creation",
                 icon: <MdOutlineProductionQuantityLimits />,
                 element: <ProductionCreationForm formTitle="Production Creation" />,
-                label: <Link to="/dashboard/store_rmpm_production">Production Creation</Link>,
+                label: <Link to="/dashboard/production-creation">Production Creation</Link>,
             },
             {
                 key: "store_rmpm_production_voucher",
@@ -223,7 +224,13 @@ export const sideBarRoutes = [
                 element: <ProductionVoucher />,
                 label: <Link to="/dashboard/production-voucher">Production Voucher</Link>,
             },
-
+            {
+                key: "store_rmpm_request_raw",
+                icon: <BsHr />,
+                element: <RequestRaw />,
+                path: "/dashboard/request-raw",
+                label: <Link to="/dashboard/request-raw">Request Raw</Link>
+            },
             {
                 key: "store_rmpm_product_transfer",
                 path: "/dashboard/product_transfer",

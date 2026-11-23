@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Form, Input, Button, Select, DatePicker, Table, InputNumber, Modal } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -49,9 +49,18 @@ const PurchaseOrderProductModal: React.FC<Props> = ({ open, onClose }) => {
         }
     }).filter(Boolean);
 
-    const productData = product?.data?.map((item: TProduct) => {
-        return { key: item?.id, label: item?.name, value: item?.id };
-    });
+    const addedProductIds = useMemo(() => {
+        return new Set(items.map((item: any) => item.productId));
+    }, [items]);
+
+    const productData = useMemo(() => {
+        return product?.data?.map((item: TProduct) => ({
+            key: item?.id,
+            label: item?.name,
+            value: item?.id,
+            disabled: addedProductIds.has(item?.id),
+        })) || [];
+    }, [product, addedProductIds]);
 
     const handleAddItem = () => {
         itemForm.validateFields().then((values) => {
@@ -132,7 +141,14 @@ const PurchaseOrderProductModal: React.FC<Props> = ({ open, onClose }) => {
                             <Form component="div" form={itemForm} layout="vertical" className="mb-3">
                                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3">
                                     <Form.Item name="productId" label="Product" rules={[{ required: true, message: "Required" }]}>
-                                        <Select placeholder="Select Name" options={productData} />
+                                        <Select
+                                            showSearch
+                                            placeholder="Select Name"
+                                            options={productData}
+                                            filterOption={(input, option) =>
+                                                (option?.label ?? "").toString().toLowerCase().includes(input.toLowerCase())
+                                            }
+                                        />
                                     </Form.Item>
                                     <Form.Item name="quantity" label="Qty" initialValue={1}>
                                         <InputNumber style={{ width: "100%" }} min={1} addonAfter={`${""}`} />

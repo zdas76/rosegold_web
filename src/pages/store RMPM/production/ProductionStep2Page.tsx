@@ -1084,8 +1084,7 @@ const ProductionStep2Page: React.FC = () => {
             disabled={!isInProgress}
             size="large"
             icon={<CheckCircleOutlined />}
-            className="px-8 rounded-lg bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold text-xs h-10 shadow-[0_3px_12px_rgba(197,141,47,0.3)] hover:shadow-[0_4px_16px_rgba(197,141,47,0.45)] transition-all disabled:opacity-50"
-          >
+            className="px-8 rounded-lg bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold text-xs h-10 shadow-[0_3px_12px_rgba(197,141,47,0.3)] hover:shadow-[0_4px_16px_rgba(197,141,47,0.45)] transition-all disabled:opacity-50">
             {isSubmitting ? 'Saving...' : isPending || isCompleted ? 'Saved (Finished Goods)' : 'Save Finished Goods'}
           </Button>
         </div>

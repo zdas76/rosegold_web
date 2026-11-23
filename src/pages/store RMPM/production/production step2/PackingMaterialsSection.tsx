@@ -36,11 +36,10 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
   const [trigerLastVoucherQty] = useLazyGetLastVoucherQtyQuery();
   const [triggerGetTotalQuantity] = useLazyGetTotalQuantityAndUnitPriceQuery();
   const fetchingIdsRef = useRef<Set<number>>(new Set());
-
   // Fetch live total stock (netQuantity) for any packing materials that have packingMaterialId but no netQuantity yet
   useEffect(() => {
     packingMaterials.forEach(async (item) => {
-      if (item.packingMaterialId && item.netQuantity === undefined && !fetchingIdsRef.current.has(item.packingMaterialId)) {
+      if (item.packingMaterialId && item.qty === undefined && !fetchingIdsRef.current.has(item.packingMaterialId)) {
         const pmId = item.packingMaterialId;
         fetchingIdsRef.current.add(pmId);
         try {
@@ -82,7 +81,6 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
       perUnitQty: null,
       perUnitCost: null,
       total: 0,
-      netQuantity: null,
     };
     setPackingMaterials(prev => [...prev, newRow]);
   };
@@ -93,18 +91,18 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
         prev.map(item =>
           item.si === si
             ? {
-                ...item,
-                packingMaterialId: null,
-                name: '',
-                unit: 'Pcs',
-                unitId: null,
-                unitPrice: null,
-                total: 0,
-                perUnitQty: null,
-                perUnitCost: null,
-                qty: null,
-                netQuantity: null,
-              }
+              ...item,
+              packingMaterialId: null,
+              name: '',
+              unit: 'Pcs',
+              unitId: null,
+              unitPrice: null,
+              total: 0,
+              perUnitQty: null,
+              perUnitCost: null,
+              qty: null,
+              netQuantity: null,
+            }
             : item
         )
       );
@@ -205,8 +203,8 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
     setPackingMaterials(prev =>
       prev.map(item => {
         if (item.si === si) {
-          const maxStock = item.netQuantity !== undefined && item.netQuantity !== null
-            ? item.netQuantity
+          const maxStock = item.qty !== undefined && item.qty !== null
+            ? item.qty
             : packingMaterialOptions.find((opt: any) => opt.value === item.packingMaterialId)?.item?.quantity;
 
           if (maxStock != null && newQty != null && newQty > maxStock) {
@@ -288,8 +286,8 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
       width: 120,
       align: 'center' as const,
       render: (_: any, record: PackingMaterialItem) => {
-        const stock = record.netQuantity !== undefined && record.netQuantity !== null
-          ? record.netQuantity
+        const stock = record.qty !== undefined && record.qty !== null
+          ? record.qty
           : packingMaterialOptions.find((opt: any) => opt.value === record.packingMaterialId)?.item?.quantity;
         const displayStock = stock != null ? stock : '-';
         const hasStock = stock != null && stock > 0;
@@ -302,11 +300,10 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
               }
             }}
             title={hasStock && !disabled ? 'Click to use full stock' : undefined}
-            className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold font-mono ${
-              hasStock && !disabled
-                ? 'bg-slate-100/80 text-slate-700 hover:bg-amber-100 hover:text-amber-800 cursor-pointer transition-colors'
-                : 'bg-slate-100/80 text-slate-400'
-            }`}
+            className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold font-mono ${hasStock && !disabled
+              ? 'bg-slate-100/80 text-slate-700 hover:bg-amber-100 hover:text-amber-800 cursor-pointer transition-colors'
+              : 'bg-slate-100/80 text-slate-400'
+              }`}
           >
             {displayStock} {record.unit || 'Pcs'}
           </span>
@@ -320,8 +317,8 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
       width: 140,
       align: 'right' as const,
       render: (qty: number, record: PackingMaterialItem) => {
-        const maxStock = record.netQuantity !== undefined && record.netQuantity !== null
-          ? record.netQuantity
+        const maxStock = record.qty !== undefined && record.qty !== null
+          ? record.qty
           : packingMaterialOptions.find((opt: any) => opt.value === record.packingMaterialId)?.item?.quantity;
         const hasExceeded = maxStock != null && qty != null && qty > maxStock;
 

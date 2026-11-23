@@ -549,6 +549,8 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
           </Form>
           {debitItems.length > 0 && (
             <Table
+              size="small"
+              className="[&_.ant-table-tbody_>_tr_>_td]:!py-1.5 [&_.ant-table-thead_>_tr_>_th]:!py-2 text-xs"
               dataSource={debitItems}
               rowKey="key"
               columns={[
@@ -597,9 +599,8 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
                         onDoubleClick={() => {
                           setEditingKey(record.key);
                         }}
-                        className="cursor-pointer hover:bg-blue-50 px-2 py-1 rounded transition-colors inline-block select-none"
-                        title="Double-click to edit"
-                      >
+                        className="cursor-pointer hover:bg-blue-50 px-2 py-0.5 rounded transition-colors inline-block select-none"
+                        title="Double-click to edit">
                         {Number(value || 0).toFixed(2)}
                       </div>
                     );
@@ -623,7 +624,6 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
                   dataIndex: "amount",
                   render: (value: number) => value?.toFixed(2),
                 },
-
                 {
                   title: "Ad. Total",
                   key: "adTotal",
@@ -700,6 +700,8 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
           </Form>
           {expenseItems.length > 0 && (
             <Table
+              size="small"
+              className="[&_.ant-table-tbody_>_tr_>_td]:!py-1.5 [&_.ant-table-thead_>_tr_>_th]:!py-2 text-xs"
               dataSource={expenseItems}
               rowKey="key"
               columns={[
@@ -792,6 +794,8 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
           </Form>
           {creditItemsRedux.length > 0 && (
             <Table
+              size="small"
+              className="[&_.ant-table-tbody_>_tr_>_td]:!py-1.5 [&_.ant-table-thead_>_tr_>_th]:!py-2 text-xs"
               dataSource={creditItemsRedux}
               rowKey="key"
               columns={[

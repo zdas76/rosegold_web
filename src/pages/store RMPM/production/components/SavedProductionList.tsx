@@ -235,10 +235,9 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
   ];
 
   return (
-    <div className="space-y-4">
-      {/* Top action & filter bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3 rounded-lg bg-slate-50/60 border border-slate-200/80 shadow-[0_2px_8px_-2px_rgba(15,23,42,0.03)]">
-        <div className="flex items-center gap-3 flex-1 max-w-md w-full">
+    <div className="space-y-1">
+      <div className="flex justify-end">
+        <div className="flex items-center flex-1 max-w-md w-full">
           <Input
             placeholder="Search by Voucher, Batch, or Product..."
             prefix={<SearchOutlined className="text-slate-400" />}
@@ -256,19 +255,7 @@ export const SavedProductionList: React.FC<SavedProductionListProps> = ({
             />
           </Tooltip>
         </div>
-
-        <Space>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={onNewProduction}
-            className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold rounded-lg px-5 h-9 text-xs shadow-[0_3px_12px_rgba(197,141,47,0.3)] hover:shadow-[0_4px_16px_rgba(197,141,47,0.45)] transition-all"
-          >
-            Create New Production
-          </Button>
-        </Space>
       </div>
-
       {/* Table displaying saved productions */}
       <div className="border border-slate-200/80 rounded-xl overflow-hidden bg-white shadow-[0_2px_12px_-3px_rgba(15,23,42,0.05)]">
         <Table
