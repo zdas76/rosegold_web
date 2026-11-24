@@ -225,7 +225,12 @@ const ProductionStep2Page: React.FC = () => {
     setRawMaterials(parsedRawMaterials);
     // 2. Packing Materials
     const currentProd = productionData || productionResponse?.data;
-    const existingPackingInventories = currentProd?.pminventories || [];
+    const existingPackingInventories =
+      currentProd?.pminventories?.length > 0
+        ? currentProd.pminventories
+        : currentProd?.packingMaterials?.length > 0
+          ? currentProd.packingMaterials
+          : (currentProd?.inventory || []).filter((item: any) => Boolean(item.packingMaterialId || item.packingMaterial));
     if (existingPackingInventories.length > 0) {
       const parsedPacking: PackingMaterialItem[] = existingPackingInventories.map(
         (packingItem: any, index: number) => {
@@ -268,12 +273,12 @@ const ProductionStep2Page: React.FC = () => {
           return {
             id: packingItem.id,
             si: index + 1,
-            packingMaterialId: Number(packingMaterialId),
+            packingMaterialId: packingMaterialId ? Number(packingMaterialId) : null,
             name,
             unit,
             unitId,
             qty: quantity > 0 ? quantity : null,
-            unitPrice: unitPrice > 0 ? unitPrice : null,
+            unitPrice: unitPrice >= 0 ? unitPrice : 0,
             perUnitQty,
             perUnitCost,
             total: Number(calculatedTotal.toFixed(2)),
@@ -338,12 +343,12 @@ const ProductionStep2Page: React.FC = () => {
 
             return {
               si: index + 1,
-              packingMaterialId: Number(packingMaterialId),
+              packingMaterialId: packingMaterialId ? Number(packingMaterialId) : null,
               name,
               unit,
               unitId,
               qty: finalQty,
-              unitPrice,
+              unitPrice: unitPrice != null && Number(unitPrice) >= 0 ? Number(unitPrice) : 0,
               perUnitQty: calculatedPerUnitQty,
               perUnitCost: calculatedCost,
               total,
@@ -656,10 +661,22 @@ const ProductionStep2Page: React.FC = () => {
       }
 
       const hasInvalidPackingPrice = packingMaterials.some(
-        item => item.unitPrice === null || item.unitPrice === undefined || Number(item.unitPrice) < 0
+        item => item.unitPrice !== null && item.unitPrice !== undefined && Number(item.unitPrice) < 0
       );
       if (hasInvalidPackingPrice) {
-        showErrorAlert('Please enter a valid Unit Price for all packing materials');
+        showErrorAlert('Please enter a valid Unit Price (0 or greater) for all packing materials');
+        return;
+      }
+
+      const exceededPacking = packingMaterials.find(item => {
+        const maxStock = item.netQuantity !== undefined && item.netQuantity !== null ? item.netQuantity : null;
+        return maxStock != null && item.qty != null && Number(item.qty) > maxStock;
+      });
+      if (exceededPacking) {
+        showErrorAlert(
+          `Quantity for "${exceededPacking.name || 'Packing Material'}" (${exceededPacking.qty}) exceeds available stock (${exceededPacking.netQuantity} ${exceededPacking.unit || 'Pcs'}). It must be less than or equal to available stock.`,
+          'Stock Limit Exceeded'
+        );
         return;
       }
     }
@@ -766,10 +783,22 @@ const ProductionStep2Page: React.FC = () => {
       }
 
       const hasInvalidPackingPrice = packingMaterials.some(
-        item => item.unitPrice === null || item.unitPrice === undefined || Number(item.unitPrice) < 0
+        item => item.unitPrice !== null && item.unitPrice !== undefined && Number(item.unitPrice) < 0
       );
       if (hasInvalidPackingPrice) {
-        showErrorAlert('Please enter a valid Unit Price for all packing materials');
+        showErrorAlert('Please enter a valid Unit Price (0 or greater) for all packing materials');
+        return;
+      }
+
+      const exceededPacking = packingMaterials.find(item => {
+        const maxStock = item.netQuantity !== undefined && item.netQuantity !== null ? item.netQuantity : null;
+        return maxStock != null && item.qty != null && Number(item.qty) > maxStock;
+      });
+      if (exceededPacking) {
+        showErrorAlert(
+          `Quantity for "${exceededPacking.name || 'Packing Material'}" (${exceededPacking.qty}) exceeds available stock (${exceededPacking.netQuantity} ${exceededPacking.unit || 'Pcs'}). It must be less than or equal to available stock.`,
+          'Stock Limit Exceeded'
+        );
         return;
       }
     }

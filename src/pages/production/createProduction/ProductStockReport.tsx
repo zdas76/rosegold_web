@@ -163,7 +163,7 @@ export const ProductStockReport = () => {
         columns={columns}
         dataSource={data?.data || []}
         rowKey="id"
-        pagination={{ pageSize: 5 }}
+        pagination={{ pageSize: 10 }}
         className="rounded-lg overflow-hidden"
       />
     </div>

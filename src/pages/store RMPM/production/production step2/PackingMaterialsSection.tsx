@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useMemo, useEffect, useRef } from 'react';
-import { Button, Table, Select, InputNumber } from 'antd';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Button, Table, Select, InputNumber, Spin } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { PackingMaterialItem } from '../ProductionCreationForm';
 import { useLazyGetLastVoucherQtyQuery } from '../../../../redux/features/inventory/InventoryApi';
 import { useLazyGetTotalQuantityAndUnitPriceQuery } from '../../../../redux/features/transactions/transactons.api';
-import { showWarningAlert } from '../../../../utils/sweetAlert';
 
 interface PackingMaterialsSectionProps {
   packingMaterials: PackingMaterialItem[];
@@ -35,31 +34,52 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
 
   const [trigerLastVoucherQty] = useLazyGetLastVoucherQtyQuery();
   const [triggerGetTotalQuantity] = useLazyGetTotalQuantityAndUnitPriceQuery();
-  const fetchingIdsRef = useRef<Set<number>>(new Set());
-  // Fetch live total stock (netQuantity) for any packing materials that have packingMaterialId but no netQuantity yet
+
+  const [liveStocks, setLiveStocks] = useState<Record<number, number | null>>({});
+  const [loadingStocks, setLoadingStocks] = useState<Record<number, boolean>>({});
+
+  // Helper to fetch live stock from /inventory/inventorytotal?itemType=pmmaterial&packingMaterialId={pmId}
+  const fetchPMStock = async (pmId: number) => {
+    setLoadingStocks(prev => ({ ...prev, [pmId]: true }));
+    try {
+      const res = await triggerGetTotalQuantity({
+        itemType: 'pmmaterial',
+        packingMaterialId: Number(pmId),
+      }).unwrap();
+      const resData = (res as any)?.data?.data ?? (res as any)?.data ?? res;
+      const netQty =
+        resData?.netQuantity != null
+          ? Number(resData.netQuantity)
+          : resData?.totalQuantity != null
+            ? Number(resData.totalQuantity)
+            : 0;
+
+      setLiveStocks(prev => ({ ...prev, [pmId]: netQty }));
+      setPackingMaterials(prev =>
+        prev.map(p => (p.packingMaterialId === pmId ? { ...p, netQuantity: netQty } : p))
+      );
+      return netQty;
+    } catch (err) {
+      console.error('Failed to fetch PM total quantity for id:', pmId, err);
+      setLiveStocks(prev => ({ ...prev, [pmId]: 0 }));
+      setPackingMaterials(prev =>
+        prev.map(p => (p.packingMaterialId === pmId ? { ...p, netQuantity: 0 } : p))
+      );
+      return 0;
+    } finally {
+      setLoadingStocks(prev => ({ ...prev, [pmId]: false }));
+    }
+  };
+
+  // Automatically fetch live stock for all packing materials present in the table
   useEffect(() => {
-    packingMaterials.forEach(async (item) => {
-      if (item.packingMaterialId && item.qty === undefined && !fetchingIdsRef.current.has(item.packingMaterialId)) {
-        const pmId = item.packingMaterialId;
-        fetchingIdsRef.current.add(pmId);
-        try {
-          const res = await triggerGetTotalQuantity({
-            itemType: 'pmmaterial',
-            packingMaterialId: pmId,
-          }).unwrap();
-          const netQty = res?.data?.netQuantity != null ? Number(res.data.netQuantity) : null;
-          setPackingMaterials(prev =>
-            prev.map(p => (p.packingMaterialId === pmId ? { ...p, netQuantity: netQty } : p))
-          );
-        } catch (err) {
-          console.error('Failed to fetch PM total quantity:', err);
-          setPackingMaterials(prev =>
-            prev.map(p => (p.packingMaterialId === pmId ? { ...p, netQuantity: null } : p))
-          );
-        }
+    packingMaterials.forEach(item => {
+      const pmId = item.packingMaterialId;
+      if (pmId && liveStocks[pmId] === undefined && !loadingStocks[pmId]) {
+        fetchPMStock(pmId);
       }
     });
-  }, [packingMaterials, triggerGetTotalQuantity]);
+  }, [packingMaterials, liveStocks, loadingStocks]);
 
   const selectedPackingIds = useMemo(() => {
     return new Set(
@@ -77,7 +97,7 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
       unit: 'Pcs',
       unitId: null,
       qty: null,
-      unitPrice: null,
+      unitPrice: 0,
       perUnitQty: null,
       perUnitCost: null,
       total: 0,
@@ -96,7 +116,7 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
               name: '',
               unit: 'Pcs',
               unitId: null,
-              unitPrice: null,
+              unitPrice: 0,
               total: 0,
               perUnitQty: null,
               perUnitCost: null,
@@ -115,7 +135,7 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
     let lastUsedQty: number | null = null;
     let netStockQty: number | null = null;
 
-    fetchingIdsRef.current.add(packingMaterialId);
+    setLoadingStocks(prev => ({ ...prev, [packingMaterialId]: true }));
 
     try {
       const [lastQtyRes, totalQtyRes] = await Promise.all([
@@ -127,12 +147,22 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
       if (fetchedLast != null && Number(fetchedLast) > 0) {
         lastUsedQty = Number(fetchedLast);
       }
-      if (totalQtyRes?.data?.netQuantity != null) {
-        netStockQty = Number(totalQtyRes.data.netQuantity);
+      const totalData = (totalQtyRes as any)?.data?.data ?? (totalQtyRes as any)?.data ?? totalQtyRes;
+      if (totalData?.netQuantity != null) {
+        netStockQty = Number(totalData.netQuantity);
+      } else if (totalData?.totalQuantity != null) {
+        netStockQty = Number(totalData.totalQuantity);
+      } else {
+        netStockQty = 0;
       }
     } catch (err) {
       console.error('Failed to fetch PM info:', err);
+      netStockQty = 0;
+    } finally {
+      setLoadingStocks(prev => ({ ...prev, [packingMaterialId]: false }));
     }
+
+    setLiveStocks(prev => ({ ...prev, [packingMaterialId]: netStockQty }));
 
     setPackingMaterials(prev =>
       prev.map((item) => {
@@ -187,7 +217,7 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
 
           return {
             ...item,
-            unitPrice: newPrice,
+            unitPrice: newPrice != null ? newPrice : 0,
             total,
             perUnitQty,
             perUnitCost,
@@ -203,18 +233,6 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
     setPackingMaterials(prev =>
       prev.map(item => {
         if (item.si === si) {
-          const maxStock = item.qty !== undefined && item.qty !== null
-            ? item.qty
-            : packingMaterialOptions.find((opt: any) => opt.value === item.packingMaterialId)?.item?.quantity;
-
-          if (maxStock != null && newQty != null && newQty > maxStock) {
-            showWarningAlert(
-              `Quantity cannot exceed available stock (${maxStock} ${item.unit || 'Pcs'}). You entered ${newQty}.`,
-              'Stock Limit Warning'
-            );
-            return item;
-          }
-
           const qtyVal = newQty != null ? Number(newQty) : 0;
           const unitPrice = item.unitPrice || 0;
           const total = Number((qtyVal * unitPrice).toFixed(2));
@@ -281,16 +299,28 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
     },
     {
       title: 'Available Stock',
-      dataIndex: 'unit',
-      key: 'unit',
-      width: 120,
+      dataIndex: 'availableStock',
+      key: 'availableStock',
+      width: 130,
       align: 'center' as const,
       render: (_: any, record: PackingMaterialItem) => {
-        const stock = record.qty !== undefined && record.qty !== null
-          ? record.qty
-          : packingMaterialOptions.find((opt: any) => opt.value === record.packingMaterialId)?.item?.quantity;
-        const displayStock = stock != null ? stock : '-';
-        const hasStock = stock != null && stock > 0;
+        if (!record.packingMaterialId) {
+          return <span className="text-slate-400">-</span>;
+        }
+
+        const pmId = record.packingMaterialId;
+        const isLoading = loadingStocks[pmId];
+        const stock =
+          pmId && liveStocks[pmId] !== undefined
+            ? liveStocks[pmId]
+            : (record.netQuantity !== undefined && record.netQuantity !== null ? record.netQuantity : null);
+
+        if (isLoading || stock === null || stock === undefined) {
+          return <Spin size="small" />;
+        }
+
+        const displayStock = stock.toLocaleString();
+        const hasStock = stock > 0;
 
         return (
           <span
@@ -317,25 +347,34 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
       width: 140,
       align: 'right' as const,
       render: (qty: number, record: PackingMaterialItem) => {
-        const maxStock = record.qty !== undefined && record.qty !== null
-          ? record.qty
-          : packingMaterialOptions.find((opt: any) => opt.value === record.packingMaterialId)?.item?.quantity;
+        const pmId = record.packingMaterialId;
+        const maxStock =
+          pmId && liveStocks[pmId] !== undefined && liveStocks[pmId] !== null
+            ? liveStocks[pmId]
+            : (record.netQuantity !== undefined && record.netQuantity !== null ? record.netQuantity : null);
         const hasExceeded = maxStock != null && qty != null && qty > maxStock;
 
         return (
-          <InputNumber
-            min={0}
-            step={0.01}
-            disabled={disabled}
-            value={qty}
-            status={hasExceeded ? 'error' : undefined}
-            onChange={(val) => handleQuantityChange(record.si, val)}
-            onFocus={(e) => e.target.select()}
-            controls={false}
-            precision={2}
-            placeholder="0.00"
-            className="w-full text-right"
-          />
+          <div className="flex flex-col items-end">
+            <InputNumber
+              min={0}
+              step={0.01}
+              disabled={disabled}
+              value={qty}
+              status={hasExceeded ? 'error' : undefined}
+              onChange={(val) => handleQuantityChange(record.si, val)}
+              onFocus={(e) => e.target.select()}
+              controls={false}
+              precision={2}
+              placeholder="0.00"
+              className={`w-full text-right ${hasExceeded ? '!border-red-500 !bg-red-50/50' : ''}`}
+            />
+            {hasExceeded && (
+              <span className="text-[10px] text-red-500 font-semibold mt-0.5 whitespace-nowrap">
+                Exceeds stock ({maxStock})
+              </span>
+            )}
+          </div>
         );
       },
     },

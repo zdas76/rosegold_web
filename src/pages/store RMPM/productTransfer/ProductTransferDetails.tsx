@@ -797,11 +797,10 @@ const ProductTransferDetails: React.FC = () => {
                             [itemKey]: numVal,
                           }));
                         }}
-                        className={`w-28 text-right font-mono text-xs rounded-lg ${
-                          isOverStock
-                            ? 'border-red-500 focus:border-red-500 text-red-600'
-                            : 'border-slate-300 focus:border-amber-500 text-slate-800'
-                        }`}
+                        className={`w-28 text-right font-mono text-xs rounded-lg ${isOverStock
+                          ? 'border-red-500 focus:border-red-500 text-red-600'
+                          : 'border-slate-300 focus:border-amber-500 text-slate-800'
+                          }`}
                       />
                       {isOverStock && (
                         <span className="text-[10px] text-red-500 font-medium mt-0.5">

@@ -44,6 +44,7 @@ export interface PackingMaterialItem {
   perUnitQty: number | null;
   perUnitCost: number | null;
   total: number;
+  netQuantity?: number | null;
 }
 
 export interface ProductionExpenseItem {

@@ -225,14 +225,6 @@ const PurchasePackingMaterial: React.FC = () => {
             toast.warning("Please add at least one debit item.");
             return;
         }
-        if (creditItemsRedux.length === 0) {
-            toast.warning("Please add at least one credit item.");
-            return;
-        }
-        if (Math.abs(creditTotal - debitTotal) > 0.01) {
-            toast.error("Debit and Credit totals must be equal to submit.");
-            return;
-        }
 
         const subTotal = totalDebit;
         const grandTotal = totalDebit;
@@ -240,7 +232,6 @@ const PurchasePackingMaterial: React.FC = () => {
         const formattedItems = debitItems.map((item) => ({
             key: item.key,
             itemType: "PACKING_MATERIAL",
-            rawOrProductId: item.packingMaterialId,
             packingMaterialId: item.packingMaterialId,
             quantityAdd: item.qty,
             unitPrice: item.unitPrice,
@@ -666,134 +657,47 @@ const PurchasePackingMaterial: React.FC = () => {
                     </div>
                 </div>
 
-                {/*-------------------------- Credit Items --------------------------------------------- */}
-                <div className="mb-5 bg-white shadow rounded-lg p-3 pt-0">
-                    <Divider orientation="left" style={{ paddingTop: "10px" }}>
-                        Credit Items
-                    </Divider>
-                    <Form component="div" form={creditForm} layout="vertical" className="mb-3 px-3">
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                            <Form.Item name="accountsItemId" label="Ledger Head" rules={[{ required: true, message: "Required" }]}>
-                                <Select
-                                    placeholder="Select ledger head"
-                                    onChange={(value) => {
-                                        const selected = creditItems?.find((item: TAccountsItem) => item?.id === value);
-                                        setSelectedCreditLedgerName(selected?.accountsItemName || "");
-                                        creditForm.setFieldsValue({ bankAccountId: undefined });
-                                    }}
-                                >
-                                    {creditItems?.map((item: TAccountsItem) => (
-                                        <Option key={item?.id} value={item?.id}>
-                                            {item?.accountsItemName}
-                                        </Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
 
-                            {selectedCreditLedgerName?.toLowerCase() === "bank" && (
-                                <Form.Item name="bankAccountId" label="Bank Account" rules={[{ required: true, message: "Required" }]}>
-                                    <Select placeholder="Select bank account">
-                                        {allBanks?.map((item: any) => (
-                                            <Option key={item?.key} value={item?.value}>
-                                                {item?.label}
-                                            </Option>
-                                        ))}
-                                    </Select>
-                                </Form.Item>
-                            )}
 
-                            <Form.Item name="amount" label="Amount" rules={[{ required: true, message: "Required" }]}>
-                                <Input type="number" placeholder="Amount" min={0} />
-                            </Form.Item>
-
-                            <Form.Item name="narration" label="Narration">
-                                <Input placeholder="Narration (optional)" />
-                            </Form.Item>
-                            <Form.Item
-                                name="checkOrRTGS"
-                                label="Check/RTGS">
-                                <Input type="text" placeholder="Check/RTGS" />
-                            </Form.Item>
-                            <Form.Item label=" ">
-                                <Button
-                                    onClick={handleAddCreditItem}
-                                    icon={<PlusOutlined />}
-                                    style={{ backgroundColor: "#e0f2fe", color: "#0284c7", borderColor: "#bae6fd" }}
-                                    className="font-bold rounded-lg text-xs h-8 shadow-xs w-full transition-all hover:!bg-[#bae6fd] hover:!border-[#38bdf8] hover:!text-[#0369a1]"
-                                >
-                                    Add
-                                </Button>
-                            </Form.Item>
+                {/*-------------------------- Summary & Submit Section --------------------------------- */}
+                <div className="mb-5 bg-white border border-slate-200/80 rounded-xl p-5 shadow-[0_2px_12px_-3px_rgba(15,23,42,0.04)]">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                        <div className="flex flex-wrap items-center gap-3 sm:gap-6">
+                            <div className="flex flex-col">
+                                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Debit Amount</span>
+                                <span className="text-base font-bold text-slate-800 font-mono">
+                                    {debitTotal.toFixed(2)} ৳
+                                </span>
+                            </div>
+                            <span className="text-xl font-bold text-slate-300 hidden sm:inline">+</span>
+                            <div className="flex flex-col">
+                                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Expense Amount</span>
+                                <span className="text-base font-bold text-slate-800 font-mono">
+                                    {expenseTotal.toFixed(2)} ৳
+                                </span>
+                            </div>
+                            <span className="text-xl font-bold text-slate-300 hidden sm:inline">=</span>
+                            <div className="flex flex-col px-4 py-2 rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/70 shadow-xs">
+                                <span className="text-[11px] font-bold text-amber-800/80 uppercase tracking-wider">Total Amount (Debit + Expense)</span>
+                                <span className="text-lg font-extrabold text-amber-700 font-mono">
+                                    {totalDebit.toFixed(2)} ৳
+                                </span>
+                            </div>
                         </div>
-                    </Form>
 
-                    {creditItemsRedux.length > 0 && (
-                        <Table
-                            dataSource={creditItemsRedux}
-                            rowKey="key"
-                            pagination={false}
-                            columns={[
-                                {
-                                    title: "Credit Item",
-                                    dataIndex: "accountsItemName",
-                                },
-                                {
-                                    title: "Amount",
-                                    dataIndex: "amount",
-                                    render: (value: number) => (value != null ? Number(value).toFixed(2) : "-"),
-                                },
-                                {
-                                    title: "Check/RTGS",
-                                    dataIndex: "checkOrRTGS",
-                                },
-                                {
-                                    title: "Narration",
-                                    dataIndex: "narration",
-                                },
-                                {
-                                    title: "Actions",
-                                    render: (_, record) => (
-                                        <DeleteOutlined
-                                            onClick={() => dispatch(removePackingMaterialCreditItem(record.key))}
-                                            className="text-red-500 cursor-pointer"
-                                        />
-                                    ),
-                                },
-                            ]}
-                        />
-                    )}
-
-                    <div className="text-right font-bold mt-2 text-base">
-                        <b>Total Credit: {creditTotal.toFixed(2)}</b>
-                    </div>
-                </div>
-
-                {/*-------------------------- Submit / Proceed Section --------------------------------- */}
-                <div className="flex items-center justify-end gap-4 p-4 bg-white shadow rounded-lg">
-                    <div>
-                        {Math.abs(creditTotal - debitTotal) > 0.01 || debitTotal === 0 ? (
-                            <h3 className="font-bold text-sm text-red-600 m-0">
-                                Debit or credit Difference: {(creditTotal - debitTotal).toFixed(2)}
-                            </h3>
-                        ) : (
-                            <p
-                                className="text-green-600 font-bold m-0"
-                                style={{ fontSize: "16px", padding: "5px" }}
+                        <div className="flex items-center justify-end">
+                            <Button
+                                type="primary"
+                                size="large"
+                                htmlType="submit"
+                                loading={isSubmitting}
+                                disabled={debitTotal === 0}
+                                className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold rounded-lg px-8 h-11 text-xs shadow-[0_3px_12px_rgba(197,141,47,0.3)] hover:shadow-[0_4px_16px_rgba(197,141,47,0.45)] transition-all disabled:opacity-50"
                             >
-                                Proceed
-                            </p>
-                        )}
+                                {isSubmitting ? "Submitting..." : "Submit"}
+                            </Button>
+                        </div>
                     </div>
-                    <Button
-                        type="primary"
-                        size="middle"
-                        htmlType="submit"
-                        loading={isSubmitting}
-                        disabled={Math.abs(creditTotal - debitTotal) > 0.01 || debitTotal === 0}
-                        className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold rounded-lg px-7 h-10 text-xs shadow-[0_3px_12px_rgba(197,141,47,0.3)] hover:shadow-[0_4px_16px_rgba(197,141,47,0.45)] transition-all disabled:opacity-50"
-                    >
-                        {isSubmitting ? "Submitting..." : "Submit"}
-                    </Button>
                 </div>
             </Form>
 
