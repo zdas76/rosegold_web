@@ -13,16 +13,25 @@ import ReceivedVoucherTable from '../../components/voucherTables/ReceivedVoucher
 import SalesVoucherTable from '../../components/voucherTables/SalesVoucherTable';
 import Loading from '../../components/shared/Loading';
 import CreateProductTable from '../../components/voucherTables/CreateProductTable';
+import ProductionVoucherTable from '../../components/voucherTables/ProductionVoucherTable';
 
 const VoucherDetails = () => {
-    const params = useParams().voucherNo;
+    const routeParams = useParams();
+    const rawVoucherNo = routeParams['*'] || routeParams.voucherNo;
+    const voucherNo = rawVoucherNo ? decodeURIComponent(rawVoucherNo) : undefined;
     const componentRef = useRef<HTMLDivElement>(null);
-    const { data, isLoading } = useGetReportByVoucherNoQuery(params!, { skip: !params });
+    const { data, isLoading } = useGetReportByVoucherNoQuery(voucherNo!, { skip: !voucherNo });
     const voucherData = data?.data;
     console.log(voucherData);
     const voucherType = voucherData?.voucherType;
-    const partyName = voucherData?.party?.name || voucherData?.customer?.name;
-    const partyAddress = voucherData?.party?.address || voucherData?.customer?.address;
+    const partyName =
+        voucherData?.party?.name ||
+        voucherData?.customer?.name ||
+        (voucherType === "PRODUCTION" ? "Gold (Pvt) Ltd." : "");
+    const partyAddress =
+        voucherData?.party?.address ||
+        voucherData?.customer?.address ||
+        (voucherType === "PRODUCTION" ? "3rd Floor, Golden Mart Industrial Park" : "");
 
     const handlePrint = useReactToPrint({
         contentRef: componentRef,
@@ -49,8 +58,11 @@ const VoucherDetails = () => {
                                             <JournalVoucherTable data={voucherData} /> :
                                             voucherType === "SALES" ?
                                                 <SalesVoucherTable data={voucherData} /> :
-                                                // voucherType === "CREATEPRODUCT" ? <CreateProductTable data={voucherData} /> :
-                                                <div className='p-10 text-center'>Voucher Type Not Supported</div>
+                                                voucherType === "PRODUCTION" ?
+                                                    <ProductionVoucherTable data={voucherData} /> :
+                                                    voucherType === "CREATEPRODUCT" ?
+                                                        <CreateProductTable data={voucherData} /> :
+                                                        <div className='p-10 text-center'>Voucher Type Not Supported</div>
                     }
                 </div>
             </div>

@@ -19,7 +19,7 @@ const VoucherHeader: React.FC<VoucherHeaderProps> = ({
         <div className="w-fit">
           {/* <img src={logo} alt="Company Logo" className="max-w-[150px] mb-4" /> */}
         </div>
-        <div className="flex-1">
+        <div className="flex-1 flex justify-center mb-3">
           {/* Company Info */}
           <div className="w-fit">
             <h2 className="text-center text-xl sm:text-[22px] font-arial font-semibold uppercase text-amber-900">

@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { TSalesVoucher } from '../../types/voucherTypes';
 import { numberToWords } from '../../utils/numberToWords';
 
 const SalesVoucherTable = ({ data }: { data: TSalesVoucher }) => {
   const inventory = data?.inventory || [];
-  
+
   // For sales vouchers, we typically look at creditAmount in inventory 
   // as the sales value, and debitAmount in journal/bank transactions as payments.
   const total = inventory.reduce((acc: number, item: any) => acc + (item.creditAmount || 0), 0);
@@ -21,7 +22,7 @@ const SalesVoucherTable = ({ data }: { data: TSalesVoucher }) => {
   return (
     <div className="w-full">
       <div className='text-center mb-3'>
-        <h2 className='text-xl font-bold uppercase tracking-widest border-b-2 border-black inline-block px-4 pb-1'>
+        <h2 className="text-lg mt-1 font-bold uppercase tracking-widest border-b-2 border-black inline-block px-5 pb-1">
           Sales
         </h2>
       </div>
@@ -81,10 +82,10 @@ const SalesVoucherTable = ({ data }: { data: TSalesVoucher }) => {
                 {item?.quantityLess || item?.quantityAdd || 0}
               </td>
               <td className="border border-slate-300 text-left py-2 px-4">
-                {(item?.quantityLess > 0 
-                  ? (item.creditAmount / item.quantityLess) 
-                  : item?.quantityAdd > 0 
-                    ? (item.debitAmount / item.quantityAdd) 
+                {(item?.quantityLess > 0
+                  ? (item.creditAmount / item.quantityLess)
+                  : item?.quantityAdd > 0
+                    ? (item.debitAmount / item.quantityAdd)
                     : 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </td>
               <td className="border border-slate-300 text-left py-2 px-4">

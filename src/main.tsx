@@ -124,7 +124,9 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/dashboard/product_transfer/:id" element={<ProductTransferDetails />} />
             </Route>
             <Route path="/dashboard/sales/challan/:voucherNo" element={<CallanVoucher />} />
+            <Route path="/dashboard/sales/challan/*" element={<CallanVoucher />} />
             <Route path="/dashboard/voucher-details/:voucherNo" element={<VoucherDetails />} />
+            <Route path="/dashboard/voucher-details/*" element={<VoucherDetails />} />
           </Routes>
         </BrowserRouter>
         <Toaster position="top-center" />

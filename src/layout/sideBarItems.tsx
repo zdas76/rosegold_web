@@ -58,6 +58,7 @@ import SalesVoucherView from '../pages/store FG/salesVoucherView/SalesVoucherVie
 import SalesReturn from '../pages/store FG/salesReturn/SalesReturn';
 import SRReceivedVoucher from '../pages/SR/receivedVoucher/SRReceivedVoucher';
 import SRPaymentVoucher from '../pages/SR/paymentVoucher/SRPaymentVoucher';
+import AllVoucher from '../pages/accounts/allVoucher/AllVoucher';
 import AccountsSalesVoucher from '../pages/accounts/salesVoucher/AccountsSalesVoucher';
 import AccountsReceivedVoucher from '../pages/accounts/receivedVoucher/AccountsReceivedVoucher';
 import AccountsPaymentVoucher from '../pages/accounts/paymentVoucher/AccountsPaymentVoucher';
@@ -315,6 +316,13 @@ export const sideBarRoutes = [
         icon: <MdAccountBalance />,
         label: "Accounts",
         children: [
+            {
+                key: "accounts_all_voucher",
+                path: "/dashboard/accounts_all_voucher",
+                icon: <FaList />,
+                element: <AllVoucher />,
+                label: <Link to="/dashboard/accounts_all_voucher">All Voucher</Link>,
+            },
             // {
             //     key: "accounts_order_received",
             //     path: "/dashboard/accounts_order_received",

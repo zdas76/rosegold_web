@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useRef } from 'react'
 import { useParams } from 'react-router'
 import { useGetReportByVoucherNoQuery } from '../../../redux/features/transactions/transactons.api';
@@ -8,7 +9,9 @@ import { useReactToPrint } from 'react-to-print';
 import Loading from '../../../components/shared/Loading';
 
 const CallanVoucher = () => {
-    const { voucherNo } = useParams();
+    const routeParams = useParams();
+    const rawVoucherNo = routeParams['*'] || routeParams.voucherNo;
+    const voucherNo = rawVoucherNo ? decodeURIComponent(rawVoucherNo) : undefined;
     const componentRef = useRef<HTMLDivElement>(null);
     const { data, isLoading } = useGetReportByVoucherNoQuery(voucherNo!, { skip: !voucherNo });
     const voucherData = data?.data;

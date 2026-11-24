@@ -90,8 +90,9 @@ const transactionApi = baseApi.injectEndpoints({
         // get report by voucherNo
         getReportByVoucherNo: builder.query({
             query: (voucherNo: string) => {
+                const encodedVoucherNo = encodeURIComponent(decodeURIComponent(voucherNo || ''));
                 return {
-                    url: `/voucher/voucherNo/${voucherNo}`,
+                    url: `/voucher/voucherNo/${encodedVoucherNo}`,
                     method: `GET`
                 }
             }
