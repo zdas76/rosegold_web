@@ -333,7 +333,7 @@ const AllVoucher: React.FC = () => {
       width: 170,
       align: 'center',
       render: (_, record) => (
-        <Space orientation="horizontal" size="small">
+        <Space size="small">
           <Tooltip title="View voucher details in new tab">
             <Link to={`/dashboard/voucher-details/${record.voucherNo}`} target="_blank">
               <Button
@@ -373,7 +373,7 @@ const AllVoucher: React.FC = () => {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900 tracking-tight">
-                All Vouchers (সকল ভাউচার)
+                All Vouchers
               </h1>
               <p className="text-xs text-gray-500 mt-0.5">
                 Accounts ledger vouchers directory with complete details, filters, and print access
@@ -401,7 +401,7 @@ const AllVoucher: React.FC = () => {
             <Statistic
               title={<span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Vouchers</span>}
               value={stats.total}
-              styles={{ content: { color: '#1f2937', fontWeight: 'bold' } }}
+              valueStyle={{ color: '#1f2937', fontWeight: 'bold' }}
               prefix={<FileTextOutlined className="text-amber-600 mr-1.5" />}
             />
           </Card>
@@ -411,7 +411,7 @@ const AllVoucher: React.FC = () => {
             <Statistic
               title={<span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Confirmed</span>}
               value={stats.confirmed}
-              styles={{ content: { color: '#16a34a', fontWeight: 'bold' } }}
+              valueStyle={{ color: '#16a34a', fontWeight: 'bold' }}
               prefix={<CheckCircleOutlined className="text-green-600 mr-1.5" />}
             />
           </Card>
@@ -421,7 +421,7 @@ const AllVoucher: React.FC = () => {
             <Statistic
               title={<span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Pending</span>}
               value={stats.pending}
-              styles={{ content: { color: '#d97706', fontWeight: 'bold' } }}
+              valueStyle={{ color: '#d97706', fontWeight: 'bold' }}
               prefix={<ClockCircleOutlined className="text-amber-600 mr-1.5" />}
             />
           </Card>
@@ -431,7 +431,7 @@ const AllVoucher: React.FC = () => {
             <Statistic
               title={<span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Filtered Count</span>}
               value={filteredList.length}
-              styles={{ content: { color: '#4f46e5', fontWeight: 'bold' } }}
+              valueStyle={{ color: '#4f46e5', fontWeight: 'bold' }}
               suffix={<span className="text-xs font-normal text-gray-400">/ {stats.total}</span>}
             />
           </Card>
