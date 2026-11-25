@@ -25,6 +25,7 @@ import ProductionVoucher from './pages/store RMPM/production/ProductionVoucher'
 import ProductionStep2Page from './pages/store RMPM/production/ProductionStep2Page'
 import RequestRawDetails from './pages/store RMPM/requestRaw/RequestRawDetails'
 import ProductTransferDetails from './pages/store RMPM/productTransfer/ProductTransferDetails'
+import RequestAcceptDetails from './pages/store FG/requestAccept/RequestAcceptDetails'
 import { ConfigProvider } from 'antd'
 
 createRoot(document.getElementById('root')!).render(
@@ -122,6 +123,8 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/dashboard/request-raw/:id" element={<RequestRawDetails />} />
               <Route path="/dashboard/product-transfer/:id" element={<ProductTransferDetails />} />
               <Route path="/dashboard/product_transfer/:id" element={<ProductTransferDetails />} />
+              <Route path="/dashboard/store_fg_request_accept/:id" element={<RequestAcceptDetails />} />
+              <Route path="/dashboard/store-fg-request-accept/:id" element={<RequestAcceptDetails />} />
             </Route>
             <Route path="/dashboard/sales/challan/:voucherNo" element={<CallanVoucher />} />
             <Route path="/dashboard/sales/challan/*" element={<CallanVoucher />} />

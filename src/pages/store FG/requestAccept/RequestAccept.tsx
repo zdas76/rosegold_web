@@ -404,7 +404,7 @@ const RequestAccept: React.FC = () => {
               icon={<EyeOutlined />}
               size="small"
               className="text-xs font-semibold text-slate-600 hover:text-slate-900 rounded-lg"
-              onClick={() => navigate(`/dashboard/product_transfer/${targetId}`)}
+              onClick={() => navigate(`/dashboard/store_fg_request_accept/${targetId}`)}
               title="View full details and audit logs"
             >
               Details

@@ -20,6 +20,7 @@ import {
   AppstoreOutlined,
   SwapRightOutlined,
   ReloadOutlined,
+  SaveOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useGetProductsQuery } from '../../../redux/features/product/product.api';
@@ -27,7 +28,7 @@ import { useGetUnitsQuery } from '../../../redux/features/unit/unit.api';
 import { useLazyGetTotalQuantityAndUnitPriceQuery } from '../../../redux/features/transactions/transactons.api';
 import {
   useGetRequestByIdQuery,
-  useApproveProductRequestMutation,
+  useUpdateProductTransferRequestMutation,
 } from '../../../redux/features/internalTranscation/internalTranscation.api';
 import { VoucherType } from '../../../types/types';
 import { showSuccessAlert, showWarningAlert } from '../../../utils/sweetAlert';
@@ -139,25 +140,26 @@ const ProductTransferDetails: React.FC = () => {
   const [liveStocks, setLiveStocks] = useState<Record<number, number | null>>({});
   const [isStocksLoading, setIsStocksLoading] = useState<boolean>(false);
 
-  // Editable approved quantities (defaults to requestQty)
-  const [approvedQuantities, setApprovedQuantities] = useState<Record<string | number, number>>({});
-  const [approveProductRequest, { isLoading: isApproving }] = useApproveProductRequestMutation();
+  // Editable request quantities
+  const [requestQuantities, setRequestQuantities] = useState<Record<string | number, number>>({});
+  const [updateProductTransferRequest, { isLoading: isUpdating }] =
+    useUpdateProductTransferRequestMutation();
 
-  // Initialize approvedQuantities with requestQty by default
+  // Initialize requestQuantities with current requestQty
   useEffect(() => {
     if (!detailItemsList || detailItemsList.length === 0) return;
-    setApprovedQuantities(prev => {
+    setRequestQuantities(prev => {
       const nextState: Record<string | number, number> = { ...prev };
       detailItemsList.forEach((item: any) => {
         const pId = item.productId ?? item.product?.id;
         const key = item.id || `prod_${pId}`;
         if (nextState[key] === undefined) {
           const defaultQty =
-            item.approvalQty != null
-              ? Number(item.approvalQty)
-              : item.requestQty != null
-                ? Number(item.requestQty)
-                : Number(item.quantity) || 0;
+            item.requestQty != null
+              ? Number(item.requestQty)
+              : item.quantity != null
+                ? Number(item.quantity)
+                : 0;
           nextState[key] = defaultQty;
         }
       });
@@ -212,46 +214,22 @@ const ProductTransferDetails: React.FC = () => {
     };
   }, [detailItemsList, triggerGetTotalQuantity]);
 
-  // Total requested sums
+  // Total requested sums based on editable input
   const totalRequestedQty = useMemo(() => {
     return detailItemsList.reduce((sum: number, it: any) => {
-      const q =
-        it.requestQty != null
-          ? Number(it.requestQty)
-          : it.quantity != null
-            ? Number(it.quantity)
-            : 0;
-      return sum + (isNaN(q) ? 0 : q);
-    }, 0);
-  }, [detailItemsList]);
-
-  // Total approved sums
-  const totalApprovedQty = useMemo(() => {
-    return detailItemsList.reduce((sum: number, it: any) => {
-      if (isConfirmed) {
-        const val =
-          it.approvalQty != null
-            ? Number(it.approvalQty)
-            : it.approvedQty != null
-              ? Number(it.approvedQty)
-              : 0;
-        return sum + val;
-      }
       const pId = it.productId ?? it.product?.id;
       const itemKey = it.id || `prod_${pId}`;
-      const val =
-        approvedQuantities[itemKey] !== undefined
-          ? approvedQuantities[itemKey]
-          : (it.approvalQty != null
-            ? Number(it.approvalQty)
-            : it.requestQty != null
-              ? Number(it.requestQty)
-              : Number(it.quantity) || 0);
-      return sum + (Number(val) || 0);
+      const q =
+        requestQuantities[itemKey] !== undefined
+          ? requestQuantities[itemKey]
+          : (it.requestQty != null
+            ? Number(it.requestQty)
+            : Number(it.quantity) || 0);
+      return sum + (isNaN(q) ? 0 : q);
     }, 0);
-  }, [detailItemsList, approvedQuantities, isConfirmed]);
+  }, [detailItemsList, requestQuantities]);
 
-  // Check if any items have approvedQty > availableStock
+  // Check if any items have requested quantity > availableStock
   const stockDeficitItems = useMemo(() => {
     if (isConfirmed || !detailItemsList || detailItemsList.length === 0) return [];
     return detailItemsList.filter((item: any) => {
@@ -267,128 +245,81 @@ const ProductTransferDetails: React.FC = () => {
             : null;
 
       const itemKey = item.id || `prod_${pId}`;
-      const reqQty =
-        item.requestQty != null
-          ? Number(item.requestQty)
-          : item.quantity != null
-            ? Number(item.quantity)
-            : 0;
+      const currentVal =
+        requestQuantities[itemKey] !== undefined
+          ? requestQuantities[itemKey]
+          : (item.requestQty != null
+            ? Number(item.requestQty)
+            : Number(item.quantity) || 0);
 
-      const approvedVal =
-        approvedQuantities[itemKey] !== undefined
-          ? approvedQuantities[itemKey]
-          : (item.approvalQty != null
-            ? Number(item.approvalQty)
-            : reqQty);
-
-      return availableStock != null && approvedVal > availableStock;
+      return availableStock != null && currentVal > availableStock;
     });
-  }, [detailItemsList, liveStocks, productsMap, approvedQuantities, isConfirmed]);
+  }, [detailItemsList, liveStocks, productsMap, requestQuantities, isConfirmed]);
 
-  // Handle Approve Submission to /internal-transaction/prodcut-approve
-  const handleApproveRequest = async () => {
+  // Handle Update Submission to PATCH /internal-transaction/product-request/:requestId
+  const handleUpdateRequest = async () => {
     if (stockDeficitItems.length > 0) {
       showWarningAlert(
-        'Some products have approved quantity greater than current available stock. Please reduce the approved quantity before approving.',
+        'Some products have requested quantity greater than current available stock. Please reduce the quantity before updating.',
         'Insufficient Stock'
       );
       return;
     }
 
-    const products = detailItemsList.map((item: any) => {
+    const updatePromises = detailItemsList.map(async (item: any) => {
       const pId = item.productId ?? item.product?.id;
-      const masterProduct = pId ? productsMap.get(pId) : null;
-      const prod = item.product || masterProduct;
-      const prodName =
-        prod?.name ||
-        item.productName ||
-        item.name ||
-        (pId ? `Product #${pId}` : `Item #${item.id}`);
-      const unitId =
-        prod?.unitId ??
-        prod?.unit?.id ??
-        item.unitId ??
-        null;
-
-      const liveStock = pId ? liveStocks[pId] : undefined;
-      const availableStock =
-        liveStock !== undefined && liveStock !== null
-          ? liveStock
-          : prod?.quantity != null
-            ? Number(prod.quantity)
-            : null;
-
       const itemKey = item.id || `prod_${pId}`;
-      const reqQty =
-        item.requestQty != null
-          ? Number(item.requestQty)
-          : item.quantity != null
-            ? Number(item.quantity)
-            : 0;
+      const qty =
+        requestQuantities[itemKey] !== undefined
+          ? requestQuantities[itemKey]
+          : (item.requestQty != null
+            ? Number(item.requestQty)
+            : Number(item.quantity) || 0);
 
-      const approvedVal =
-        approvedQuantities[itemKey] !== undefined
-          ? approvedQuantities[itemKey]
-          : (item.approvalQty != null
-            ? Number(item.approvalQty)
-            : reqQty);
+      // requestId is the requestInventory item id
+      const requestInventoryItemId = item.id ?? item.requestInventoryId ?? item.requestInvetoryId ?? id;
 
-      return {
-        id: pId,
-        productId: pId,
-        requestInvetoryId: item.id,
-        requestInventoryId: item.id,
-        inventoryId: item.id,
-        productName: prodName,
-        unitId: unitId,
-        availableStock: availableStock,
-        requestQty: Number(reqQty),
-        quantity: Number(reqQty),
-        approvedQty: Number(approvedVal),
-        remarks: item.remarks || '',
+      const body = {
+        products: [
+          {
+            productId: pId,
+            requestQty: Number(qty),
+          },
+        ],
       };
+
+      console.log(`Update Product Transfer Payload (/internal-transaction/product-request/${requestInventoryItemId}):`, body);
+
+      return updateProductTransferRequest({
+        requestId: requestInventoryItemId,
+        data: body,
+      });
     });
 
-    const payload = {
-      transactionId: detailData?.id || detailData?.transactionId || Number(id),
-      id: detailData?.id || Number(id),
-      requisitionNo: detailVoucherNo,
-      voucherNo: detailVoucherNo,
-      date: detailDate ? dayjs(detailDate).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
-      fromDepartment: fromDept || 'PRODUCTION',
-      toDepartment: toDept || 'FG_STORE',
-      status: 'APPROVED',
-      totalQuantity: totalApprovedQty,
-      products,
-    };
-
-    console.log('Approve Product Transfer Payload (/internal-transaction/prodcut-approve):', payload);
-
     try {
-      const res: any = await approveProductRequest(payload);
-      const response = getResponse(res);
-      if (response?.success || res?.data?.success) {
+      const results: any[] = await Promise.all(updatePromises);
+      const firstRes = results[0];
+      const response = getResponse(firstRes);
+      console.log(response?.data, "response");
+      if (response?.success || firstRes?.data?.success) {
         await showSuccessAlert(
-          `Product Transfer Request ${detailVoucherNo} approved successfully!`,
-          'Request Approved'
+          `Product Transfer Request ${detailVoucherNo} updated successfully!`,
+          'Request Updated'
         );
         refetch();
-        navigate('/dashboard/product_transfer');
       } else {
         await showSuccessAlert(
-          response?.message || `Approval submitted successfully!`,
-          'Approved'
+          response?.message || 'Updated successfully!',
+          'Success'
         );
         refetch();
-        navigate('/dashboard/product_transfer');
       }
     } catch (err: any) {
-      console.error('Failed to submit approval:', err);
-      await showSuccessAlert(
-        `Payload sent to /internal-transaction/prodcut-approve.`,
-        'Approval Submitted'
+      console.error('Failed to update request:', err);
+      showWarningAlert(
+        err?.data?.message || err?.message || 'Failed to update request. Please try again.',
+        'Update Failed'
       );
-      refetch();
     }
   };
 
@@ -475,7 +406,7 @@ const ProductTransferDetails: React.FC = () => {
       </div>
 
       {/* Meta Metric Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
           <span className="text-slate-400 block font-semibold text-[11px] mb-1 flex items-center gap-1">
             <FileTextOutlined /> Voucher No
@@ -505,19 +436,10 @@ const ProductTransferDetails: React.FC = () => {
 
         <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
           <span className="text-slate-400 block font-semibold text-[11px] mb-1">
-            Requested Total Qty
+            Total Request Qty
           </span>
-          <span className="font-mono font-bold text-slate-800 text-xs block">
+          <span className="font-mono font-bold text-amber-700 text-xs block">
             {totalRequestedQty.toLocaleString()}
-          </span>
-        </div>
-
-        <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
-          <span className="text-slate-400 block font-semibold text-[11px] mb-1">
-            Approved Total Qty
-          </span>
-          <span className="font-mono font-bold text-emerald-700 text-xs block">
-            {totalApprovedQty.toLocaleString()}
           </span>
         </div>
 
@@ -544,7 +466,7 @@ const ProductTransferDetails: React.FC = () => {
           }
           description={
             <span className="text-[11px] text-emerald-700">
-              This product transfer requisition from PRODUCTION to FG_STORE has been confirmed and finalized. Quantities are displayed in read-only mode.
+              This transfer request has already been accepted by FG Store and is finalized in read-only mode.
             </span>
           }
           className="border-emerald-200 bg-emerald-50/80 rounded-xl shadow-2xs"
@@ -564,7 +486,7 @@ const ProductTransferDetails: React.FC = () => {
           }
           description={
             <span className="text-[11px] text-amber-800">
-              Approved quantities are defaulted to requested quantities. You can modify the approved quantity for each item below before clicking &ldquo;Approve Request&rdquo;.
+              You can modify the requested quantity for each product below and click &ldquo;Update Request&rdquo; to save changes before FG Store accepts it.
             </span>
           }
           className="border-amber-200 bg-amber-50/70 rounded-xl shadow-2xs"
@@ -584,7 +506,7 @@ const ProductTransferDetails: React.FC = () => {
           }
           description={
             <span className="text-[11px] text-amber-700">
-              {stockDeficitItems.length} product(s) have an approved quantity greater than current available stock. Please reduce the approved quantity before approving.
+              {stockDeficitItems.length} product(s) have a requested quantity greater than current available stock. Please reduce the quantity to stay within available stock.
             </span>
           }
           className="border-amber-200 bg-amber-50/80 rounded-xl shadow-2xs"
@@ -607,7 +529,7 @@ const ProductTransferDetails: React.FC = () => {
           <span className="text-xs text-slate-400 font-medium">
             {isConfirmed
               ? 'This transfer requisition has been confirmed. The details below are read-only.'
-              : 'You can modify the approved quantity for each product below'}
+              : 'You can modify the requested quantity for each product below'}
           </span>
         </div>
 
@@ -719,26 +641,7 @@ const ProductTransferDetails: React.FC = () => {
               {
                 title: 'Requested Qty',
                 key: 'requestQty',
-                width: 130,
-                align: 'right' as const,
-                render: (_: any, item: any) => {
-                  const qty =
-                    item.requestQty != null
-                      ? Number(item.requestQty)
-                      : item.quantity != null
-                        ? Number(item.quantity)
-                        : null;
-                  return (
-                    <span className="font-mono font-bold text-slate-900 text-xs">
-                      {qty != null ? qty.toLocaleString() : '-'}
-                    </span>
-                  );
-                },
-              },
-              {
-                title: 'Approved Qty',
-                key: 'approvalQty',
-                width: 160,
+                width: 170,
                 align: 'right' as const,
                 render: (_: any, item: any) => {
                   const pId = item.productId ?? item.product?.id;
@@ -753,32 +656,19 @@ const ProductTransferDetails: React.FC = () => {
                         : null;
 
                   const itemKey = item.id || `prod_${pId}`;
-                  const reqQty =
-                    item.requestQty != null
-                      ? Number(item.requestQty)
-                      : item.quantity != null
-                        ? Number(item.quantity)
-                        : 0;
-
                   const currentVal =
-                    approvedQuantities[itemKey] !== undefined
-                      ? approvedQuantities[itemKey]
-                      : (item.approvalQty != null
-                        ? Number(item.approvalQty)
-                        : reqQty);
+                    requestQuantities[itemKey] !== undefined
+                      ? requestQuantities[itemKey]
+                      : (item.requestQty != null
+                        ? Number(item.requestQty)
+                        : Number(item.quantity) || 0);
 
                   const isOverStock = availableStock != null && currentVal > availableStock;
 
                   if (isConfirmed) {
-                    const approvedVal =
-                      item.approvalQty != null
-                        ? Number(item.approvalQty)
-                        : item.approvedQty != null
-                          ? Number(item.approvedQty)
-                          : null;
                     return (
-                      <span className="font-mono font-bold text-emerald-700 text-xs">
-                        {approvedVal != null ? approvedVal.toLocaleString() : '-'}
+                      <span className="font-mono font-bold text-slate-900 text-xs">
+                        {currentVal.toLocaleString()}
                       </span>
                     );
                   }
@@ -792,7 +682,7 @@ const ProductTransferDetails: React.FC = () => {
                         value={currentVal}
                         onChange={(val) => {
                           const numVal = Math.max(0, Number(val) || 0);
-                          setApprovedQuantities(prev => ({
+                          setRequestQuantities(prev => ({
                             ...prev,
                             [itemKey]: numVal,
                           }));
@@ -846,19 +736,19 @@ const ProductTransferDetails: React.FC = () => {
         </div>
       </div>
 
-      {/* Bottom Action Footer with Approve Button */}
+      {/* Bottom Action Footer with Update Button */}
       {!isConfirmed && (
         <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-200/80 shadow-[0_2px_12px_-3px_rgba(15,23,42,0.04)] flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-3">
             <span className="text-slate-600 text-xs font-medium">
-              Total Approved Quantity:{' '}
-              <strong className="font-mono text-emerald-700 text-sm ml-1">
-                {totalApprovedQty.toLocaleString()}
+              Total Requested Quantity:{' '}
+              <strong className="font-mono text-amber-700 text-sm ml-1">
+                {totalRequestedQty.toLocaleString()}
               </strong>
             </span>
             {stockDeficitItems.length > 0 && (
               <span className="text-xs text-red-500 font-medium">
-                (Cannot approve: {stockDeficitItems.length} product(s) exceed available stock)
+                (Cannot update: {stockDeficitItems.length} product(s) exceed available stock)
               </span>
             )}
           </div>
@@ -866,13 +756,13 @@ const ProductTransferDetails: React.FC = () => {
           <div className="flex items-center gap-2">
             <Button
               type="primary"
-              icon={<CheckCircleOutlined />}
-              onClick={handleApproveRequest}
-              loading={isApproving}
+              icon={<SaveOutlined />}
+              onClick={handleUpdateRequest}
+              loading={isUpdating}
               disabled={stockDeficitItems.length > 0}
-              className="bg-emerald-600 hover:bg-emerald-500 border-none text-white text-xs font-semibold px-6 h-10 rounded-lg shadow-sm"
+              className="bg-amber-600 hover:bg-amber-500 border-none text-white text-xs font-semibold px-6 h-10 rounded-lg shadow-sm"
             >
-              Approve Request
+              Update Request
             </Button>
           </div>
         </div>

@@ -465,7 +465,7 @@ const AllVoucher: React.FC = () => {
             >
               {voucherTypes.map((type) => (
                 <Option key={type} value={type}>
-                  {type === 'ALL' ? 'All Types (সকল টাইপ)' : type}
+                  {type === 'ALL' ? 'All Types' : type}
                 </Option>
               ))}
             </Select>
