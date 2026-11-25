@@ -529,11 +529,8 @@ const ProductionStep2Page: React.FC = () => {
     return Number(
       packingMaterials
         .reduce((sum, item) => {
-          const itemTotal =
-            item.total && Number(item.total) > 0
-              ? Number(item.total)
-              : (Number(item.qty || 0) * Number(item.unitPrice || 0));
-          return sum + (itemTotal || 0);
+          const itemTotal = Number(((Number(item.qty) || 0) * (Number(item.unitPrice) || 0)).toFixed(2));
+          return sum + itemTotal;
         }, 0)
         .toFixed(2)
     );

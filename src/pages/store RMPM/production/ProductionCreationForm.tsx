@@ -18,6 +18,8 @@ import { showErrorAlert, showWarningAlert } from '../../../utils/sweetAlert';
 import { useAppDispatch } from '../../../redux/hooks';
 import { setProductionStep1 } from '../../../redux/features/production/productionSlice';
 import { useLazyGetLastVoucherQtyQuery } from '../../../redux/features/inventory/InventoryApi';
+import useLocalUser from '../../../hook/useLocalUser';
+import { Department } from '../productTransfer/types';
 
 export interface RawMaterialItem {
   id?: number;
@@ -99,17 +101,18 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
   const [triggerGetTotalQuantity] = useLazyGetTotalQuantityAndUnitPriceQuery();
   const [trigerLastVoucherQty] = useLazyGetLastVoucherQtyQuery()
   // const [triggerLastUsedQty] =
-
+  const { department } = useLocalUser()
   // Helper to fetch live rate and netQuantity from /inventory/inventorytotal?itemType=raw&rawId={rawId}
   const fetchRawMaterialInfo = async (rawId: number): Promise<{ rate: number | null; netQuantity: number | null, lastQty: number | null }> => {
     try {
       const res = await triggerGetTotalQuantity({
         itemType: 'raw',
         rawId: String(rawId),
+        department,
       }).unwrap();
       const rawNetQty = res?.data?.netQuantity;
       const netQty = rawNetQty !== undefined && rawNetQty !== null ? Number(rawNetQty) : null;
-      const netAmount = Number(res?.data?.netAmount) || 0;
+      const netAmount = Number(res?.data?.netIntegratedAmount) || 0;
       let rate: number | null = null;
       if (netQty !== null && netQty > 0 && netAmount > 0) {
         rate = Number((netAmount / netQty).toFixed(2));
@@ -151,7 +154,12 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
   }, [rawMaterials]);
 
   const grandTotal = useMemo(() => {
-    return Number(rawMaterials.reduce((sum, item) => sum + (Number(item.total) || 0), 0).toFixed(2));
+    return Number(
+      rawMaterials.reduce((sum, item) => {
+        const itemTotal = Number(((Number(item.qty) || 0) * (Number(item.rate) || 0)).toFixed(2));
+        return sum + itemTotal;
+      }, 0).toFixed(2)
+    );
   }, [rawMaterials]);
 
   // Load existing production if passed via location.state
@@ -232,14 +240,15 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
             setRawMaterials(prev =>
               prev.map((item, i) => {
                 if (i === idx) {
-                  const itemQty = item.qty ?? 0;
-                  const finalRate = liveRate ?? item.rate;
+                  const finalQty = lastQty != null && Number(lastQty) > 0 ? Number(lastQty) : (item.qty != null ? Number(item.qty) : 0);
+                  const finalRate = liveRate != null && Number(liveRate) > 0 ? Number(liveRate) : (item.rate != null ? Number(item.rate) : 0);
+                  const total = Number((finalQty * finalRate).toFixed(2));
                   return {
                     ...item,
-                    rate: finalRate,
+                    rate: finalRate > 0 ? finalRate : item.rate,
                     netQuantity,
-                    total: itemQty > 0 && finalRate != null ? Number((itemQty * finalRate).toFixed(2)) : item.total,
-                    qty: lastQty ?? 0
+                    qty: finalQty > 0 ? finalQty : item.qty,
+                    total,
                   };
                 }
                 return item;
@@ -294,17 +303,18 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
       );
 
       // Fetch live rate and netQuantity from /inventory/inventorytotal?itemType=raw&rawId={value}
-      const { rate: liveRate, netQuantity } = await fetchRawMaterialInfo(selected.id);
+      const { rate: liveRate, netQuantity, lastQty } = await fetchRawMaterialInfo(selected.id);
       setRawMaterials(prev =>
         prev.map(item => {
           if (item.si === si) {
-            const currentQty = item.qty ?? 0;
+            const finalQty = item.qty != null && Number(item.qty) > 0 ? Number(item.qty) : (lastQty != null ? Number(lastQty) : 0);
             const finalRate = liveRate ?? item.rate;
-            const newTotal = finalRate != null ? Number((currentQty * finalRate).toFixed(2)) : 0;
+            const newTotal = finalRate != null ? Number((finalQty * finalRate).toFixed(2)) : 0;
             return {
               ...item,
               rate: finalRate,
               netQuantity,
+              qty: finalQty > 0 ? finalQty : item.qty,
               total: newTotal,
             };
           }
@@ -598,11 +608,16 @@ const ProductionCreationForm: React.FC<{ formTitle?: string }> = ({
       key: 'total',
       width: 130,
       align: 'right' as const,
-      render: (total: number) => (
-        <span className="font-semibold text-slate-800 text-xs font-mono">
-          {Number(total || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
-        </span>
-      ),
+      render: (_: any, record: RawMaterialItem) => {
+        const qty = Number(record.qty) || 0;
+        const rate = Number(record.rate) || 0;
+        const total = Number((qty * rate).toFixed(2));
+        return (
+          <span className="font-semibold text-slate-800 text-xs font-mono">
+            {total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ৳
+          </span>
+        );
+      },
     },
     {
       title: '',

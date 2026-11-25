@@ -29,6 +29,7 @@ import {
   useGetRequestAllQuery,
 } from '../../../redux/features/internalTranscation/internalTranscation.api';
 import { useLazyGetTotalQuantityAndUnitPriceQuery } from '../../../redux/features/transactions/transactons.api';
+import { useLocalUser } from '../../../hook/useLocalUser';
 import { showSuccessAlert, showWarningAlert } from '../../../utils/sweetAlert';
 import { getResponse } from '../../../utils/getResponse';
 import { VoucherType } from '../../../types/types';
@@ -89,6 +90,7 @@ const ProductTransfer: React.FC = () => {
 
   // Live stock hook for item selector in Add Modal
   const [triggerGetTotalQuantity] = useLazyGetTotalQuantityAndUnitPriceQuery();
+  const { department } = useLocalUser();
 
   // Voucher history list (fetched from backend API)
   const vouchers: any[] = useMemo(() => {
@@ -123,6 +125,7 @@ const ProductTransfer: React.FC = () => {
         const res = await triggerGetTotalQuantity({
           itemType: 'product',
           productId: selectedProductId,
+          department,
         }).unwrap();
 
         if (isCurrent) {

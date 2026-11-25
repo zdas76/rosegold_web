@@ -24,6 +24,7 @@ import dayjs from 'dayjs';
 import { useGetProductsQuery } from '../../../redux/features/product/product.api';
 import { useGetUnitsQuery } from '../../../redux/features/unit/unit.api';
 import { useLazyGetTotalQuantityAndUnitPriceQuery } from '../../../redux/features/transactions/transactons.api';
+import { useLocalUser } from '../../../hook/useLocalUser';
 import {
   useGetRequestByIdQuery,
   useApproveProductRequestMutation,
@@ -33,6 +34,7 @@ import { showSuccessAlert, showErrorAlert } from '../../../utils/sweetAlert';
 import { getResponse } from '../../../utils/getResponse';
 
 const RequestAcceptDetails: React.FC = () => {
+  const { department } = useLocalUser();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -158,6 +160,7 @@ const RequestAcceptDetails: React.FC = () => {
             const res = await triggerGetTotalQuantity({
               itemType: 'product',
               productId: Number(pId),
+              department,
             }).unwrap();
             const netQty =
               res?.data?.netQuantity != null

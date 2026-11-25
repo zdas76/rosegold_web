@@ -85,6 +85,14 @@ export const internalTransactionApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["internalTransaction", "product-request"],
     }),
+    updateRawRequest: builder.mutation({
+      query: ({ requestId, data }: { requestId: number | string; data: any }) => ({
+        url: `/internal-transaction/raw-request/${requestId}`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ["internalTransaction"],
+    }),
     // rawApprove: builder.mutation({
     //   query: (data: any) => ({
     //     url: "/internal-transaction/raw-approve",
@@ -104,6 +112,7 @@ export const {
   useApproveRawRequestMutation,
   useApproveProductRequestMutation,
   useUpdateProductTransferRequestMutation,
+  useUpdateRawRequestMutation,
   useCreateProductTransferRequestMutation,
   // useRawApproveMutation,
 } = internalTransactionApi;

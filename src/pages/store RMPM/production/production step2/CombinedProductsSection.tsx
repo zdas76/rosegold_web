@@ -3,6 +3,9 @@ import React, { useEffect, useMemo } from 'react';
 import { useGetTotalQuantityAndUnitPriceQuery } from '../../../../redux/features/transactions/transactons.api';
 import { Button, Table, Select, InputNumber, Tag, message } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { useAppSelector } from '../../../../redux/hooks';
+import { useLocalUser } from '../../../../hook/useLocalUser';
+import { Department } from '../../productTransfer/types';
 
 export interface CombinedProductItem {
   id?: number | string;
@@ -36,9 +39,10 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
   disabled = false,
   selectedProduct,
 }) => {
+  const { department } = useLocalUser();
   const currentProductId = selectedProduct?.id ? Number(selectedProduct.id) : undefined;
   const { data: stockData } = useGetTotalQuantityAndUnitPriceQuery(
-    { itemType: "product", productId: currentProductId },
+    { itemType: "product", productId: currentProductId, department },
     { skip: !currentProductId || disabled, refetchOnMountOrArgChange: true }
   );
 

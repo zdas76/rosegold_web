@@ -31,6 +31,7 @@ import {
 } from '../../../redux/features/internalTranscation/internalTranscation.api';
 import { useGetUnitsQuery } from '../../../redux/features/unit/unit.api';
 import { useLazyGetTotalQuantityAndUnitPriceQuery } from '../../../redux/features/transactions/transactons.api';
+import { useLocalUser } from '../../../hook/useLocalUser';
 import { showSuccessAlert, showWarningAlert } from '../../../utils/sweetAlert';
 import { getResponse } from '../../../utils/getResponse';
 import { VoucherType } from '../../../types/types';
@@ -137,6 +138,7 @@ const RequestRaw: React.FC = () => {
 
   // Live stock hook for item selector in Add Modal
   const [triggerGetTotalQuantity] = useLazyGetTotalQuantityAndUnitPriceQuery();
+  const { department } = useLocalUser();
 
   // Voucher history list (fetched from backend API)
   const vouchers: TRequestVoucher[] = useMemo(() => {
@@ -172,8 +174,8 @@ const RequestRaw: React.FC = () => {
       try {
         const res = await triggerGetTotalQuantity(
           selectedItemType === 'RAW'
-            ? { itemType: 'raw', rawId: String(selectedItemId) }
-            : { itemType: 'pmmaterial', packingMaterialId: Number(selectedItemId) }
+            ? { itemType: 'raw', rawId: String(selectedItemId), department }
+            : { itemType: 'pmmaterial', packingMaterialId: Number(selectedItemId), department }
         ).unwrap();
 
         if (isCurrent) {

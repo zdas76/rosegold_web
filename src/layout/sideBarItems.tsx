@@ -75,6 +75,7 @@ import PackingMaterial from '../pages/inventory/packingMaterial/PackingMaterial'
 import ProductionExpItem from '../pages/inventory/productionExpItem/ProductionExpItem';
 import ProductTransfer from '../pages/store RMPM/productTransfer/ProductTranser';
 import RequestRaw from '../pages/store RMPM/requestRaw/RequestRaw';
+import RawRequestAccept from '../pages/purchase/rawRequestAccept/RawRequestAccept';
 
 
 export const sideBarRoutes = [
@@ -168,6 +169,7 @@ export const sideBarRoutes = [
                 path: "/dashboard/purchase-rm",
                 label: <Link to={`/dashboard/purchase-rm`}>Requisition RMPM</Link>
             },
+
             {
                 key: 'purchase_p',
                 path: "/dashboard/purchase-receive-voucher",
@@ -196,6 +198,7 @@ export const sideBarRoutes = [
             //     icon: <UserAddOutlined />,
             //     label: <Link to="/dashboard/vendor">Vendor</Link>,
             // },
+
             {
                 key: 'purchase_supplier',
                 path: "/dashboard/supplier",
@@ -203,7 +206,13 @@ export const sideBarRoutes = [
                 icon: <UserAddOutlined />,
                 label: <Link to="/dashboard/supplier">Supplier</Link>,
             },
-
+            {
+                key: "raw_request",
+                icon: <MdRequestPage />,
+                element: <RawRequestAccept />,
+                path: "/dashboard/raw-request",
+                label: <Link to="/dashboard/raw-request">Raw Request</Link>
+            },
         ]
     },
     {
@@ -230,7 +239,7 @@ export const sideBarRoutes = [
                 icon: <BsHr />,
                 element: <RequestRaw />,
                 path: "/dashboard/request-raw",
-                label: <Link to="/dashboard/request-raw">Request Raw</Link>
+                label: <Link to="/dashboard/request-raw">Make Raw Request</Link>
             },
             {
                 key: "store_rmpm_product_transfer",

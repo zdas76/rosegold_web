@@ -24,6 +24,7 @@ import {
 import dayjs from 'dayjs';
 import { useGetProductsQuery } from '../../../../redux/features/product/product.api';
 import { useLazyGetTotalQuantityAndUnitPriceQuery } from '../../../../redux/features/transactions/transactons.api';
+import { useLocalUser } from '../../../../hook/useLocalUser';
 import { showSuccessAlert, showWarningAlert } from '../../../../utils/sweetAlert';
 import { Department, departmentOptions, type ProductRequisitionItem, type RequisitionRecord } from '../types';
 import { useCreateProductTransferRequestMutation, useGetRequestAllQuery } from '../../../../redux/features/internalTranscation/internalTranscation.api';
@@ -52,6 +53,7 @@ const NewRequisitionTab: React.FC<NewRequisitionTabProps> = ({ onSuccess }) => {
   // Queries
   const { data: productsData, isLoading: isProductsLoading } = useGetProductsQuery({});
   const [triggerGetTotalQuantity] = useLazyGetTotalQuantityAndUnitPriceQuery();
+  const { department } = useLocalUser();
 
   // Requisition items state
   const [items, setItems] = useState<ProductRequisitionItem[]>([
@@ -182,6 +184,7 @@ const NewRequisitionTab: React.FC<NewRequisitionTabProps> = ({ onSuccess }) => {
       const res = await triggerGetTotalQuantity({
         itemType: 'product',
         productId,
+        department,
       }).unwrap();
 
       const liveNetQty = res?.data?.netQuantity != null ? Number(res.data.netQuantity) : (chosen.stock ?? 0);

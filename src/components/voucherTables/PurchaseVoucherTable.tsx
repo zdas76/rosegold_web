@@ -173,7 +173,7 @@ const PurchaseVoucherTable: React.FC<{ data: TPurchaseVoucherData }> = ({ data }
         <div className="mb-4">
           <div className="font-bold text-sm text-gray-800 mb-1 flex items-center justify-between">
             <span className="uppercase text-xs tracking-wider">
-              1. Purchased Materials / Items (ক্রয়কৃত মালামাল)
+              1. Purchased Materials / Items
             </span>
             <span className="text-xs text-gray-500 font-normal">
               Total Items: {inventoryWithBalance.length}
@@ -318,8 +318,8 @@ const PurchaseVoucherTable: React.FC<{ data: TPurchaseVoucherData }> = ({ data }
           <div className="font-bold text-sm text-gray-800 mb-1 flex items-center justify-between">
             <span className="uppercase text-xs tracking-wider">
               {inventoryWithBalance.length > 0
-                ? '2. Accounting Journal Posting (অ্যাকাউন্টিং জার্নাল এন্ট্রি)'
-                : 'Journal & Accounts Details (জার্নাল ও হিসাবের বিবরণ)'}
+                ? '2. Accounting Journal Posting'
+                : 'Journal & Accounts Details'}
             </span>
             <span className="text-xs text-gray-500 font-normal">
               Entries: {journalEntries.length}
@@ -333,10 +333,10 @@ const PurchaseVoucherTable: React.FC<{ data: TPurchaseVoucherData }> = ({ data }
                   No.
                 </th>
                 <th className="border border-slate-300 text-left py-2 px-4 font-semibold">
-                  Account Head (হিসাবের খাত)
+                  Account Head
                 </th>
                 <th className="border border-slate-300 text-left py-2 px-4 font-semibold">
-                  Narration / Remarks (বিবরণ)
+                  Narration / Remarks
                 </th>
                 <th className="border border-slate-300 text-right py-2 px-4 w-32 font-semibold">
                   Debit (TK)

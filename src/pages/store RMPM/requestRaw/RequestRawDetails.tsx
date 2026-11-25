@@ -18,15 +18,18 @@ import {
   FileTextOutlined,
   CalendarOutlined,
   AppstoreOutlined,
+  SaveOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useGetRowMaterialsQuery } from '../../../redux/features/rowMaterials/rowMaterials.api';
 import { useGetPackingMaterialsQuery } from '../../../redux/features/packingMaterials/packingMaterials.api';
 import { useGetUnitsQuery } from '../../../redux/features/unit/unit.api';
 import { useLazyGetTotalQuantityAndUnitPriceQuery } from '../../../redux/features/transactions/transactons.api';
+import { useLocalUser } from '../../../hook/useLocalUser';
 import {
   useGetRequestByIdQuery,
-  useApproveRawRequestMutation,
+  useUpdateRawRequestMutation,
 } from '../../../redux/features/internalTranscation/internalTranscation.api';
 import { showSuccessAlert, showWarningAlert } from '../../../utils/sweetAlert';
 import { getResponse } from '../../../utils/getResponse';
@@ -42,9 +45,10 @@ const RequestRawDetails: React.FC = () => {
     isLoading: isDetailsLoading,
     isFetching: isDetailsFetching,
     refetch,
-  } = useGetRequestByIdQuery({ id: Number(id!), voucherType: VoucherType.REQUEST }, {
-    skip: !id,
-  });
+  } = useGetRequestByIdQuery(
+    { id: Number(id!), voucherType: VoucherType.REQUEST },
+    { skip: !id }
+  );
 
   const detailData = detailsResponse?.data;
   const txInfo = detailData?.transactionInfo;
@@ -116,24 +120,30 @@ const RequestRawDetails: React.FC = () => {
     detailData?.voucherNo || txInfo?.voucherNo || (id ? `REQ-${id}` : '-');
   const detailDate = detailData?.date || txInfo?.date || detailData?.requestInventories?.[0]?.date;
   const detailFormattedDate = detailDate ? dayjs(detailDate).format('DD-MMM-YYYY') : '-';
-  const detailType = detailData?.voucherType || txInfo?.voucherType || 'REQUEST';
-  const detailStatus = detailData?.status || txInfo?.status || detailData?.requestInventories?.[0]?.status || 'PENDING';
-  const isApproved = detailStatus === 'CONFIRMED' || detailStatus === 'APPROVED';
+  const detailStatus = (
+    detailData?.status ||
+    txInfo?.status ||
+    detailData?.requestInventories?.[0]?.status ||
+    'PENDING'
+  ).toUpperCase();
+
+  const isConfirmed =
+    detailStatus === 'CONFIRMED' ||
+    detailStatus === 'APPROVED' ||
+    detailStatus === 'ACTIVE';
 
   const fromDept =
     detailData?.fromDepartment ||
     detailData?.requestInventories?.[0]?.fromDepartment ||
     txInfo?.fromDepartment ||
-    'RMPM_STORE';
+    'PRODUCTION';
   const toDept =
     detailData?.toDepartment ||
     detailData?.department ||
     detailData?.requestInventories?.[0]?.toDepartment ||
     detailData?.requestInventories?.[0]?.department ||
     txInfo?.toDepartment ||
-    'PRODUCTION';
-  // const detailDepartment = toDept;
-  // const detailCreatedAt = detailData?.createdAt || txInfo?.createdAt || detailData?.requestInventories?.[0]?.createdAt;
+    'RMPM_STORE';
 
   const getStatusColor = (status: string) => {
     switch (status?.toUpperCase()) {
@@ -152,28 +162,33 @@ const RequestRawDetails: React.FC = () => {
 
   // Live stock state and lazy query from /inventory/inventorytotal
   const [triggerGetTotalQuantity] = useLazyGetTotalQuantityAndUnitPriceQuery();
+  const { department } = useLocalUser();
   const [liveStocks, setLiveStocks] = useState<Record<string, number | null>>({});
   const [isStocksLoading, setIsStocksLoading] = useState<boolean>(false);
 
-  // Editable approved quantities (defaults to requestQty)
-  const [approvedQuantities, setApprovedQuantities] = useState<Record<string | number, number>>({});
-  const [approveRawRequest, { isLoading: isApproving }] = useApproveRawRequestMutation();
+  // Editable request quantities
+  const [requestQuantities, setRequestQuantities] = useState<Record<string | number, number>>({});
+  const [updateRawRequest, { isLoading: isUpdating }] = useUpdateRawRequestMutation();
 
-  // Initialize approvedQuantities with requestQty by default
+  // Initialize requestQuantities with current requestQty
   useEffect(() => {
     if (!detailItemsList || detailItemsList.length === 0) return;
-    setApprovedQuantities(prev => {
+    setRequestQuantities(prev => {
       const nextState: Record<string | number, number> = { ...prev };
       detailItemsList.forEach((item: any) => {
-        const key = item.id || (item.rawId ? `raw_${item.rawId}` : `pm_${item.packingMaterialId}`);
-        if (nextState[key] === undefined) {
+        const rawId = item.rawId ?? item.raWMaterial?.id;
+        const pmId = item.packingMaterialId ?? item.packingMaterial?.id;
+        const isPM = Boolean(item.packingMaterial || item.packingMaterialId);
+        const itemKey = item.id || (isPM ? `pm_${pmId}` : `raw_${rawId}`);
+
+        if (nextState[itemKey] === undefined) {
           const defaultQty =
-            item.approvalQty != null
-              ? Number(item.approvalQty)
-              : item.requestQty != null
-                ? Number(item.requestQty)
-                : Number(item.quantity) || 0;
-          nextState[key] = defaultQty;
+            item.requestQty != null
+              ? Number(item.requestQty)
+              : item.quantity != null
+                ? Number(item.quantity)
+                : 0;
+          nextState[itemKey] = defaultQty;
         }
       });
       return nextState;
@@ -200,6 +215,7 @@ const RequestRawDetails: React.FC = () => {
             const res = await triggerGetTotalQuantity({
               itemType: 'raw',
               rawId: String(rawId),
+              department,
             }).unwrap();
             const netQty =
               res?.data?.netQuantity != null
@@ -218,6 +234,7 @@ const RequestRawDetails: React.FC = () => {
             const res = await triggerGetTotalQuantity({
               itemType: 'pmmaterial',
               packingMaterialId: Number(pmId),
+              department,
             }).unwrap();
             const netQty =
               res?.data?.netQuantity != null
@@ -248,47 +265,31 @@ const RequestRawDetails: React.FC = () => {
     };
   }, [detailItemsList, triggerGetTotalQuantity]);
 
-  // Total sums
+  // Total requested sums based on editable input
   const totalRequestedQty = useMemo(() => {
-    return detailItemsList.reduce(
-      (sum: number, it: any) =>
-        sum + (Number(it.requestQty != null ? it.requestQty : it.quantity) || 0),
-      0
-    );
-  }, [detailItemsList]);
-
-  const totalApprovedQty = useMemo(() => {
     return detailItemsList.reduce((sum: number, it: any) => {
-      if (isApproved) {
-        const val =
-          it.approvalQty != null
-            ? Number(it.approvalQty)
-            : it.approvedQty != null
-              ? Number(it.approvedQty)
-              : 0;
-        return sum + val;
-      }
       const rawId = it.rawId ?? it.raWMaterial?.id;
       const pmId = it.packingMaterialId ?? it.packingMaterial?.id;
-      const itemKey = it.id || (rawId ? `raw_${rawId}` : `pm_${pmId}`);
-      const val =
-        approvedQuantities[itemKey] !== undefined
-          ? approvedQuantities[itemKey]
-          : (it.approvalQty != null
-            ? Number(it.approvalQty)
-            : it.requestQty != null
-              ? Number(it.requestQty)
-              : Number(it.quantity) || 0);
-      return sum + (Number(val) || 0);
-    }, 0);
-  }, [detailItemsList, approvedQuantities, isApproved]);
+      const isPM = Boolean(it.packingMaterial || it.packingMaterialId);
+      const itemKey = it.id || (isPM ? `pm_${pmId}` : `raw_${rawId}`);
 
-  // Check if any items have approvedQty > currentStock
+      const q =
+        requestQuantities[itemKey] !== undefined
+          ? requestQuantities[itemKey]
+          : (it.requestQty != null
+            ? Number(it.requestQty)
+            : Number(it.quantity) || 0);
+      return sum + (isNaN(q) ? 0 : q);
+    }, 0);
+  }, [detailItemsList, requestQuantities]);
+
+  // Check if any items have requested quantity > availableStock
   const stockDeficitItems = useMemo(() => {
-    if (isApproved || !detailItemsList || detailItemsList.length === 0) return [];
+    if (isConfirmed || !detailItemsList || detailItemsList.length === 0) return [];
     return detailItemsList.filter((item: any) => {
       const rawId = item.rawId ?? item.raWMaterial?.id;
       const pmId = item.packingMaterialId ?? item.packingMaterial?.id;
+      const isPM = Boolean(item.packingMaterial || item.packingMaterialId);
       const stockKey = rawId ? `raw_${rawId}` : pmId ? `pm_${pmId}` : null;
       const liveStock = stockKey ? liveStocks[stockKey] : undefined;
 
@@ -308,132 +309,97 @@ const RequestRawDetails: React.FC = () => {
 
       const availableStock = liveStock !== undefined && liveStock !== null ? liveStock : fallbackStock;
 
-      const itemKey = item.id || (rawId ? `raw_${rawId}` : `pm_${pmId}`);
-      const approvedVal =
-        approvedQuantities[itemKey] !== undefined
-          ? approvedQuantities[itemKey]
-          : (item.approvalQty != null
-            ? Number(item.approvalQty)
-            : item.requestQty != null
-              ? Number(item.requestQty)
-              : Number(item.quantity) || 0);
+      const itemKey = item.id || (isPM ? `pm_${pmId}` : `raw_${rawId}`);
+      const currentVal =
+        requestQuantities[itemKey] !== undefined
+          ? requestQuantities[itemKey]
+          : (item.requestQty != null
+            ? Number(item.requestQty)
+            : Number(item.quantity) || 0);
 
-      return availableStock != null && approvedVal > availableStock;
+      return availableStock != null && currentVal > availableStock;
     });
-  }, [detailItemsList, liveStocks, rawMaterialOptions, packingMaterialOptions, approvedQuantities]);
+  }, [detailItemsList, liveStocks, rawMaterialOptions, packingMaterialOptions, requestQuantities, isConfirmed]);
 
-  // Handle Approve Submission to /internal-transaction/raw-approve
-  const handleApproveRequest = async () => {
+  // Handle Update Submission to PATCH /internal-transaction/raw-request/:requestId
+  const handleUpdateRequest = async () => {
     if (stockDeficitItems.length > 0) {
       showWarningAlert(
-        'Some items have approved quantity greater than current stock. Please reduce the approved quantity before approving.',
+        'Some materials have requested quantity greater than current available stock. Please reduce the quantity before updating.',
         'Insufficient Stock'
       );
       return;
     }
 
-    const rawMaterials = detailItemsList
-      .filter((item: any) => item.rawId != null || item.raWMaterial != null || item.itemType === 'RAW')
-      .map((item: any) => {
-        const rawId = item.rawId ?? item.raWMaterial?.id ?? item.id;
-        const itemKey = item.id || `raw_${rawId}`;
-        const rawMatch = rawId
-          ? rawMaterialOptions.find((rm: any) => String(rm.value) === String(rawId))
-          : null;
-        const approvedVal =
-          approvedQuantities[itemKey] !== undefined
-            ? approvedQuantities[itemKey]
-            : (item.approvalQty != null
-              ? Number(item.approvalQty)
-              : item.requestQty != null
-                ? Number(item.requestQty)
-                : Number(item.quantity) || 0);
+    const updatePromises = detailItemsList.map(async (item: any) => {
+      const rawId = item.rawId ?? item.raWMaterial?.id ?? item.id;
+      const pmId = item.packingMaterialId ?? item.packingMaterial?.id ?? item.id;
+      const isPM = Boolean(item.packingMaterial || item.packingMaterialId);
+      const itemKey = item.id || (isPM ? `pm_${pmId}` : `raw_${rawId}`);
 
-        return {
-          id: rawId,
-          rawMaterialId: rawId,
-          requestInvetoryId: item.id,
-          requestInventoryId: item.id,
-          inventoryId: item.id,
-          name: item.raWMaterial?.name || rawMatch?.name || `Raw Material #${rawId}`,
-          unitId: item.raWMaterial?.unitId || rawMatch?.unitId || null,
-          requestQty: item.requestQty != null ? Number(item.requestQty) : Number(item.quantity) || 0,
-          approvedQty: Number(approvedVal),
-          remarks: item.remarks || '',
-        };
+      const qty =
+        requestQuantities[itemKey] !== undefined
+          ? requestQuantities[itemKey]
+          : (item.requestQty != null
+            ? Number(item.requestQty)
+            : Number(item.quantity) || 0);
+
+      // requestId is the requestInventory item id
+      const requestInventoryItemId = item.id ?? item.requestInventoryId ?? item.requestInvetoryId ?? id;
+
+      const body: any = isPM
+        ? {
+            packingMaterials: [
+              {
+                packingMaterialId: pmId,
+                requestQty: Number(qty),
+              },
+            ],
+            requestQty: Number(qty),
+          }
+        : {
+            rawMaterials: [
+              {
+                rawMaterialId: rawId,
+                rawId: rawId,
+                requestQty: Number(qty),
+              },
+            ],
+            requestQty: Number(qty),
+          };
+
+      console.log(`Update Raw Request Payload (/internal-transaction/raw-request/${requestInventoryItemId}):`, body);
+
+      return updateRawRequest({
+        requestId: requestInventoryItemId,
+        data: body,
       });
-
-    const packingMaterials = detailItemsList
-      .filter((item: any) => item.packingMaterialId != null || item.packingMaterial != null || item.itemType === 'PACKING_MATERIAL')
-      .map((item: any) => {
-        const pmId = item.packingMaterialId ?? item.packingMaterial?.id ?? item.id;
-        const itemKey = item.id || `pm_${pmId}`;
-        const pmMatch = pmId
-          ? packingMaterialOptions.find((pm: any) => String(pm.value) === String(pmId))
-          : null;
-        const approvedVal =
-          approvedQuantities[itemKey] !== undefined
-            ? approvedQuantities[itemKey]
-            : (item.approvalQty != null
-              ? Number(item.approvalQty)
-              : item.requestQty != null
-                ? Number(item.requestQty)
-                : Number(item.quantity) || 0);
-
-        return {
-          id: pmId,
-          packingMaterialId: pmId,
-          requestInvetoryId: item.id,
-          requestInventoryId: item.id,
-          inventoryId: item.id,
-          name: item.packingMaterial?.name || pmMatch?.name || `Packing Material #${pmId}`,
-          unitId: item.packingMaterial?.unitId || pmMatch?.unitId || null,
-          requestQty: item.requestQty != null ? Number(item.requestQty) : Number(item.quantity) || 0,
-          approvedQty: Number(approvedVal),
-          remarks: item.remarks || '',
-        };
-      });
-
-    const payload = {
-      transactionId: detailData?.transactionId || detailData?.id || id,
-      id: detailData?.id || id,
-      voucherNo: detailVoucherNo,
-      date: detailDate ? dayjs(detailDate).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
-      fromDepartment: fromDept || 'PRODUCTION',
-      toDepartment: toDept || 'RMPM_STORE',
-      status: 'APPROVED',
-      totalQuantity: totalApprovedQty,
-      rawMaterials,
-      packingMaterials,
-    };
-
-    console.log('Approve Raw Request Payload (/internal-transaction/raw-approve):', payload);
+    });
 
     try {
-      const res: any = await approveRawRequest(payload);
-      const response = getResponse(res);
-      if (response?.success || res?.data?.success) {
+      const results: any[] = await Promise.all(updatePromises);
+      const firstRes = results[0];
+      const response = getResponse(firstRes);
+      console.log('Update raw request response:', response);
+      if (response?.success || firstRes?.data?.success) {
         await showSuccessAlert(
-          `Material Request ${detailVoucherNo} approved successfully!`,
-          'Request Approved'
+          `Material Request ${detailVoucherNo} updated successfully!`,
+          'Request Updated'
         );
         refetch();
-        navigate('/dashboard/request-raw');
       } else {
         await showSuccessAlert(
-          response?.message || `Approval submitted successfully!`,
-          'Approved'
+          response?.message || 'Updated successfully!',
+          'Success'
         );
         refetch();
-        navigate('/dashboard/request-raw');
       }
     } catch (err: any) {
-      console.error('Failed to submit approval:', err);
-      await showSuccessAlert(
-        `Payload sent to /internal-transaction/raw-approve. (See console for details)`,
-        'Approval Submitted'
+      console.error('Failed to update request:', err);
+      showWarningAlert(
+        err?.data?.message || err?.message || 'Failed to update request. Please try again.',
+        'Update Failed'
       );
-      refetch();
     }
   };
 
@@ -505,23 +471,31 @@ const RequestRawDetails: React.FC = () => {
 
         {/* Right Header Buttons */}
         <div className="flex items-center gap-2">
-          {!isApproved && (
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={() => refetch()}
+            loading={isDetailsFetching}
+            className="rounded-lg h-9 text-xs font-semibold"
+          >
+            Refresh
+          </Button>
+          {!isConfirmed && (
             <Button
               type="primary"
-              icon={<CheckCircleOutlined />}
-              onClick={handleApproveRequest}
-              loading={isApproving}
+              icon={<SaveOutlined />}
+              onClick={handleUpdateRequest}
+              loading={isUpdating}
               disabled={stockDeficitItems.length > 0}
-              className="bg-emerald-600 hover:bg-emerald-500 border-none text-white text-xs font-semibold px-4 h-9 rounded-lg shadow-sm"
+              className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white text-xs font-semibold px-4 h-9 rounded-lg shadow-sm"
             >
-              Approve Request
+              Update Request
             </Button>
           )}
         </div>
       </div>
 
       {/* Meta Metric Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
           <span className="text-slate-400 block font-semibold text-[11px] mb-1 flex items-center gap-1">
             <FileTextOutlined /> Voucher No
@@ -553,17 +527,8 @@ const RequestRawDetails: React.FC = () => {
           <span className="text-slate-400 block font-semibold text-[11px] mb-1">
             Requested Total Qty
           </span>
-          <span className="font-mono font-bold text-slate-800 text-xs block">
+          <span className="font-mono font-bold text-[#C58D2F] text-xs block">
             {totalRequestedQty.toLocaleString()}
-          </span>
-        </div>
-
-        <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
-          <span className="text-slate-400 block font-semibold text-[11px] mb-1">
-            Approved Total Qty
-          </span>
-          <span className="font-mono font-bold text-emerald-700 text-xs block">
-            {totalApprovedQty.toLocaleString()}
           </span>
         </div>
 
@@ -578,7 +543,7 @@ const RequestRawDetails: React.FC = () => {
       </div>
 
       {/* Confirmed / Approved Info Banner */}
-      {isApproved && (
+      {isConfirmed && (
         <Alert
           type="success"
           showIcon
@@ -590,7 +555,7 @@ const RequestRawDetails: React.FC = () => {
           }
           description={
             <span className="text-[11px] text-emerald-700">
-              This material request voucher has been confirmed and finalized. Approved quantities are displayed below in read-only mode.
+              This material request voucher has been approved and finalized by the Purchase Department. The details below are now read-only.
             </span>
           }
           className="border-emerald-200 bg-emerald-50/80 rounded-xl shadow-2xs"
@@ -598,7 +563,7 @@ const RequestRawDetails: React.FC = () => {
       )}
 
       {/* Stock Deficit Warning Alert */}
-      {!isApproved && stockDeficitItems.length > 0 && (
+      {!isConfirmed && stockDeficitItems.length > 0 && (
         <Alert
           type="warning"
           showIcon
@@ -610,7 +575,7 @@ const RequestRawDetails: React.FC = () => {
           }
           description={
             <span className="text-[11px] text-amber-700">
-              {stockDeficitItems.length} item(s) have an approved quantity greater than current available stock. Please reduce the approved quantity to stay within stock before approving.
+              {stockDeficitItems.length} item(s) have requested quantity greater than current available stock. Please reduce the quantity before updating.
             </span>
           }
           className="border-amber-200 bg-amber-50/80 rounded-xl shadow-2xs"
@@ -631,15 +596,17 @@ const RequestRawDetails: React.FC = () => {
             />
           </div>
           <span className="text-xs text-slate-400 font-medium">
-            {isApproved
-              ? 'This request has been confirmed. The details below are read-only.'
-              : 'You can modify the approved quantity for each item below'}
+            {isConfirmed
+              ? 'This request has been approved. The details below are read-only.'
+              : 'Modify requested quantity as needed, then click "Update Request".'}
           </span>
         </div>
 
         <div className="rounded-xl overflow-hidden border border-slate-200/80">
           <Table
             dataSource={detailItemsList}
+            pagination={false}
+            rowKey={(item: any, i) => item.id || `req_item_${i}`}
             columns={[
               {
                 title: 'SI',
@@ -653,7 +620,7 @@ const RequestRawDetails: React.FC = () => {
               {
                 title: 'Item Type',
                 key: 'itemType',
-                width: 130,
+                width: 140,
                 render: (_: any, item: any) => {
                   const isPM = Boolean(item.packingMaterial || item.packingMaterialId);
                   const isRaw = Boolean(item.raWMaterial || item.rawId);
@@ -728,7 +695,7 @@ const RequestRawDetails: React.FC = () => {
               {
                 title: 'Current Stock',
                 key: 'stock',
-                width: 120,
+                width: 130,
                 align: 'right' as const,
                 render: (_: any, item: any) => {
                   const rawId = item.rawId ?? item.raWMaterial?.id;
@@ -772,26 +739,12 @@ const RequestRawDetails: React.FC = () => {
               {
                 title: 'Requested Qty',
                 key: 'requestQty',
-                width: 120,
-                align: 'right' as const,
-                render: (_: any, item: any) => {
-                  const qty =
-                    item.requestQty != null ? Number(item.requestQty) : item.quantity;
-                  return (
-                    <span className="font-mono font-bold text-slate-900 text-xs">
-                      {qty != null ? qty.toLocaleString() : '-'}
-                    </span>
-                  );
-                },
-              },
-              {
-                title: 'Approved Qty',
-                key: 'approvalQty',
-                width: 160,
+                width: 170,
                 align: 'right' as const,
                 render: (_: any, item: any) => {
                   const rawId = item.rawId ?? item.raWMaterial?.id;
                   const pmId = item.packingMaterialId ?? item.packingMaterial?.id;
+                  const isPM = Boolean(item.packingMaterial || item.packingMaterialId);
                   const stockKey = rawId ? `raw_${rawId}` : pmId ? `pm_${pmId}` : null;
                   const liveStock = stockKey ? liveStocks[stockKey] : undefined;
 
@@ -809,31 +762,22 @@ const RequestRawDetails: React.FC = () => {
                         ? Number(item.packingMaterial.quantity)
                         : (rawMatch?.stock ?? pmMatch?.stock ?? null);
 
-                  const availableStock =
-                    liveStock !== undefined && liveStock !== null ? liveStock : fallbackStock;
+                  const availableStock = liveStock !== undefined && liveStock !== null ? liveStock : fallbackStock;
 
-                  const itemKey = item.id || (rawId ? `raw_${rawId}` : `pm_${pmId}`);
+                  const itemKey = item.id || (isPM ? `pm_${pmId}` : `raw_${rawId}`);
                   const currentVal =
-                    approvedQuantities[itemKey] !== undefined
-                      ? approvedQuantities[itemKey]
-                      : (item.approvalQty != null
-                        ? Number(item.approvalQty)
-                        : item.requestQty != null
-                          ? Number(item.requestQty)
-                          : Number(item.quantity) || 0);
+                    requestQuantities[itemKey] !== undefined
+                      ? requestQuantities[itemKey]
+                      : (item.requestQty != null
+                        ? Number(item.requestQty)
+                        : Number(item.quantity) || 0);
 
                   const isOverStock = availableStock != null && currentVal > availableStock;
 
-                  if (isApproved) {
-                    const approvedVal =
-                      item.approvalQty != null
-                        ? Number(item.approvalQty)
-                        : item.approvedQty != null
-                          ? Number(item.approvedQty)
-                          : null;
+                  if (isConfirmed) {
                     return (
-                      <span className="font-mono font-bold text-emerald-700 text-xs">
-                        {approvedVal != null ? approvedVal.toLocaleString() : '-'}
+                      <span className="font-mono font-bold text-slate-900 text-xs">
+                        {currentVal.toLocaleString()}
                       </span>
                     );
                   }
@@ -847,18 +791,19 @@ const RequestRawDetails: React.FC = () => {
                         value={currentVal}
                         onChange={(val) => {
                           const numVal = Math.max(0, Number(val) || 0);
-                          setApprovedQuantities(prev => ({
+                          setRequestQuantities(prev => ({
                             ...prev,
                             [itemKey]: numVal,
                           }));
                         }}
-                        status={isOverStock ? 'error' : undefined}
-                        className={`w-32 text-right font-mono font-bold text-xs rounded-lg ${isOverStock ? '!border-red-500 !bg-red-50/50' : ''
+                        className={`w-28 text-right font-mono text-xs rounded-lg ${isOverStock
+                          ? 'border-red-500 focus:border-red-500 text-red-600'
+                          : 'border-slate-300 focus:border-amber-500 text-slate-800'
                           }`}
                       />
                       {isOverStock && (
-                        <span className="text-[10px] text-red-600 font-semibold mt-0.5 flex items-center gap-0.5">
-                          <WarningOutlined className="text-[10px]" /> Exceeds Stock ({availableStock})
+                        <span className="text-[10px] text-red-500 font-medium mt-0.5">
+                          Exceeds stock ({availableStock})
                         </span>
                       )}
                     </div>
@@ -868,61 +813,62 @@ const RequestRawDetails: React.FC = () => {
               {
                 title: 'Status',
                 key: 'status',
-                width: 100,
+                width: 110,
                 align: 'center' as const,
                 render: (_: any, item: any) => {
-                  const s = item.status || detailStatus;
+                  const status = (item.status || detailStatus).toUpperCase();
                   return (
-                    <Tag color={getStatusColor(s)} className="font-semibold text-[10px] uppercase m-0">
-                      {s}
+                    <Tag
+                      color={getStatusColor(status)}
+                      className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full"
+                    >
+                      {status}
                     </Tag>
                   );
                 },
               },
             ]}
-            pagination={false}
-            size="small"
-            scroll={{ x: 850 }}
-            rowKey={(record: any) =>
-              record?.id || record?.rawId || record?.packingMaterialId || Math.random()
-            }
-            locale={{ emptyText: 'No item details found for this request.' }}
+            summary={() => (
+              <Table.Summary fixed>
+                <Table.Summary.Row className="bg-slate-50/80 font-bold text-xs">
+                  <Table.Summary.Cell index={0} colSpan={4} className="text-slate-700">
+                    Total
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={1} className="text-right text-slate-600">
+                    -
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={2} className="text-right font-mono text-[#C58D2F]">
+                    {totalRequestedQty.toLocaleString()}
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={3} className="text-center">
+                    -
+                  </Table.Summary.Cell>
+                </Table.Summary.Row>
+              </Table.Summary>
+            )}
           />
         </div>
-
-        {/* Bottom Actions Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-100">
-          <Button
-            icon={<ArrowLeftOutlined />}
-            onClick={() => navigate('/dashboard/request-raw')}
-            className="text-xs"
-          >
-            Back to List
-          </Button>
-
-          <div className="flex items-center gap-3">
-            <div className="text-right text-xs">
-              <span className="text-slate-400 block text-[11px]">Total Approved Quantity</span>
-              <strong className="font-mono text-emerald-700 font-bold text-sm">
-                {totalApprovedQty.toLocaleString()}
-              </strong>
-            </div>
-            {!isApproved && (
-              <Button
-                type="primary"
-                size="middle"
-                icon={<CheckCircleOutlined />}
-                onClick={handleApproveRequest}
-                loading={isApproving}
-                disabled={stockDeficitItems.length > 0}
-                className="bg-emerald-600 hover:bg-emerald-500 border-none text-white text-xs font-semibold px-5 h-9 rounded-lg shadow-sm"
-              >
-                Approve Request
-              </Button>
-            )}
-          </div>
-        </div>
       </div>
+
+      {/* Bottom Update Action Bar */}
+      {!isConfirmed && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-slate-50/70 border border-slate-200/70 rounded-xl shadow-xs">
+          <div className="flex items-center gap-2 text-xs text-slate-600">
+            <span className="font-semibold">Note:</span>
+            <span>You can modify requested quantities above and click "Update Request" to update this requisition.</span>
+          </div>
+          <Button
+            type="primary"
+            icon={<SaveOutlined />}
+            onClick={handleUpdateRequest}
+            loading={isUpdating}
+            disabled={stockDeficitItems.length > 0}
+            className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white text-xs font-semibold px-5 h-9 rounded-lg shadow-sm"
+          >
+            Update Request
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

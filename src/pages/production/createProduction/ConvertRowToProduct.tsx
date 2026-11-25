@@ -4,6 +4,7 @@ import { Form, InputNumber, Select, Button, Row, Col, Input, Divider, DatePicker
 import { MinusCircleOutlined } from '@ant-design/icons';
 import { TAccountsItem, TProduct, TrowMaterials } from '../../../types/types';
 import { useGetAccountItemQuery, useLazyGetTotalQuantityAndUnitPriceQuery } from '../../../redux/features/transactions/transactons.api';
+import { useLocalUser } from '../../../hook/useLocalUser';
 import { useConvertProductMutation, useGetProductsQuery } from '../../../redux/features/product/product.api';
 import { generateInvoiceNumber } from '../../../utils/generateRandomNumber';
 import { getResponse } from '../../../utils/getResponse';
@@ -21,6 +22,7 @@ const ConvertRowToProduct = () => {
     const [productUnit, setProductUnit] = useState()
     const [convertProduct, { isLoading: isSubmitting }] = useConvertProductMutation({})
 
+    const { department } = useLocalUser();
     const [getTotal] = useLazyGetTotalQuantityAndUnitPriceQuery()
     // Corrected type
     const [rawMaterials, setrawMaterials] = useState(rawMaterialsData?.data)
@@ -106,7 +108,7 @@ const ConvertRowToProduct = () => {
                                             <Col span={6}>
                                                 <Form.Item name={[name, 'rawMaterialsId']} label="" rules={[{ required: true }]}>
                                                     <Select placeholder="Select Raw Material" style={{ width: "100%" }} onChange={async (value) => {
-                                                        const totalResult = await getTotal({ itemType: "raw", rawId: value });
+                                                        const totalResult = await getTotal({ itemType: "raw", rawId: value, department });
                                                         const totalData = totalResult?.data?.data;
                                                         const selectedItem = rawMaterials?.find((item: TrowMaterials) => item?.id === value)
                                                         // console.log(totalData, "total data");

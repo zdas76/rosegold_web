@@ -26,6 +26,7 @@ import dayjs from 'dayjs';
 import { useGetProductsQuery } from '../../../redux/features/product/product.api';
 import { useGetUnitsQuery } from '../../../redux/features/unit/unit.api';
 import { useLazyGetTotalQuantityAndUnitPriceQuery } from '../../../redux/features/transactions/transactons.api';
+import { useLocalUser } from '../../../hook/useLocalUser';
 import {
   useGetRequestByIdQuery,
   useUpdateProductTransferRequestMutation,
@@ -137,6 +138,7 @@ const ProductTransferDetails: React.FC = () => {
 
   // Live stock state and lazy query from /inventory/inventorytotal
   const [triggerGetTotalQuantity] = useLazyGetTotalQuantityAndUnitPriceQuery();
+  const { department } = useLocalUser();
   const [liveStocks, setLiveStocks] = useState<Record<number, number | null>>({});
   const [isStocksLoading, setIsStocksLoading] = useState<boolean>(false);
 
@@ -184,6 +186,7 @@ const ProductTransferDetails: React.FC = () => {
             const res = await triggerGetTotalQuantity({
               itemType: 'product',
               productId: Number(pId),
+              department,
             }).unwrap();
             const netQty =
               res?.data?.netQuantity != null

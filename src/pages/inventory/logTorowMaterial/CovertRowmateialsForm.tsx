@@ -77,8 +77,7 @@ const ConvertForm = ({ setIsModalOpen }: { setIsModalOpen: any }) => {
                 </Form.Item>
 
                 <Form.Item
-                    style={{ width: "100%" }}
-                >
+                    style={{ width: "100%" }}>
                     <DatePicker style={{ width: "100%" }} onChange={async (value) => {
                         try {
                             const res = await getTotalFromapi({ logCategoryId, date: value?.format("YYYY-MM-DD") });

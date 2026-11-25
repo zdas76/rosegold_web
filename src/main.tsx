@@ -6,7 +6,8 @@ import MainLayout from './layout/MainLayout'
 import Welcome from './pages/Welcome'
 import Register from './pages/loginRegister/Register'
 import { Provider } from 'react-redux'
-import { store } from './redux/store'
+import { persistor, store } from './redux/store'
+import { PersistGate } from 'redux-persist/integration/react'
 import { Toaster } from 'sonner'
 import { sideBarRoutes } from './layout/sideBarItems'
 import { TrouteItems } from './types/types'
@@ -26,6 +27,8 @@ import ProductionStep2Page from './pages/store RMPM/production/ProductionStep2Pa
 import RequestRawDetails from './pages/store RMPM/requestRaw/RequestRawDetails'
 import ProductTransferDetails from './pages/store RMPM/productTransfer/ProductTransferDetails'
 import RequestAcceptDetails from './pages/store FG/requestAccept/RequestAcceptDetails'
+import RawRequestAccept from './pages/purchase/rawRequestAccept/RawRequestAccept'
+import RawRequestAcceptDetails from './pages/purchase/rawRequestAccept/RawRequestAcceptDetails'
 import { ConfigProvider } from 'antd'
 
 createRoot(document.getElementById('root')!).render(
@@ -83,56 +86,66 @@ createRoot(document.getElementById('root')!).render(
       }}
     >
       <Provider store={store}>
-        <BrowserRouter>
-          <Routes>
-            <Route path='/' element={<Welcome />} />
-            <Route path='/login' element={<Welcome />} />
-            <Route path='/register' element={<Register />} />
-            <Route path='/dashboard' element={<ProtectedRoute allowedRoles={["EMPLOYEE", "ADMIN"]}><MainLayout /></ProtectedRoute>}>
-              <Route index={true} element={<Home />} />
-              {
-                (() => {
-                  const generateRoutes = (routes: TrouteItems[]): React.ReactNode[] => {
-                    return routes.flatMap((route) => {
-                      const routesList: React.ReactNode[] = [];
-                      if (route?.path && route?.element) {
-                        routesList.push(<Route key={route.key} path={route.path} element={route.element} />);
-                      }
-                      if (route?.children) {
-                        routesList.push(...generateRoutes(route.children));
-                      }
-                      return routesList;
-                    });
-                  };
-                  return generateRoutes(sideBarRoutes as TrouteItems[]);
-                })()
-              }
-              <Route path="/dashboard/party" element={<Party />} />
-              <Route path="/dashboard/log-order/logorder-voucher" element={<LogVoucherPrint />} />
-              <Route path="/dashboard/row-material/:id" element={<RawMaterialsDetails />} />
-              <Route path="/dashboard/product_stock_report/:productId" element={<ProductStockReportDetails />} />
-              <Route path="/dashboard/packing_material_stock_report/:id" element={<PackingMaterialStockReportDetails />} />
-              <Route path="/dashboard/purchase-order/:id" element={<PurchaseOrderDetails />} />
-              <Route path="/dashboard/store_rmpm_production_soap" element={<ProductionCreationForm />} />
-              <Route path="/dashboard/store_rmpm_production_detergent" element={<ProductionCreationForm />} />
-              <Route path="/dashboard/store_rmpm_production_Kitchenbar" element={<ProductionCreationForm />} />
-              <Route path="/dashboard/production-voucher" element={<ProductionVoucher />} />
-              <Route path="/dashboard/store_rmpm_production_voucher" element={<ProductionVoucher />} />
-              <Route path="/dashboard/production-step-two" element={<ProductionStep2Page />} />
-              <Route path="/dashboard/production-step-two/:id" element={<ProductionStep2Page />} />
-              <Route path="/dashboard/request-raw/:id" element={<RequestRawDetails />} />
-              <Route path="/dashboard/product-transfer/:id" element={<ProductTransferDetails />} />
-              <Route path="/dashboard/product_transfer/:id" element={<ProductTransferDetails />} />
-              <Route path="/dashboard/store_fg_request_accept/:id" element={<RequestAcceptDetails />} />
-              <Route path="/dashboard/store-fg-request-accept/:id" element={<RequestAcceptDetails />} />
-            </Route>
-            <Route path="/dashboard/sales/challan/:voucherNo" element={<CallanVoucher />} />
-            <Route path="/dashboard/sales/challan/*" element={<CallanVoucher />} />
-            <Route path="/dashboard/voucher-details/:voucherNo" element={<VoucherDetails />} />
-            <Route path="/dashboard/voucher-details/*" element={<VoucherDetails />} />
-          </Routes>
-        </BrowserRouter>
-        <Toaster position="top-center" />
+        <PersistGate loading={null} persistor={persistor}>
+          <BrowserRouter>
+            <Routes>
+              <Route path='/' element={<Welcome />} />
+              <Route path='/login' element={<Welcome />} />
+              <Route path='/register' element={<Register />} />
+              <Route path='/dashboard' element={<ProtectedRoute allowedRoles={["EMPLOYEE", "ADMIN"]}><MainLayout /></ProtectedRoute>}>
+                <Route index={true} element={<Home />} />
+                {
+                  (() => {
+                    const generateRoutes = (routes: TrouteItems[]): React.ReactNode[] => {
+                      return routes.flatMap((route) => {
+                        const routesList: React.ReactNode[] = [];
+                        if (route?.path && route?.element) {
+                          routesList.push(<Route key={route.key} path={route.path} element={route.element} />);
+                        }
+                        if (route?.children) {
+                          routesList.push(...generateRoutes(route.children));
+                        }
+                        return routesList;
+                      });
+                    };
+                    return generateRoutes(sideBarRoutes as TrouteItems[]);
+                  })()
+                }
+                <Route path="/dashboard/party" element={<Party />} />
+                <Route path="/dashboard/log-order/logorder-voucher" element={<LogVoucherPrint />} />
+                <Route path="/dashboard/row-material/:id" element={<RawMaterialsDetails />} />
+                <Route path="/dashboard/product_stock_report/:productId" element={<ProductStockReportDetails />} />
+                <Route path="/dashboard/packing_material_stock_report/:id" element={<PackingMaterialStockReportDetails />} />
+                <Route path="/dashboard/purchase-order/:id" element={<PurchaseOrderDetails />} />
+                <Route path="/dashboard/store_rmpm_production_soap" element={<ProductionCreationForm />} />
+                <Route path="/dashboard/store_rmpm_production_detergent" element={<ProductionCreationForm />} />
+                <Route path="/dashboard/store_rmpm_production_Kitchenbar" element={<ProductionCreationForm />} />
+                <Route path="/dashboard/production-voucher" element={<ProductionVoucher />} />
+                <Route path="/dashboard/store_rmpm_production_voucher" element={<ProductionVoucher />} />
+                <Route path="/dashboard/production-step-two" element={<ProductionStep2Page />} />
+                <Route path="/dashboard/production-step-two/:id" element={<ProductionStep2Page />} />
+                <Route path="/dashboard/request-raw/:id" element={<RequestRawDetails />} />
+                <Route path="/dashboard/product-transfer/:id" element={<ProductTransferDetails />} />
+                <Route path="/dashboard/product_transfer/:id" element={<ProductTransferDetails />} />
+                <Route path="/dashboard/store_fg_request_accept/:id" element={<RequestAcceptDetails />} />
+                <Route path="/dashboard/store-fg-request-accept/:id" element={<RequestAcceptDetails />} />
+                <Route path="/dashboard/raw-request-accept" element={<RawRequestAccept />} />
+                <Route path="/dashboard/raw_request_accept" element={<RawRequestAccept />} />
+                <Route path="/dashboard/raw-request-accept/:id" element={<RawRequestAcceptDetails />} />
+                <Route path="/dashboard/raw_request_accept/:id" element={<RawRequestAcceptDetails />} />
+                <Route path="/dashboard/purchase-request-accept" element={<RawRequestAccept />} />
+                <Route path="/dashboard/purchase_request_accept" element={<RawRequestAccept />} />
+                <Route path="/dashboard/purchase-request-accept/:id" element={<RawRequestAcceptDetails />} />
+                <Route path="/dashboard/purchase_request_accept/:id" element={<RawRequestAcceptDetails />} />
+              </Route>
+              <Route path="/dashboard/sales/challan/:voucherNo" element={<CallanVoucher />} />
+              <Route path="/dashboard/sales/challan/*" element={<CallanVoucher />} />
+              <Route path="/dashboard/voucher-details/:voucherNo" element={<VoucherDetails />} />
+              <Route path="/dashboard/voucher-details/*" element={<VoucherDetails />} />
+            </Routes>
+          </BrowserRouter>
+          <Toaster position="top-center" />
+        </PersistGate>
       </Provider>
     </ConfigProvider>
   </StrictMode>,

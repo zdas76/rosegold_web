@@ -5,6 +5,7 @@ import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { PackingMaterialItem } from '../ProductionCreationForm';
 import { useLazyGetLastVoucherQtyQuery } from '../../../../redux/features/inventory/InventoryApi';
 import { useLazyGetTotalQuantityAndUnitPriceQuery } from '../../../../redux/features/transactions/transactons.api';
+import { useLocalUser } from '../../../../hook/useLocalUser';
 
 interface PackingMaterialsSectionProps {
   packingMaterials: PackingMaterialItem[];
@@ -34,6 +35,7 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
 
   const [trigerLastVoucherQty] = useLazyGetLastVoucherQtyQuery();
   const [triggerGetTotalQuantity] = useLazyGetTotalQuantityAndUnitPriceQuery();
+  const { department } = useLocalUser();
 
   const [liveStocks, setLiveStocks] = useState<Record<number, number | null>>({});
   const [loadingStocks, setLoadingStocks] = useState<Record<number, boolean>>({});
@@ -45,18 +47,39 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
       const res = await triggerGetTotalQuantity({
         itemType: 'pmmaterial',
         packingMaterialId: Number(pmId),
+        department,
       }).unwrap();
       const resData = (res as any)?.data?.data ?? (res as any)?.data ?? res;
       const netQty =
         resData?.netQuantity != null
-          ? Number(resData.netQuantity)
-          : resData?.totalQuantity != null
-            ? Number(resData.totalQuantity)
-            : 0;
+          ? Number(resData.netQuantity) : 0;
+      const netIntegratedAmount =
+        resData?.netIntegratedAmount != null
+          ? Number(resData.netIntegratedAmount) : 0;
+      const integratedUnitPrice =
+        netQty > 0 && netIntegratedAmount > 0
+          ? Number((netIntegratedAmount / netQty).toFixed(2))
+          : 0;
 
       setLiveStocks(prev => ({ ...prev, [pmId]: netQty }));
       setPackingMaterials(prev =>
-        prev.map(p => (p.packingMaterialId === pmId ? { ...p, netQuantity: netQty } : p))
+        prev.map(p => {
+          if (p.packingMaterialId != null && Number(p.packingMaterialId) === Number(pmId)) {
+            const unitPrice = integratedUnitPrice > 0 ? integratedUnitPrice : (Number(p.unitPrice) || 0);
+            const qty = p.qty != null ? Number(p.qty) : 0;
+            const total = Number((qty * unitPrice).toFixed(2));
+            const prodQty = Number(productQuantity) || 0;
+            const perUnitCost = prodQty > 0 ? roundToThree(total / prodQty) : (p.perUnitCost ?? null);
+            return {
+              ...p,
+              netQuantity: netQty,
+              unitPrice,
+              total,
+              perUnitCost,
+            };
+          }
+          return p;
+        })
       );
       return netQty;
     } catch (err) {
@@ -134,13 +157,14 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
 
     let lastUsedQty: number | null = null;
     let netStockQty: number | null = null;
+    let integratedUnitPrice = 0;
 
     setLoadingStocks(prev => ({ ...prev, [packingMaterialId]: true }));
 
     try {
       const [lastQtyRes, totalQtyRes] = await Promise.all([
         trigerLastVoucherQty({ pmMaterialId: Number(packingMaterialId) }),
-        triggerGetTotalQuantity({ itemType: 'pmmaterial', packingMaterialId: Number(packingMaterialId) }).unwrap(),
+        triggerGetTotalQuantity({ itemType: 'pmmaterial', packingMaterialId: Number(packingMaterialId), department }).unwrap(),
       ]);
 
       const fetchedLast = lastQtyRes?.data?.data?.quantityLess ?? lastQtyRes?.data?.quantityLess;
@@ -155,6 +179,13 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
       } else {
         netStockQty = 0;
       }
+      const netIntegratedAmount =
+        totalData?.netIntegratedAmount != null
+          ? Number(totalData.netIntegratedAmount)
+          : 0;
+      if (netStockQty != null && netStockQty > 0 && netIntegratedAmount > 0) {
+        integratedUnitPrice = Number((netIntegratedAmount / netStockQty).toFixed(2));
+      }
     } catch (err) {
       console.error('Failed to fetch PM info:', err);
       netStockQty = 0;
@@ -167,7 +198,7 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
     setPackingMaterials(prev =>
       prev.map((item) => {
         if (item.si === si) {
-          const unitPrice = chosen?.unitPrice || 0;
+          const unitPrice = integratedUnitPrice > 0 ? integratedUnitPrice : (chosen?.unitPrice || 0);
           const qty = lastUsedQty != null ? lastUsedQty : (item.qty != null ? Number(item.qty) : null);
           const total = Number(((qty || 0) * unitPrice).toFixed(2));
           let perUnitQty = null;
@@ -422,13 +453,12 @@ const PackingMaterialsSection: React.FC<PackingMaterialsSectionProps> = ({
       key: 'total',
       width: 130,
       align: 'right' as const,
-      render: (value: number, record: PackingMaterialItem) => {
-        const itemTotal =
-          value && Number(value) > 0
-            ? Number(value)
-            : ((Number(record.qty) || 0) * (Number(record.unitPrice) || 0));
+      render: (_: any, record: PackingMaterialItem) => {
+        const qty = Number(record.qty) || 0;
+        const unitPrice = Number(record.unitPrice) || 0;
+        const itemTotal = Number((qty * unitPrice).toFixed(2));
         return (
-          <span className="font-semibold text-gray-800">{Number(itemTotal || 0).toFixed(2)}</span>
+          <span className="font-semibold text-gray-800">{itemTotal.toFixed(2)}</span>
         );
       },
     },

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // useDevounch.ts
 import { useState, useEffect } from 'react';
 

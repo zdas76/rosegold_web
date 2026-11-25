@@ -13,6 +13,7 @@ import { MinusCircleOutlined, } from "@ant-design/icons";
 import { FaTrash } from "react-icons/fa";
 import { useGetProductsQuery } from "../../../redux/features/product/product.api";
 import { useGetAccountItemQuery, useLazyGetTotalQuantityAndUnitPriceQuery } from "../../../redux/features/transactions/transactons.api";
+import { useLocalUser } from "../../../hook/useLocalUser";
 import { TAccountsItem, TBankAccount, TCustomer, TProduct, TVendor } from "../../../types/types";
 import { useGetPartiesQuery } from "../../../redux/features/auth/authApi";
 import { TDebititems, TsalesItem } from "../../../types/salesRelatedtype";
@@ -27,6 +28,7 @@ import Loading from "../../../components/shared/Loading";
 
 const { Option } = Select;
 const ProductionSales = () => {
+  const { department } = useLocalUser();
   const [triggerGetTotalQuantity] = useLazyGetTotalQuantityAndUnitPriceQuery();
   const [customer, setCustomer] = useState<TCustomer[] | null>(null);
 
@@ -254,6 +256,7 @@ const ProductionSales = () => {
                               const res = await triggerGetTotalQuantity({
                                 itemType: "product",
                                 productId: value,
+                                department,
                               }).unwrap();
                               const netQty = res?.data?.netQuantity ?? 0;
                               form.setFields([

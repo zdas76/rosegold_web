@@ -169,7 +169,7 @@ const ProductionVoucherTable: React.FC<{ data: TProductionVoucherData }> = ({ da
             <div>
               <span className="text-gray-600">Produced Quantity: </span>
               <span className="font-mono font-bold text-gray-900">
-                {producedQty > 0 ? producedQty.toLocaleString() : 'In Process (প্রক্রিয়াধীন)'}
+                {producedQty > 0 ? producedQty.toLocaleString() : 'In Process'}
               </span>
             </div>
             <div>
@@ -188,7 +188,7 @@ const ProductionVoucherTable: React.FC<{ data: TProductionVoucherData }> = ({ da
       <div className="mb-4">
         <div className="font-bold text-sm text-gray-800 mb-1 flex items-center justify-between">
           <span className="uppercase text-xs tracking-wider">
-            1. Raw Materials Consumed (ব্যবহৃত কাঁচামালের বিবরণ)
+            1. Raw Materials Consumed
           </span>
           <span className="text-xs text-gray-500 font-normal">
             Total Items: {rawMaterials.length}
