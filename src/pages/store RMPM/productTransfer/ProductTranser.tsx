@@ -13,6 +13,7 @@ import {
   Tag,
   Badge,
   Spin,
+  message,
 } from 'antd';
 import {
   PlusOutlined,
@@ -43,7 +44,6 @@ export interface TProductRequestItem {
   unitId?: number | null;
   availableStock: number | null;
   quantity: number;
-  remarks?: string;
 }
 
 const generateRequestNo = () => {
@@ -105,7 +105,6 @@ const ProductTransfer: React.FC = () => {
   // Item builder states inside modal
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [itemQty, setItemQty] = useState<number | null>(null);
-  const [itemRemarks, setItemRemarks] = useState<string>('');
   const [addedItems, setAddedItems] = useState<TProductRequestItem[]>([]);
   const [modalItemLiveStock, setModalItemLiveStock] = useState<number | null>(null);
   const [isModalItemStockLoading, setIsModalItemStockLoading] = useState<boolean>(false);
@@ -163,6 +162,17 @@ const ProductTransfer: React.FC = () => {
     return productOptions.find((opt: any) => opt.value === selectedProductId) || null;
   }, [selectedProductId, productOptions]);
 
+  // Available stock for currently selected product in modal
+  const modalAvailableStock = useMemo(() => {
+    if (!selectedProductId) return 0;
+    if (modalItemLiveStock != null) return Number(modalItemLiveStock);
+    if (activeProductDetails?.stock != null) return Number(activeProductDetails.stock);
+    return 0;
+  }, [selectedProductId, modalItemLiveStock, activeProductDetails]);
+
+  const isOverStock = Boolean(selectedProductId && itemQty != null && itemQty > modalAvailableStock);
+  const isOutOfStock = Boolean(selectedProductId && modalAvailableStock <= 0 && !isModalItemStockLoading);
+
   // Set of already added product IDs to prevent duplicates in same request
   const alreadyAddedIds = useMemo(() => {
     return new Set(addedItems.map(item => item.productId));
@@ -179,7 +189,6 @@ const ProductTransfer: React.FC = () => {
     setRequestDate(dayjs());
     setSelectedProductId(null);
     setItemQty(null);
-    setItemRemarks('');
     setAddedItems([]);
     setModalItemLiveStock(null);
     modalForm.resetFields();
@@ -193,15 +202,22 @@ const ProductTransfer: React.FC = () => {
       return;
     }
 
+    if (modalAvailableStock <= 0) {
+      showWarningAlert(
+        `This product is currently out of stock (0 ${activeProductDetails.unit}). Cannot create transfer request.`,
+        'Out of Stock'
+      );
+      return;
+    }
+
     if (!itemQty || itemQty <= 0) {
       showWarningAlert('Please enter a valid quantity greater than 0.', 'Invalid Quantity');
       return;
     }
 
-    const availableStock = modalItemLiveStock ?? activeProductDetails.stock ?? 0;
-    if (availableStock != null && itemQty > availableStock) {
+    if (itemQty > modalAvailableStock) {
       showWarningAlert(
-        `Requested quantity cannot exceed available stock (${availableStock} ${activeProductDetails.unit}). You entered ${itemQty}.`,
+        `Requested quantity cannot exceed available stock (${modalAvailableStock} ${activeProductDetails.unit}). You entered ${itemQty}.`,
         'Stock Limit Exceeded'
       );
       return;
@@ -214,9 +230,8 @@ const ProductTransfer: React.FC = () => {
       categoryName: activeProductDetails.categoryName,
       unit: activeProductDetails.unit,
       unitId: activeProductDetails.unitId,
-      availableStock,
+      availableStock: modalAvailableStock,
       quantity: itemQty,
-      remarks: itemRemarks || '',
     };
 
     setAddedItems(prev => [...prev, newItem]);
@@ -224,7 +239,6 @@ const ProductTransfer: React.FC = () => {
     // Reset product selector fields
     setSelectedProductId(null);
     setItemQty(null);
-    setItemRemarks('');
   };
 
   // Remove product from temporary table inside modal
@@ -238,6 +252,17 @@ const ProductTransfer: React.FC = () => {
       showWarningAlert(
         'Please add at least one product to the request list before submitting.',
         'No Products Added'
+      );
+      return;
+    }
+
+    const overStockItem = addedItems.find(
+      item => item.availableStock != null && Number(item.quantity) > item.availableStock
+    );
+    if (overStockItem) {
+      showWarningAlert(
+        `Product "${overStockItem.productName}" requested quantity (${overStockItem.quantity}) exceeds available stock (${overStockItem.availableStock}). Please remove or adjust it.`,
+        'Stock Limit Exceeded'
       );
       return;
     }
@@ -273,7 +298,6 @@ const ProductTransfer: React.FC = () => {
         setAddedItems([]);
         setSelectedProductId(null);
         setItemQty(null);
-        setItemRemarks('');
         modalForm.resetFields();
         setIsModalOpen(false);
       } else {
@@ -350,14 +374,6 @@ const ProductTransfer: React.FC = () => {
         <span className="font-mono font-bold text-slate-900 text-xs">
           {qty != null ? Number(qty).toLocaleString() : '-'}
         </span>
-      ),
-    },
-    {
-      title: 'Remarks',
-      dataIndex: 'remarks',
-      key: 'remarks',
-      render: (remarks: string) => (
-        <span className="text-slate-500 text-xs truncate block max-w-[160px]">{remarks || '-'}</span>
       ),
     },
     {
@@ -650,7 +666,7 @@ const ProductTransfer: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-6 gap-2.5 items-end">
               {/* 1. Product Selector */}
               <div className="md:col-span-2">
-                <label className="text-[11px] font-semibold text-slate-600 block mb-1">
+                <label className="text-[11px] font-semibold text-slate-600 block mb-1 h-[17px]">
                   Select Product
                 </label>
                 <Select
@@ -687,7 +703,7 @@ const ProductTransfer: React.FC = () => {
 
               {/* 2. Available Stock */}
               <div className="md:col-span-1">
-                <label className="text-[11px] font-semibold text-slate-600 block mb-1">
+                <label className="text-[11px] font-semibold text-slate-600 block mb-1 h-[17px]">
                   Available Stock
                 </label>
                 <div className="h-8 px-2.5 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-evenly text-xs">
@@ -715,19 +731,40 @@ const ProductTransfer: React.FC = () => {
 
               {/* 3. Quantity */}
               <div className="w-full">
-                <label className="text-[11px] font-semibold text-slate-600 block mb-1">
-                  Qty ({activeProductDetails?.unit || 'Pcs'})
-                </label>
+                <div className="flex items-center justify-between mb-1 h-[17px]">
+                  <label className="text-[11px] font-semibold text-slate-600 truncate">
+                    Qty ({activeProductDetails?.unit || 'Pcs'})
+                  </label>
+                  {isOutOfStock && (
+                    <span className="text-[10px] text-red-500 font-bold whitespace-nowrap">
+                      Out of stock
+                    </span>
+                  )}
+                  {isOverStock && !isOutOfStock && (
+                    <span className="text-[10px] text-red-500 font-bold whitespace-nowrap">
+                      Max: {modalAvailableStock}
+                    </span>
+                  )}
+                </div>
                 <InputNumber
                   min={1}
+                  max={modalAvailableStock > 0 ? modalAvailableStock : 0}
                   style={{ width: "100%" }}
                   step={1}
                   value={itemQty}
-                  onChange={val => setItemQty(val)}
+                  onChange={val => {
+                    if (val != null && modalAvailableStock != null && val > modalAvailableStock) {
+                      message.warning(`Available stock is only ${modalAvailableStock}`);
+                      setItemQty(modalAvailableStock);
+                    } else {
+                      setItemQty(val);
+                    }
+                  }}
                   placeholder="0"
                   controls={false}
-                  disabled={!selectedProductId}
-                  className="w-full text-right font-semibold rounded-lg text-xs"
+                  disabled={!selectedProductId || isOutOfStock || isModalItemStockLoading}
+                  className={`w-full text-right font-semibold rounded-lg text-xs h-8 ${isOverStock || isOutOfStock ? 'border-red-500 text-red-600 focus:border-red-500' : ''
+                    }`}
                 />
               </div>
 
@@ -737,9 +774,22 @@ const ProductTransfer: React.FC = () => {
                   type="primary"
                   icon={<PlusOutlined />}
                   onClick={handleAddItemToRequest}
-                  disabled={!selectedProductId || !itemQty || itemQty <= 0}
-                  className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold text-xs w-full rounded-lg h-8 flex items-center justify-center shadow-xs"
-                  title="Add to request list"
+                  disabled={
+                    !selectedProductId ||
+                    !itemQty ||
+                    itemQty <= 0 ||
+                    isOverStock ||
+                    isOutOfStock ||
+                    isModalItemStockLoading
+                  }
+                  className="bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold text-xs w-full rounded-lg h-8 flex items-center justify-center shadow-xs disabled:opacity-50"
+                  title={
+                    isOverStock
+                      ? `Exceeds available stock (${modalAvailableStock})`
+                      : isOutOfStock
+                        ? "Product is out of stock"
+                        : "Add to request list"
+                  }
                 >
                   Add
                 </Button>
@@ -748,18 +798,30 @@ const ProductTransfer: React.FC = () => {
 
             {/* Active Product Info Indicator */}
             {activeProductDetails && (
-              <div className="flex items-center gap-2 text-[11px] text-slate-500 pt-0.5">
-                <span>
-                  Selected: <strong className="text-slate-700">{activeProductDetails.name}</strong>
-                </span>
-                {activeProductDetails.categoryName && (
+              <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
+                <div className="flex items-center gap-2">
                   <span>
-                    • Category: <strong className="text-slate-700">{activeProductDetails.categoryName}</strong>
+                    Selected: <strong className="text-slate-700">{activeProductDetails.name}</strong>
+                  </span>
+                  {activeProductDetails.categoryName && (
+                    <span>
+                      • Category: <strong className="text-slate-700">{activeProductDetails.categoryName}</strong>
+                    </span>
+                  )}
+                  <span>
+                    • Unit: <strong className="text-slate-700">{activeProductDetails.unit}</strong>
+                  </span>
+                </div>
+                {isOutOfStock && (
+                  <span className="text-red-600 font-semibold flex items-center gap-1 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                    Product is currently out of stock (0 available)
                   </span>
                 )}
-                <span>
-                  • Unit: <strong className="text-slate-700">{activeProductDetails.unit}</strong>
-                </span>
+                {isOverStock && !isOutOfStock && (
+                  <span className="text-red-600 font-semibold flex items-center gap-1 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                    Requested quantity exceeds available stock ({modalAvailableStock})
+                  </span>
+                )}
               </div>
             )}
           </div>
