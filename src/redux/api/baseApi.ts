@@ -3,8 +3,8 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { RootState } from "../store";
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: `http://201.18.208.104:5000/api/v1`,
-  // baseUrl: `http://localhost:5000/api/v1`,
+  // baseUrl: `http://201.18.208.104:5000/api/v1`,
+  baseUrl: `http://localhost:5000/api/v1`,
   credentials: "include",
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as RootState).auth?.token;
@@ -19,6 +19,8 @@ const baseQuery = fetchBaseQuery({
 export const baseApi = createApi({
   reducerPath: "baseApi",
   baseQuery: baseQuery,
+  refetchOnFocus: true,
+  refetchOnReconnect: true,
   tagTypes: [
     "employee",
     "category",
