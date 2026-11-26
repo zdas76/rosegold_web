@@ -1,0 +1,152 @@
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
+import { BrowserRouter, Route, Routes } from 'react-router'
+import MainLayout from './layout/MainLayout'
+import Welcome from './pages/Welcome'
+import Register from './pages/loginRegister/Register'
+import { Provider } from 'react-redux'
+import { persistor, store } from './redux/store'
+import { PersistGate } from 'redux-persist/integration/react'
+import { Toaster } from 'sonner'
+import { sideBarRoutes } from './layout/sideBarItems'
+import { TrouteItems } from './types/types'
+import ProtectedRoute from './layout/ProtectedRoute'
+import Home from './pages/dashboardHome/Home'
+import VoucherDetails from './pages/voucherList/VoucherDetails'
+import LogVoucherPrint from './pages/logManagement/logOrder/LogOrderVoucher'
+import RawMaterialsDetails from './pages/inventory/rowMaterial/RawMaterialsDetails'
+import ProductStockReportDetails from './pages/production/createProduction/ProductStockReportDetails'
+import PackingMaterialStockReportDetails from './pages/inventory/packingMaterial/PackingMaterialStockReportDetails'
+import CallanVoucher from './pages/sales/challan/CallanVoucher'
+import Party from './pages/sales/party/Party'
+import PurchaseOrderDetails from './pages/purchase/purchaseOrder/PurchaseOrderDetails'
+import ProductionCreationForm from './pages/store RMPM/production/ProductionCreationForm'
+import ProductionVoucher from './pages/store RMPM/production/ProductionVoucher'
+import ProductionStep2Page from './pages/store RMPM/production/ProductionStep2Page'
+import RequestRawDetails from './pages/store RMPM/requestRaw/RequestRawDetails'
+import ProductTransferDetails from './pages/store RMPM/productTransfer/ProductTransferDetails'
+import RequestAcceptDetails from './pages/store FG/requestAccept/RequestAcceptDetails'
+import RawRequestAccept from './pages/purchase/rawRequestAccept/RawRequestAccept'
+import RawRequestAcceptDetails from './pages/purchase/rawRequestAccept/RawRequestAcceptDetails'
+import { ConfigProvider } from 'antd'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: '#C58D2F',
+          colorLink: '#C58D2F',
+          colorLinkHover: '#d49e3f',
+          colorSuccess: '#16a34a',
+          colorError: '#dc2626',
+          colorWarning: '#d97706',
+          colorBorder: '#e2e8f0',
+          colorBorderSecondary: '#f1f5f9',
+          borderRadius: 6,
+          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        },
+        components: {
+          Input: {
+            colorBorder: '#e2e8f0',
+            hoverBorderColor: '#cbd5e1',
+            activeBorderColor: '#C58D2F',
+          },
+          InputNumber: {
+            colorBorder: '#e2e8f0',
+            hoverBorderColor: '#cbd5e1',
+            activeBorderColor: '#C58D2F',
+          },
+          Select: {
+            colorBorder: '#e2e8f0',
+            hoverBorderColor: '#cbd5e1',
+            activeBorderColor: '#C58D2F',
+          },
+          DatePicker: {
+            colorBorder: '#e2e8f0',
+            hoverBorderColor: '#cbd5e1',
+            activeBorderColor: '#C58D2F',
+          },
+          Menu: {
+            darkItemBg: '#2d1849',
+            darkSubMenuItemBg: '#1f1035',
+            darkItemSelectedBg: '#C58D2F',
+            darkItemHoverBg: 'rgba(197, 141, 47, 0.3)',
+          },
+          Table: {
+            headerBg: '#f9edcf',
+            headerColor: '#5c3b20',
+            headerBorderRadius: 6,
+          },
+          Button: {
+            primaryShadow: '0 2px 4px rgba(197, 141, 47, 0.3)',
+          },
+        },
+      }}
+    >
+      <Provider store={store}>
+        <PersistGate loading={null} persistor={persistor}>
+          <BrowserRouter>
+            <Routes>
+              <Route path='/' element={<Welcome />} />
+              <Route path='/login' element={<Welcome />} />
+              <Route path='/register' element={<Register />} />
+              <Route path='/dashboard' element={<ProtectedRoute allowedRoles={["EMPLOYEE", "ADMIN"]}><MainLayout /></ProtectedRoute>}>
+                <Route index={true} element={<Home />} />
+                {
+                  (() => {
+                    const generateRoutes = (routes: TrouteItems[]): React.ReactNode[] => {
+                      return routes.flatMap((route) => {
+                        const routesList: React.ReactNode[] = [];
+                        if (route?.path && route?.element) {
+                          routesList.push(<Route key={route.key} path={route.path} element={route.element} />);
+                        }
+                        if (route?.children) {
+                          routesList.push(...generateRoutes(route.children));
+                        }
+                        return routesList;
+                      });
+                    };
+                    return generateRoutes(sideBarRoutes as TrouteItems[]);
+                  })()
+                }
+                <Route path="/dashboard/party" element={<Party />} />
+                <Route path="/dashboard/log-order/logorder-voucher" element={<LogVoucherPrint />} />
+                <Route path="/dashboard/row-material/:id" element={<RawMaterialsDetails />} />
+                <Route path="/dashboard/product_stock_report/:productId" element={<ProductStockReportDetails />} />
+                <Route path="/dashboard/packing_material_stock_report/:id" element={<PackingMaterialStockReportDetails />} />
+                <Route path="/dashboard/purchase-order/:id" element={<PurchaseOrderDetails />} />
+                <Route path="/dashboard/store_rmpm_production_soap" element={<ProductionCreationForm />} />
+                <Route path="/dashboard/store_rmpm_production_detergent" element={<ProductionCreationForm />} />
+                <Route path="/dashboard/store_rmpm_production_Kitchenbar" element={<ProductionCreationForm />} />
+                <Route path="/dashboard/production-voucher" element={<ProductionVoucher />} />
+                <Route path="/dashboard/store_rmpm_production_voucher" element={<ProductionVoucher />} />
+                <Route path="/dashboard/production-step-two" element={<ProductionStep2Page />} />
+                <Route path="/dashboard/production-step-two/:id" element={<ProductionStep2Page />} />
+                <Route path="/dashboard/request-raw/:id" element={<RequestRawDetails />} />
+                <Route path="/dashboard/product-transfer/:id" element={<ProductTransferDetails />} />
+                <Route path="/dashboard/product_transfer/:id" element={<ProductTransferDetails />} />
+                <Route path="/dashboard/store_fg_request_accept/:id" element={<RequestAcceptDetails />} />
+                <Route path="/dashboard/store-fg-request-accept/:id" element={<RequestAcceptDetails />} />
+                <Route path="/dashboard/raw-request-accept" element={<RawRequestAccept />} />
+                <Route path="/dashboard/raw_request_accept" element={<RawRequestAccept />} />
+                <Route path="/dashboard/raw-request-accept/:id" element={<RawRequestAcceptDetails />} />
+                <Route path="/dashboard/raw_request_accept/:id" element={<RawRequestAcceptDetails />} />
+                <Route path="/dashboard/purchase-request-accept" element={<RawRequestAccept />} />
+                <Route path="/dashboard/purchase_request_accept" element={<RawRequestAccept />} />
+                <Route path="/dashboard/purchase-request-accept/:id" element={<RawRequestAcceptDetails />} />
+                <Route path="/dashboard/purchase_request_accept/:id" element={<RawRequestAcceptDetails />} />
+              </Route>
+              <Route path="/dashboard/sales/challan/:voucherNo" element={<CallanVoucher />} />
+              <Route path="/dashboard/sales/challan/*" element={<CallanVoucher />} />
+              <Route path="/dashboard/voucher-details/:voucherNo" element={<VoucherDetails />} />
+              <Route path="/dashboard/voucher-details/*" element={<VoucherDetails />} />
+            </Routes>
+          </BrowserRouter>
+          <Toaster position="top-center" />
+        </PersistGate>
+      </Provider>
+    </ConfigProvider>
+  </StrictMode>,
+)

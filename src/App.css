@@ -1,0 +1,36 @@
+/* App-level styles - index.css handles Tailwind and theme tokens */
+
+/* Sidebar submenu (accordion) styling */
+.ant-menu-submenu-content {
+  background: #1f1035 !important;
+}
+.ant-menu-submenu-content .ant-menu-item {
+  background: #1f1035 !important;
+}
+.ant-menu-submenu-content .ant-menu-item:hover {
+  background: rgba(197, 141, 47, 0.2) !important;
+}
+.ant-menu-submenu-content .ant-menu-item-selected {
+  background: #C58D2F !important;
+}
+
+/* SweetAlert custom theming */
+.swal2-popup.swal2-styled {
+  border-radius: 12px !important;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f7f7f7;
+}
+::-webkit-scrollbar-thumb {
+  background: #f7f7f7;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a29e;
+}
