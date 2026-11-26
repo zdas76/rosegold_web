@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Form, Input, Button, Select, DatePicker, Table, InputNumber, Modal } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -50,9 +50,18 @@ const PurchaseOrderRMModal: React.FC<Props> = ({ open, onClose }) => {
         }
     }).filter(Boolean);
 
-    const row_materials = rowmaterials?.data?.map((item: TRawMaterial) => {
-        return { key: item?.id, label: item?.name, value: item?.id };
-    });
+    const addedRawIds = useMemo(() => {
+        return new Set(items.map((item: any) => item.rawId));
+    }, [items]);
+
+    const row_materials = useMemo(() => {
+        return rowmaterials?.data?.map((item: TRawMaterial) => ({
+            key: item?.id,
+            label: item?.name,
+            value: item?.id,
+            disabled: addedRawIds.has(item?.id),
+        })) || [];
+    }, [rowmaterials, addedRawIds]);
 
     const handleAddItem = () => {
         itemForm.validateFields().then((values) => {

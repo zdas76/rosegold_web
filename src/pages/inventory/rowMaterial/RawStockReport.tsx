@@ -349,7 +349,7 @@ export const MaterialStockReport = () => {
         dataSource={processedData}
         rowKey="id"
         rowClassName={(record) => (record.isLowStock ? 'row-low-stock' : '')}
-        pagination={{ pageSize: 15 }}
+        pagination={{ pageSize: 20 }}
         className="compact-raw-table rounded-lg overflow-hidden border border-gray-100"
       />
     </div>

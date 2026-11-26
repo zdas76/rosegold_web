@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Department } from "../../../pages/store RMPM/productTransfer/types";
 import { baseApi } from "../../api/baseApi";
 
 const transactionApi = baseApi.injectEndpoints({
@@ -52,10 +53,10 @@ const transactionApi = baseApi.injectEndpoints({
             },
         }),
         getTotalQuantityAndUnitPrice: builder.query({
-            query: (query: { productId?: number; rawId?: string; packingMaterialId?: number; itemType: "product" | "raw" | "pmmaterial" }) => {
+            query: (query: { productId?: number; rawId?: string; packingMaterialId?: number; itemType: "product" | "raw" | "pmmaterial"; department: Department | string }) => {
                 const params = new URLSearchParams();
                 params.append("itemType", `${query?.itemType}`)
-
+                params.append("department", `${query?.department}`)
                 if (query?.itemType === "product") {
                     params.append("productId", `${query?.productId}`)
                 } else if (query?.itemType === "raw") {
@@ -90,8 +91,9 @@ const transactionApi = baseApi.injectEndpoints({
         // get report by voucherNo
         getReportByVoucherNo: builder.query({
             query: (voucherNo: string) => {
+                const encodedVoucherNo = encodeURIComponent(decodeURIComponent(voucherNo || ''));
                 return {
-                    url: `/voucher/voucherNo/${voucherNo}`,
+                    url: `/voucher/voucherNo/${encodedVoucherNo}`,
                     method: `GET`
                 }
             }

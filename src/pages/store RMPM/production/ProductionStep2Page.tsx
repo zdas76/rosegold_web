@@ -155,16 +155,19 @@ const ProductionStep2Page: React.FC = () => {
     { skip: !currentProductId }
   );
 
+  const currentStatus = productionItemInfo?.status || 'PROCESSING';
+  const isProcessing = currentStatus === 'PROCESSING';
+  const isInProgress = currentStatus === 'IN_PROGRESS';
+  const isPending = currentStatus === 'PENDING' || currentStatus === 'PENDDING';
+  const isCompleted = currentStatus === 'COMPLETE';
+
+
   const [createProduction] = useCreateProductionMutation();
   // Populate form and lists when production data arrives
   useEffect(() => {
     if (!productionData && !productionState.productinfo?.productId) return;
     const sourceData = productionData ? 'api' : 'redux';
-    const rawProdQty =
-      productInventoryItem?.quantityAdd ??
-      productInventoryItem?.quantity ??
-      (productionData as any)?.productQuantity ??
-      productionState.productinfo?.quantityAdd;
+    const rawProdQty = productInventoryItem?.quantityAdd;
     const initialProductQty = rawProdQty && Number(rawProdQty) > 0 ? Number(rawProdQty) : undefined;
     form.setFieldsValue({
       productId: Number(currentProductId) || undefined,
@@ -222,7 +225,12 @@ const ProductionStep2Page: React.FC = () => {
     setRawMaterials(parsedRawMaterials);
     // 2. Packing Materials
     const currentProd = productionData || productionResponse?.data;
-    const existingPackingInventories = currentProd?.pminventories || [];
+    const existingPackingInventories =
+      currentProd?.pminventories?.length > 0
+        ? currentProd.pminventories
+        : currentProd?.packingMaterials?.length > 0
+          ? currentProd.packingMaterials
+          : (currentProd?.inventory || []).filter((item: any) => Boolean(item.packingMaterialId || item.packingMaterial));
     if (existingPackingInventories.length > 0) {
       const parsedPacking: PackingMaterialItem[] = existingPackingInventories.map(
         (packingItem: any, index: number) => {
@@ -234,11 +242,9 @@ const ProductionStep2Page: React.FC = () => {
           const unitId = packingItem.packingMaterial?.unitId || matchingPacking?.unitId || null;
           const unitPrice = Number(packingItem.unitPrice ?? matchingPacking?.unitPrice ?? 0);
           const quantity = Number(
-            packingItem.Qty ??
             packingItem.quantityLess ??
             packingItem.quantityAdd ??
-            packingItem.quantity ??
-            0
+            packingItem.quantity
           );
 
           // If explicit positive amount/debit/credit exists use it, otherwise compute quantity * unitPrice
@@ -267,12 +273,12 @@ const ProductionStep2Page: React.FC = () => {
           return {
             id: packingItem.id,
             si: index + 1,
-            packingMaterialId: Number(packingMaterialId),
+            packingMaterialId: packingMaterialId ? Number(packingMaterialId) : null,
             name,
             unit,
             unitId,
             qty: quantity > 0 ? quantity : null,
-            unitPrice: unitPrice > 0 ? unitPrice : null,
+            unitPrice: unitPrice >= 0 ? unitPrice : 0,
             perUnitQty,
             perUnitCost,
             total: Number(calculatedTotal.toFixed(2)),
@@ -290,10 +296,8 @@ const ProductionStep2Page: React.FC = () => {
       const matchedRecipe =
         ingredientsList.find((recipe: any) => Number(recipe.productId) === Number(currentProductId)) ||
         ingredientsList[0];
-      const recipePackingMaterials =
-        matchedRecipe?.ingredientPackingMaterial || [];
-
-      if (recipePackingMaterials.length > 0) {
+      const recipePackingMaterials = matchedRecipe?.ingredientPackingMaterial || [];
+      if (isProcessing && recipePackingMaterials.length > 0) {
         const loadedPmMaterilas = Number(initialProductQty) || 0;
         Promise.all(
           recipePackingMaterials.map(async (recipeItem: any, index: number) => {
@@ -339,12 +343,12 @@ const ProductionStep2Page: React.FC = () => {
 
             return {
               si: index + 1,
-              packingMaterialId: Number(packingMaterialId),
+              packingMaterialId: packingMaterialId ? Number(packingMaterialId) : null,
               name,
               unit,
               unitId,
               qty: finalQty,
-              unitPrice,
+              unitPrice: unitPrice != null && Number(unitPrice) >= 0 ? Number(unitPrice) : 0,
               perUnitQty: calculatedPerUnitQty,
               perUnitCost: calculatedCost,
               total,
@@ -360,7 +364,6 @@ const ProductionStep2Page: React.FC = () => {
 
     // 3. Production Expenses
     const existingExpenseInventories = currentProd?.productionExpensesInventory || [];
-
 
     if (existingExpenseInventories.length > 0) {
       const parsedExpenses: ProductionExpenseItem[] = existingExpenseInventories.map(
@@ -417,8 +420,7 @@ const ProductionStep2Page: React.FC = () => {
             recipeExp.productionExpenseItem?.unitRate ??
             recipeExp.unitRate ??
             matchingExpense?.unitRate ??
-            matchingExpense?.rate ??
-            null;
+            matchingExpense?.rate
           const qty = recipeExp.qty !== undefined && recipeExp.qty !== null ? Number(recipeExp.qty) : null;
           const total = qty != null && rate != null ? Number((qty * rate).toFixed(2)) : 0;
 
@@ -457,7 +459,7 @@ const ProductionStep2Page: React.FC = () => {
           matchingProd?.category?.categoryName ||
           cp.categoryName ||
           '';
-        const qtyPerPack = cp.qtyPerPack ?? cp.quantityPerPack ?? 1;
+        const qtyPerPack = cp.qtyPerPack ?? cp.quantityPerPack ?? (matchingProd?.size ? Number(matchingProd.size) : 1);
         const totalQty = Number(cp.quantityAdd ?? cp.quantity ?? cp.totalQty ?? 0);
         const numberOfCartoon = cp.numberOfCartoon ?? cp.carton ?? (qtyPerPack > 0 ? Math.floor(totalQty / qtyPerPack) : 0);
 
@@ -527,11 +529,8 @@ const ProductionStep2Page: React.FC = () => {
     return Number(
       packingMaterials
         .reduce((sum, item) => {
-          const itemTotal =
-            item.total && Number(item.total) > 0
-              ? Number(item.total)
-              : (Number(item.qty || 0) * Number(item.unitPrice || 0));
-          return sum + (itemTotal || 0);
+          const itemTotal = Number(((Number(item.qty) || 0) * (Number(item.unitPrice) || 0)).toFixed(2));
+          return sum + itemTotal;
         }, 0)
         .toFixed(2)
     );
@@ -659,10 +658,22 @@ const ProductionStep2Page: React.FC = () => {
       }
 
       const hasInvalidPackingPrice = packingMaterials.some(
-        item => item.unitPrice === null || item.unitPrice === undefined || Number(item.unitPrice) < 0
+        item => item.unitPrice !== null && item.unitPrice !== undefined && Number(item.unitPrice) < 0
       );
       if (hasInvalidPackingPrice) {
-        showErrorAlert('Please enter a valid Unit Price for all packing materials');
+        showErrorAlert('Please enter a valid Unit Price (0 or greater) for all packing materials');
+        return;
+      }
+
+      const exceededPacking = packingMaterials.find(item => {
+        const maxStock = item.netQuantity !== undefined && item.netQuantity !== null ? item.netQuantity : null;
+        return maxStock != null && item.qty != null && Number(item.qty) > maxStock;
+      });
+      if (exceededPacking) {
+        showErrorAlert(
+          `Quantity for "${exceededPacking.name || 'Packing Material'}" (${exceededPacking.qty}) exceeds available stock (${exceededPacking.netQuantity} ${exceededPacking.unit || 'Pcs'}). It must be less than or equal to available stock.`,
+          'Stock Limit Exceeded'
+        );
         return;
       }
     }
@@ -769,10 +780,22 @@ const ProductionStep2Page: React.FC = () => {
       }
 
       const hasInvalidPackingPrice = packingMaterials.some(
-        item => item.unitPrice === null || item.unitPrice === undefined || Number(item.unitPrice) < 0
+        item => item.unitPrice !== null && item.unitPrice !== undefined && Number(item.unitPrice) < 0
       );
       if (hasInvalidPackingPrice) {
-        showErrorAlert('Please enter a valid Unit Price for all packing materials');
+        showErrorAlert('Please enter a valid Unit Price (0 or greater) for all packing materials');
+        return;
+      }
+
+      const exceededPacking = packingMaterials.find(item => {
+        const maxStock = item.netQuantity !== undefined && item.netQuantity !== null ? item.netQuantity : null;
+        return maxStock != null && item.qty != null && Number(item.qty) > maxStock;
+      });
+      if (exceededPacking) {
+        showErrorAlert(
+          `Quantity for "${exceededPacking.name || 'Packing Material'}" (${exceededPacking.qty}) exceeds available stock (${exceededPacking.netQuantity} ${exceededPacking.unit || 'Pcs'}). It must be less than or equal to available stock.`,
+          'Stock Limit Exceeded'
+        );
         return;
       }
     }
@@ -863,9 +886,9 @@ const ProductionStep2Page: React.FC = () => {
         }
 
         totalCombined = combinedProducts.reduce((sum, item) => sum + (Number(item.totalQty) || 0), 0);
-        const maxCombinedLimit = oldProductQty != null ? Number(oldProductQty) : null;
-        if (maxCombinedLimit !== null && totalCombined > maxCombinedLimit) {
-          showErrorAlert(`Total combined quantity (${totalCombined}) cannot exceed available product quantity (${maxCombinedLimit})`);
+        const maxCombinedLimit = (oldProductQty != null ? Number(oldProductQty) : 0) + (finishedQty || 0);
+        if (totalCombined > maxCombinedLimit) {
+          showErrorAlert(`Total combined quantity (${totalCombined}) cannot exceed total available product quantity (${maxCombinedLimit})`);
           return;
         }
       }
@@ -937,13 +960,6 @@ const ProductionStep2Page: React.FC = () => {
       </div>
     );
   }
-
-  const currentStatus = productionItemInfo?.status || 'PROCESSING';
-  const isProcessing = currentStatus === 'PROCESSING';
-  const isInProgress = currentStatus === 'IN_PROGRESS';
-  const isPending = currentStatus === 'PENDING' || currentStatus === 'PENDDING';
-  const isCompleted = currentStatus === 'COMPLETE';
-
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_4px_24px_-2px_rgba(15,23,42,0.06),0_1px_3px_0_rgba(15,23,42,0.04)] p-6 space-y-5">
@@ -1048,7 +1064,6 @@ const ProductionStep2Page: React.FC = () => {
         />
 
 
-
         {/* Save Materials & Expenses Button */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-slate-50/70 border border-slate-200/70 rounded-xl shadow-xs mt-4">
           <span className="text-xs text-slate-500 font-medium">Save intermediate raw material recipe and packaging/expense allocations.</span>
@@ -1095,8 +1110,7 @@ const ProductionStep2Page: React.FC = () => {
             disabled={!isInProgress}
             size="large"
             icon={<CheckCircleOutlined />}
-            className="px-8 rounded-lg bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold text-xs h-10 shadow-[0_3px_12px_rgba(197,141,47,0.3)] hover:shadow-[0_4px_16px_rgba(197,141,47,0.45)] transition-all disabled:opacity-50"
-          >
+            className="px-8 rounded-lg bg-[#C58D2F] hover:bg-[#b07d28] border-none text-white font-semibold text-xs h-10 shadow-[0_3px_12px_rgba(197,141,47,0.3)] hover:shadow-[0_4px_16px_rgba(197,141,47,0.45)] transition-all disabled:opacity-50">
             {isSubmitting ? 'Saving...' : isPending || isCompleted ? 'Saved (Finished Goods)' : 'Save Finished Goods'}
           </Button>
         </div>

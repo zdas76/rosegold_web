@@ -387,26 +387,26 @@ export type TStauffUser = {
 
 
 export type TProductStockReport = {
-  product: {
-    id: number;
-    name: string;
-    description: string;
-    size: string;
-    amount: number;
-    quantity: number;
-    unitPrice: number;
-    status: "ACTIVE" | "INACTIVE";
-    createdAt: string;
-    updateAt: string;
-  };
-  total: {
-    _sum: {
-      debitAmount: number | null;
-      creditAmount: number | null;
-      quantityAdd: number | null;
-      quantityLess: number | null;
+    product: {
+        id: number;
+        name: string;
+        description: string;
+        size: string;
+        amount: number;
+        quantity: number;
+        unitPrice: number;
+        status: "ACTIVE" | "INACTIVE";
+        createdAt: string;
+        updateAt: string;
     };
-  };
+    total: {
+        _sum: {
+            debitAmount: number | null;
+            creditAmount: number | null;
+            quantityAdd: number | null;
+            quantityLess: number | null;
+        };
+    };
 };
 
 
@@ -441,6 +441,36 @@ export type TRawMaterialStockReport = {
     };
 };
 
+export type TPackingMaterialStockReport = {
+    pm: {
+        id: number;
+        name: string;
+        description: string | null;
+        unitId: number;
+        openingDate: string;
+        unitPrice: number;
+        openingAmount: number;
+        quantity: number;
+        alertQuantity: number;
+        isDeleted: boolean;
+        status: string;
+        createdAt: string;
+        updateAt: string;
+        unit?: {
+            id: number;
+            name: string;
+        };
+    };
+    total: {
+        _sum: {
+            debitAmount: number | null;
+            creditAmount: number | null;
+            quantityAdd: number | null;
+            quantityLess: number | null;
+        };
+    };
+};
+
 export type TProductionExpItem = {
     id: number;
     expItemName: string;
@@ -449,3 +479,28 @@ export type TProductionExpItem = {
     updatedAt?: string;
 };
 
+export type TVoucherType =
+    | "SALES"
+    | "PURCHASE"
+    | "RECEIVED"
+    | "PAYMENT"
+    | "JOURNAL"
+    | "CONTRA"
+    | "PRODUCTION"
+    | "REQUISITION"
+    | "TRANSFER"
+    | "REQUEST";
+
+
+export const VoucherType = {
+    SALES: "SALES",
+    PURCHASE: "PURCHASE",
+    RECEIVED: "RECEIVED",
+    PAYMENT: "PAYMENT",
+    JOURNAL: "JOURNAL",
+    CONTRA: "CONTRA",
+    PRODUCTION: "PRODUCTION",
+    REQUISITION: "REQUISITION",
+    TRANSFER: "TRANSFER",
+    REQUEST: "REQUEST",
+} as const;

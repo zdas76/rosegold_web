@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import { Form, Select, Input, DatePicker, Button, Table } from 'antd';
 import { useGetVoucherReportQuery } from '../../redux/features/transactions/transactons.api';

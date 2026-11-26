@@ -11,7 +11,7 @@ import {
 } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useGetProductsQuery } from "../../../redux/features/product/product.api";
-import { useGetAccountItemQuery, useLazyGetTotalQuantityAndUnitPriceQuery } from "../../../redux/features/transactions/transactons.api";
+import { useGetAccountItemQuery } from "../../../redux/features/transactions/transactons.api";
 import { TAccountsItem, TBankAccount, TCustomer, TProduct, TVendor } from "../../../types/types";
 import { useGetPartiesQuery } from "../../../redux/features/auth/authApi";
 import { useCreateSalesVoucherMutation } from "../../../redux/features/journal/journal.api";
@@ -35,7 +35,6 @@ import dayjs from "dayjs";
 
 const { Option } = Select;
 const AccountsSalesVoucher = () => {
-  const [triggerGetTotalQuantity] = useLazyGetTotalQuantityAndUnitPriceQuery();
   const [customer, setCustomer] = useState<TCustomer[] | null>(null);
   const [form] = Form.useForm();
   const [debitForm] = Form.useForm();

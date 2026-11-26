@@ -3,6 +3,9 @@ import React, { useEffect, useMemo } from 'react';
 import { useGetTotalQuantityAndUnitPriceQuery } from '../../../../redux/features/transactions/transactons.api';
 import { Button, Table, Select, InputNumber, Tag, message } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { useAppSelector } from '../../../../redux/hooks';
+import { useLocalUser } from '../../../../hook/useLocalUser';
+import { Department } from '../../productTransfer/types';
 
 export interface CombinedProductItem {
   id?: number | string;
@@ -30,14 +33,16 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
   combinedProducts,
   setCombinedProducts,
   productsData,
+  productQuantity,
   oldProductQty,
   onStockChange,
   disabled = false,
   selectedProduct,
 }) => {
+  const { department } = useLocalUser();
   const currentProductId = selectedProduct?.id ? Number(selectedProduct.id) : undefined;
   const { data: stockData } = useGetTotalQuantityAndUnitPriceQuery(
-    { itemType: "product", productId: currentProductId },
+    { itemType: "product", productId: currentProductId, department },
     { skip: !currentProductId || disabled, refetchOnMountOrArgChange: true }
   );
 
@@ -49,6 +54,10 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
       onStockChange(fetchedStockQty);
     }
   }, [fetchedStockQty, onStockChange]);
+
+  const oldStock = Number(effectiveStockQty) || 0;
+  const finishedQty = Number(productQuantity) || 0;
+  const totalAvailableQty = Number((oldStock + finishedQty).toFixed(2));
 
   const mainProductId = selectedProduct?.id;
   const targetSubCategoryName = selectedProduct?.subCategory?.subCategoryName;
@@ -72,6 +81,8 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
         name: p.name,
         categoryName: catName,
         isMainProduct: isMain,
+        size: p.size != null ? Number(p.size) : null,
+        product: p,
       };
     });
   }, [productsData, targetSubCategoryName, mainProductId]);
@@ -80,8 +91,38 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
     return combinedProducts.reduce((sum, item) => sum + (Number(item.totalQty) || 0), 0);
   }, [combinedProducts]);
 
-  const maxAllowedQty = effectiveStockQty != null ? Number(effectiveStockQty) : 0;
-  const isExceeded = effectiveStockQty != null && totalCombinedQty > maxAllowedQty;
+  const remainingStock = Math.max(0, Number((totalAvailableQty - totalCombinedQty).toFixed(2)));
+
+  // Auto-recalculate numberOfCartoon and totalQty when totalAvailableQty changes
+  useEffect(() => {
+    setCombinedProducts(prev => {
+      let runningAvailable = totalAvailableQty;
+      let hasChanged = false;
+
+      const updated = prev.map(item => {
+        if (item.productId && item.qtyPerPack && item.qtyPerPack > 0) {
+          const newCartoon = Math.floor(runningAvailable / item.qtyPerPack);
+          const newTotalQty = newCartoon * item.qtyPerPack;
+          runningAvailable = Math.max(0, runningAvailable - newTotalQty);
+
+          if (newCartoon !== item.numberOfCartoon || newTotalQty !== item.totalQty) {
+            hasChanged = true;
+            return {
+              ...item,
+              numberOfCartoon: newCartoon,
+              totalQty: newTotalQty,
+            };
+          }
+        }
+        return item;
+      });
+
+      return hasChanged ? updated : prev;
+    });
+  }, [totalAvailableQty, setCombinedProducts]);
+
+  const maxAllowedQty = totalAvailableQty;
+  const isExceeded = totalCombinedQty > maxAllowedQty;
 
   const handleAddProductRow = () => {
     const nextSi = combinedProducts.length > 0 ? Math.max(...combinedProducts.map(m => m.si)) + 1 : 1;
@@ -104,8 +145,15 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
       return;
     }
     const chosen = productOptions.find((opt: any) => opt.value === productId);
-    setCombinedProducts(prev =>
-      prev.map(item => {
+
+    setCombinedProducts(prev => {
+      const otherRowsTotalQty = prev
+        .filter(item => item.si !== si)
+        .reduce((sum, item) => sum + (Number(item.totalQty) || 0), 0);
+
+      const availableForThisRow = Math.max(0, totalAvailableQty - otherRowsTotalQty);
+
+      return prev.map(item => {
         if (item.si === si) {
           if (!chosen) {
             return {
@@ -113,18 +161,37 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
               productId: null,
               productName: '',
               categoryName: '',
+              qtyPerPack: null,
+              numberOfCartoon: null,
+              totalQty: 0,
             };
           }
+
+          const rawSize = chosen.size ?? chosen.product?.size;
+          const sizeVal = rawSize != null && Number(rawSize) > 0 ? Number(rawSize) : null;
+          const qtyPerPack = sizeVal;
+
+          let numberOfCartoon: number | null = null;
+          let totalQty = 0;
+
+          if (qtyPerPack && qtyPerPack > 0) {
+            numberOfCartoon = Math.floor(availableForThisRow / qtyPerPack);
+            totalQty = numberOfCartoon * qtyPerPack;
+          }
+
           return {
             ...item,
             productId,
             productName: chosen.name,
             categoryName: chosen.categoryName,
+            qtyPerPack,
+            numberOfCartoon,
+            totalQty,
           };
         }
         return item;
-      })
-    );
+      });
+    });
   };
 
   const handleQtyPerPackChange = (si: number, newQty: number | null) => {
@@ -209,7 +276,6 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
               },
             ]
             : productOptions;
-
         return (
           <Select
             showSearch
@@ -239,18 +305,15 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
       title: 'Qty Per Pack',
       dataIndex: 'qtyPerPack',
       key: 'qtyPerPack',
-      width: 150,
+      width: 140,
       align: 'right' as const,
-      render: (qtyPerPack: number | null, record: CombinedProductItem) => (
+      render: (qtyPerPack: number | null) => (
         <InputNumber
-          min={1}
+          disabled
           controls={false}
-          disabled={disabled}
           value={qtyPerPack}
-          onChange={(val) => handleQtyPerPackChange(record.si, val)}
-          onFocus={(e) => e.target.select()}
           placeholder="0"
-          className="w-full text-right"
+          className="w-full text-right bg-slate-50 font-semibold text-slate-700 cursor-not-allowed"
         />
       ),
     },
@@ -258,18 +321,15 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
       title: 'No. of Cartoon',
       dataIndex: 'numberOfCartoon',
       key: 'numberOfCartoon',
-      width: 150,
+      width: 140,
       align: 'right' as const,
-      render: (numberOfCartoon: number | null, record: CombinedProductItem) => (
+      render: (numberOfCartoon: number | null) => (
         <InputNumber
-          min={1}
+          disabled
           controls={false}
-          disabled={disabled}
           value={numberOfCartoon}
-          onChange={(val) => handleNumberOfCartoonChange(record.si, val)}
-          onFocus={(e) => e.target.select()}
           placeholder="0"
-          className="w-full text-right"
+          className="w-full text-right bg-slate-50 font-semibold text-amber-700 cursor-not-allowed"
         />
       ),
     },
@@ -306,24 +366,50 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
     <div className={`bg-slate-50/50 p-6 rounded-xl border border-slate-200/60 shadow-sm mt-6 ${disabled ? 'opacity-90' : ''}`}>
       <div className="flex items-center justify-between mb-4 border-b border-gray-200 pb-3">
         <div className="flex items-center gap-3 flex-wrap w-full">
-          <h3 className="font-bold text-lg text-gray-800 m-0">Combined Products</h3>
-          {targetSubCategoryName && (
-            <Tag color="gold" className="font-semibold text-xs py-0.5 px-2.5 rounded-full border border-amber-200 m-0">
-              Subcategory: {targetSubCategoryName}
-            </Tag>
-          )}
-          {disabled && (
-            <span className="text-xs font-semibold px-2.5 py-0.5 bg-gray-200 text-gray-700 rounded-full">
-              Locked
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            <h3 className="font-bold text-lg text-gray-800 m-0">Combined Products</h3>
+            {targetSubCategoryName && (
+              <Tag color="gold" className="font-semibold text-xs py-0.5 px-2.5 rounded-full border border-amber-200 m-0">
+                Subcategory: {targetSubCategoryName}
+              </Tag>
+            )}
+            {disabled && (
+              <span className="text-xs font-semibold px-2.5 py-0.5 bg-gray-200 text-gray-700 rounded-full">
+                Locked
+              </span>
+            )}
+          </div>
+
           {isExceeded && (
             <span className="text-xs font-semibold px-2.5 py-0.5 bg-red-100 text-red-700 rounded-full border border-red-200">
-              Exceeds available product qty ({effectiveStockQty ?? 0})!
+              Exceeds total available product qty ({totalAvailableQty.toLocaleString()})!
             </span>
           )}
-          <div className="text-xs font-bold px-3 py-1 bg-slate-100 text-slate-700 rounded-full border border-slate-200/70 ml-auto font-mono">
-            Available : {effectiveStockQty ?? 0}
+
+          {/* Breakdown: Old Stock + Finished Product Qty = Total Available -> Remaining Old Stock */}
+          <div className="flex items-center gap-2 ml-auto flex-wrap text-xs">
+            <div className="px-3 py-1 bg-white text-slate-700 rounded-lg border border-slate-200 shadow-2xs flex items-center gap-1.5">
+              <span className="text-slate-500 font-medium">Old Stock:</span>
+              <span className="font-bold font-mono text-slate-800">{oldStock.toLocaleString()}</span>
+            </div>
+            <span className="text-slate-400 font-bold">+</span>
+            <div className="px-3 py-1 bg-white text-slate-700 rounded-lg border border-slate-200 shadow-2xs flex items-center gap-1.5">
+              <span className="text-slate-500 font-medium">Finished Qty:</span>
+              <span className="font-bold font-mono text-blue-700">{finishedQty.toLocaleString()}</span>
+            </div>
+            <span className="text-slate-400 font-bold">=</span>
+            <div className={`px-3 py-1 rounded-lg border font-semibold shadow-2xs flex items-center gap-1.5 ${isExceeded
+              ? 'bg-red-50 text-red-800 border-red-200'
+              : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              }`}>
+              <span className="font-medium">Total Available:</span>
+              <span className="font-bold font-mono text-sm">{totalAvailableQty.toLocaleString()}</span>
+            </div>
+            <span className="text-slate-400 font-bold">→</span>
+            <div className="px-3 py-1 bg-amber-50 text-amber-900 rounded-lg border border-amber-200 shadow-2xs flex items-center gap-1.5 font-semibold">
+              <span className="text-amber-700 font-medium">Remaining (Old Stock):</span>
+              <span className="font-bold font-mono text-sm">{remainingStock.toLocaleString()}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -358,14 +444,15 @@ const CombinedProductsSection: React.FC<CombinedProductsSectionProps> = ({
                   <span className={`text-base font-extrabold ${isExceeded ? 'text-red-600' : 'text-blue-800'}`}>
                     {totalCombinedQty.toLocaleString()}
                   </span>
-                  {effectiveStockQty != null && (
-                    <span className="text-xs text-gray-500 ml-1 font-normal">
-                      / {Number(effectiveStockQty).toLocaleString()}
-                    </span>
-                  )}
+                  <span className="text-xs text-gray-500 ml-1 font-normal">
+                    / {totalAvailableQty.toLocaleString()}
+                  </span>
+                  <span className="text-xs font-semibold text-amber-700 ml-2">
+                    (Remaining Old Stock: {remainingStock.toLocaleString()})
+                  </span>
                   {isExceeded && (
                     <div className="text-xs text-red-500 font-semibold mt-0.5">
-                      Total combined qty cannot exceed available qty ({effectiveStockQty ?? 0})
+                      Total combined qty cannot exceed total available qty ({totalAvailableQty.toLocaleString()})
                     </div>
                   )}
                 </Table.Summary.Cell>

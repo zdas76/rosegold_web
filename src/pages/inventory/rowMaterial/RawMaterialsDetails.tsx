@@ -6,15 +6,19 @@ import { ArrowLeftOutlined, FallOutlined, RiseOutlined } from "@ant-design/icons
 import dayjs from "dayjs";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ColumnsType } from "antd/es/table";
+import type { ColumnsType } from "antd/es/table";
 
 interface ReportItem {
     id: number;
     date: string;
+    unitPrice?: number;
+    integratedUnitPrice?: number;
     quantityAdd: number;
     quantityLess: number;
     debitAmount: number;
     creditAmount: number;
+    integratedDebitAmount?: number;
+    integratedCreditAmount?: number;
     quantityBalance: number;
     balance: number;
 }
@@ -26,39 +30,80 @@ const RawMaterialsDetails = () => {
     const { data, isLoading, isFetching } = useGetRawMaterialsReportQuery({ id, startDate, endDate }, { skip: !id });
     const navigate = useNavigate();
     const rawMaterial = data?.data?.rawMaterial;
-    const reports = data?.data?.report ?? [];
-    const openningDate = data?.data?.rawMaterial?.openingDate;
+    const reports: any[] = Array.isArray(data?.data?.report) ? data.data.report : [];
 
+    // Sort chronologically (oldest to newest) to calculate correct running balances
+    const sortedAsc = [...reports].sort((a: any, b: any) => {
+        const timeA = new Date(a.date || a.createdAt).getTime();
+        const timeB = new Date(b.date || b.createdAt).getTime();
+        if (timeA !== timeB) return timeA - timeB;
+        return Number(a.id) - Number(b.id);
+    });
+
+    // Start from 0 because all inventory additions/deductions (including opening entries) are recorded in the inventory transactions
     let runningBalance = 0;
     let qtyBalance = 0;
-    const reportData: ReportItem[] = reports.map((item: any) => {
-        runningBalance += (item.debitAmount || 0) - (item.creditAmount || 0);
-        qtyBalance += (item.quantityAdd || 0) - (item.quantityLess || 0);
+
+    const chronologicalData: ReportItem[] = sortedAsc.map((item: any, idx) => {
+        const qAdd = Number(item.quantityAdd ?? 0);
+        const qLess = Number(item.quantityLess ?? 0);
+        const debit = Number(item.debitAmount ?? 0);
+        const credit = Number(item.creditAmount ?? 0);
+        const intDebit = Number(item.integratedDebitAmount ?? 0);
+        const intCredit = Number(item.integratedCreditAmount ?? 0);
+        const uPrice = Number(item.unitPrice ?? 0);
+        const intUPrice = Number(item.integratedUnitPrice ?? 0);
+
+        runningBalance += debit - credit;
+        qtyBalance += qAdd - qLess;
         return {
             ...item,
+            key: item.id,
+            unitPrice: uPrice,
+            integratedUnitPrice: intUPrice,
+            quantityAdd: qAdd,
+            quantityLess: qLess,
+            debitAmount: debit,
+            creditAmount: credit,
+            integratedDebitAmount: intDebit,
+            integratedCreditAmount: intCredit,
             balance: runningBalance,
             quantityBalance: qtyBalance,
         };
     });
 
-    const totalDebit = reports.reduce(
-        (sum: number, item: any) => sum + (item.debitAmount || 0),
-        0
-    );
-    const totalCredit = reports.reduce(
-        (sum: number, item: any) => sum + (item.creditAmount || 0),
-        0
-    );
+    // Display newest first (descending)
+    const reportData = [...chronologicalData].reverse();
 
+    // Summary totals across all report records
+    const totals = reports.reduce(
+        (acc: any, item: any) => {
+            acc.quantityAdd += Number(item.quantityAdd ?? 0);
+            acc.quantityLess += Number(item.quantityLess ?? 0);
+            acc.debitAmount += Number(item.debitAmount ?? 0);
+            acc.integratedDebitAmount += Number(item.integratedDebitAmount ?? 0);
+            acc.creditAmount += Number(item.creditAmount ?? 0);
+            acc.integratedCreditAmount += Number(item.integratedCreditAmount ?? 0);
+            return acc;
+        },
+        {
+            quantityAdd: 0,
+            quantityLess: 0,
+            debitAmount: 0,
+            integratedDebitAmount: 0,
+            creditAmount: 0,
+            integratedCreditAmount: 0,
+        }
+    );
     const [form] = Form.useForm();
     const onFinish = (values: any) => {
-        const { startDate, endDate } = values;
-        if (startDate > endDate) {
+        const { startDate: sDate, endDate: eDate } = values;
+        if (sDate && eDate && sDate > eDate) {
             toast.error("Start date must be less than end date");
             return;
         }
-        setStartDate(startDate?.format("YYYY-MM-DD"));
-        setEndDate(endDate?.format("YYYY-MM-DD"));
+        setStartDate(sDate ? sDate.format("YYYY-MM-DD") : null);
+        setEndDate(eDate ? eDate.format("YYYY-MM-DD") : null);
     };
 
     if (isLoading) {
@@ -79,65 +124,160 @@ const RawMaterialsDetails = () => {
 
     const columns: ColumnsType<ReportItem> = [
         {
+            title: "SL",
+            key: "sl",
+            width: 50,
+            align: "center",
+            render: (_, __, index) => index + 1,
+        },
+        {
             title: "Date",
             dataIndex: "date",
             key: "date",
-            render: (date) => <span className="font-semibold">{dayjs(date).format("DD MMM YYYY")}</span>,
+            width: 120,
+            render: (date) => (
+                <span className="font-semibold text-gray-800">
+                    {date ? dayjs(date).format("DD MMM YYYY") : "-"}
+                </span>
+            ),
+        },
+        {
+            title: "Unit Price",
+            dataIndex: "unitPrice",
+            key: "unitPrice",
+            align: "right",
+            width: 100,
+            render: (price) => (
+                <span className="font-mono font-medium text-gray-800 text-xs">
+                    ৳ {Number(price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+            ),
+        },
+        {
+            title: "Ad. Unit Price",
+            dataIndex: "integratedUnitPrice",
+            key: "integratedUnitPrice",
+            align: "right",
+            width: 110,
+            render: (price) => (
+                <span className="font-mono font-semibold text-purple-700 text-xs">
+                    ৳ {Number(price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+            ),
         },
         {
             title: "Stock In (+)",
             dataIndex: "quantityAdd",
             key: "quantityAdd",
-            align: "center",
-            render: (qty) => (
-                <span className={qty > 0 ? "text-green-600 font-semibold" : "text-gray-400"}>
-                    {qty > 0 && <RiseOutlined className="mr-1" />}
-                    {qty || 0}
-                </span>
-            ),
+            align: "right",
+            width: 100,
+            render: (qty) => {
+                const num = Number(qty || 0);
+                return (
+                    <span className={num > 0 ? "text-green-600 font-semibold font-mono text-xs" : "text-gray-300 font-mono text-xs"}>
+                        {num > 0 && <RiseOutlined className="mr-0.5 text-[10px]" />}
+                        {num > 0 ? `+${num.toLocaleString()}` : "0"}
+                    </span>
+                );
+            },
         },
         {
             title: "Stock Out (-)",
             dataIndex: "quantityLess",
             key: "quantityLess",
-            align: "center",
-            render: (qty) => (
-                <span className={qty > 0 ? "text-red-500 font-semibold" : "text-gray-400"}>
-                    {qty > 0 && <FallOutlined className="mr-1" />}
-                    {qty || 0}
+            align: "right",
+            width: 100,
+            render: (qty) => {
+                const num = Number(qty || 0);
+                return (
+                    <span className={num > 0 ? "text-red-500 font-semibold font-mono text-xs" : "text-gray-300 font-mono text-xs"}>
+                        {num > 0 && <FallOutlined className="mr-0.5 text-[10px]" />}
+                        {num > 0 ? `-${num.toLocaleString()}` : "0"}
+                    </span>
+                );
+            },
+        },
+        {
+            title: "QTY",
+            dataIndex: "quantityBalance",
+            key: "quantityBalance",
+            align: "right",
+            width: 115,
+            render: (quantityBalance) => (
+                <span className="font-bold text-gray-900 font-mono text-xs">
+                    {Number(quantityBalance || 0).toLocaleString()}
                 </span>
             ),
         },
         {
-            title: "QTY Balance",
-            dataIndex: "quantityBalance",
-            key: "quantityBalance",
-            align: "right",
-            render: (quantityBalance) => `${quantityBalance?.toFixed(2) || 0}`,
-        },
-        {
-            title: "Debit Amount",
+            title: "Debit",
             dataIndex: "debitAmount",
             key: "debitAmount",
             align: "right",
-            render: (amount) => <span className="text-green-700 font-semibold font-mono">{`৳ ${amount?.toFixed(2) || 0}`}</span>,
+            width: 110,
+            render: (amount) => (
+                <span className={Number(amount) > 0 ? "text-green-700 font-semibold font-mono text-xs" : "text-gray-300 font-mono text-xs"}>
+                    {Number(amount) > 0
+                        ? `৳ ${Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : "৳ 0.00"}
+                </span>
+            ),
         },
         {
-            title: "Credit Amount",
+            title: "Credit",
             dataIndex: "creditAmount",
             key: "creditAmount",
             align: "right",
-            render: (amount) => <span className="text-red-700 font-semibold font-mono">{`৳ ${amount?.toFixed(2) || 0}`}</span>,
+            width: 105,
+            render: (amount) => (
+                <span className={Number(amount) > 0 ? "text-red-700 font-semibold font-mono text-xs" : "text-gray-300 font-mono text-xs"}>
+                    {Number(amount) > 0
+                        ? `৳ ${Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : "৳ 0.00"}
+                </span>
+            ),
         },
         {
-            title: "Amount Balance",
+            title: "Ad. Debit",
+            dataIndex: "integratedDebitAmount",
+            key: "integratedDebitAmount",
+            align: "right",
+            width: 115,
+            render: (amount) => (
+                <span className={Number(amount) > 0 ? "text-purple-700 font-semibold font-mono text-xs" : "text-gray-300 font-mono text-xs"}>
+                    {Number(amount) > 0
+                        ? `৳ ${Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : "৳ 0.00"}
+                </span>
+            ),
+        },
+        {
+            title: "Ad. Credit",
+            dataIndex: "integratedCreditAmount",
+            key: "integratedCreditAmount",
+            align: "right",
+            width: 105,
+            render: (amount) => (
+                <span className={Number(amount) > 0 ? "text-purple-700 font-semibold font-mono text-xs" : "text-gray-300 font-mono text-xs"}>
+                    {Number(amount) > 0
+                        ? `৳ ${Number(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                        : "৳ 0.00"}
+                </span>
+            ),
+        },
+        {
+            title: "Balance",
             dataIndex: "balance",
             key: "balance",
             align: "right",
-            render: (balance) => <span className="text-green-700 font-semibold font-mono">{`৳ ${balance?.toFixed(2) || 0}`}</span>,
+            width: 130,
+            render: (balance) => (
+                <span className={`font-bold font-mono text-xs ${Number(balance || 0) >= 0 ? "text-green-700" : "text-red-600"}`}>
+                    ৳ {Number(balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+            ),
         },
     ];
-
     return (
         <div className="space-y-2">
             {/* Header Section */}
@@ -202,13 +342,17 @@ const RawMaterialsDetails = () => {
                             </Tag>
                         </Descriptions.Item>
                         <Descriptions.Item label={<span className="text-gray-500 font-medium text-sm">Unit Price</span>} className="pb-0" style={{ paddingBottom: 0 }}>
-                            <span className="text-base font-bold text-gray-800 font-mono">৳ {rawMaterial.unitPrice?.toLocaleString() || 0}</span>
+                            <span className="text-base font-bold text-gray-800 font-mono">৳ {Number(rawMaterial.unitPrice || 0).toLocaleString()}</span>
                         </Descriptions.Item>
                         <Descriptions.Item label={<span className="text-gray-500 font-medium text-sm">Current Amount</span>} className="pb-0" style={{ paddingBottom: 0 }}>
-                            <span className={`text-base font-bold ${runningBalance > 0 ? "text-green-700" : "text-red-600"} font-mono`}>৳ {runningBalance?.toFixed(2) || 0}</span>
+                            <span className={`text-base font-bold ${runningBalance >= 0 ? "text-green-700" : "text-red-600"} font-mono`}>
+                                ৳ {Number(runningBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
                         </Descriptions.Item>
                         <Descriptions.Item label={<span className="text-gray-500 font-medium text-sm">Opening Date</span>} className="pb-0" style={{ paddingBottom: 0 }}>
-                            <span className="text-base text-gray-700 font-medium">{dayjs(rawMaterial.openingDate).format("DD MMM YYYY")}</span>
+                            <span className="text-base text-gray-700 font-medium">
+                                {rawMaterial.openingDate ? dayjs(rawMaterial.openingDate).format("DD MMM YYYY") : "-"}
+                            </span>
                         </Descriptions.Item>
                     </Descriptions>
                 </Card>
@@ -216,7 +360,7 @@ const RawMaterialsDetails = () => {
 
             {/* Report Table Card */}
             <Card
-                style={{ marginTop: "5px" }}
+                style={{}}
                 title={<span className="text-xl font-bold text-gray-800">Transaction History</span>}
                 className="shadow-sm rounded-xl border-gray-100"
                 styles={{ header: { borderBottom: '1px solid #f3f4f6', backgroundColor: '#fafafa' } }}>
@@ -226,28 +370,48 @@ const RawMaterialsDetails = () => {
                     dataSource={reportData}
                     rowKey="id"
                     pagination={{
-                        pageSize: 10,
+                        pageSize: 20,
                         showSizeChanger: true,
+                        pageSizeOptions: ['10', '25', '50', '100'],
                         showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} transactions`
                     }}
-                    scroll={{ x: 1000 }}
+                    scroll={{ x: 1250 }}
                     bordered={false}
                     size="middle"
                     rowClassName="hover:bg-gray-50/80 transition-colors"
                     summary={() => (
                         <Table.Summary fixed>
-                            <Table.Summary.Row className="bg-gray-50 font-semibold">
-                                <Table.Summary.Cell index={0} colSpan={4} className="text-lg font-bold">
-                                    Total
+                            <Table.Summary.Row className="bg-amber-50/80 font-bold text-xs">
+                                <Table.Summary.Cell index={0} colSpan={4} className="text-center font-bold text-amber-900">
+                                    Total ({reportData.length} records)
                                 </Table.Summary.Cell>
-                                <Table.Summary.Cell index={4} align="right">
-                                    <span className="text-green-700 font-semibold font-mono text-base">৳ {totalDebit?.toFixed(2)}</span>
+                                <Table.Summary.Cell index={1} className="text-right font-bold text-green-700 font-mono">
+                                    +{totals.quantityAdd.toLocaleString()}
                                 </Table.Summary.Cell>
-                                <Table.Summary.Cell index={5} align="right">
-                                    <span className="text-red-700 font-semibold font-mono text-base">৳ {totalCredit?.toFixed(2)}</span>
+                                <Table.Summary.Cell index={2} className="text-right font-bold text-red-600 font-mono">
+                                    -{totals.quantityLess.toLocaleString()}
                                 </Table.Summary.Cell>
-                                <Table.Summary.Cell index={6} align="right">
-                                    <span className="text-green-700 font-semibold font-mono text-base">৳ {(totalDebit - totalCredit)?.toFixed(2)}</span>
+                                <Table.Summary.Cell index={3} className="text-right font-extrabold text-blue-900 font-mono">
+                                    {qtyBalance.toLocaleString()}
+                                </Table.Summary.Cell>
+                                <Table.Summary.Cell index={4} className="text-right font-bold text-green-700 font-mono">
+                                    ৳ {totals.debitAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </Table.Summary.Cell>
+                                <Table.Summary.Cell index={5} className="text-right font-bold text-red-700 font-mono">
+                                    ৳ {totals.creditAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </Table.Summary.Cell>
+                                <Table.Summary.Cell index={6} className="text-right font-bold text-purple-700 font-mono">
+                                    ৳ {totals.integratedDebitAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </Table.Summary.Cell>
+                                <Table.Summary.Cell index={7} className="text-right font-bold text-purple-700 font-mono">
+                                    ৳ {totals.integratedCreditAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </Table.Summary.Cell>
+                                <Table.Summary.Cell
+                                    index={8}
+                                    className={`text-right font-black font-mono ${runningBalance >= 0 ? "text-green-800" : "text-red-700"
+                                        }`}
+                                >
+                                    ৳ {Number(runningBalance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </Table.Summary.Cell>
                             </Table.Summary.Row>
                         </Table.Summary>

@@ -10,6 +10,7 @@ export type TPackingMaterialDebitItem = {
     unitPrice: number;
     amount: number;
     narration: string;
+    integratedUnitPrice?: number;
 };
 
 type TPackingMaterialDebitState = {
@@ -40,6 +41,14 @@ const packingMaterialDebitSlice = createSlice({
                 (item as any)[field] = value;
             }
         },
+        updateAllIntegratedUnitPrice: (state, action: PayloadAction<number>) => {
+            const expenseTotal = Number(action.payload) || 0;
+            const totalQty = state.debitItems.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+            const expPerUnit = totalQty > 0 ? expenseTotal / totalQty : 0;
+            state.debitItems.forEach((item) => {
+                item.integratedUnitPrice = Number((Number(item.unitPrice) + expPerUnit).toFixed(2));
+            });
+        },
         clearPackingMaterialDebitItems: (state) => {
             state.debitItems = [];
         },
@@ -51,6 +60,7 @@ export const {
     setPackingMaterialDebitItems,
     removePackingMaterialDebitItem,
     updatePackingMaterialDebitItem,
+    updateAllIntegratedUnitPrice,
     clearPackingMaterialDebitItems,
 } = packingMaterialDebitSlice.actions;
 

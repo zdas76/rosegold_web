@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Form, Input, Button, Select, DatePicker, Table, InputNumber } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -31,19 +31,30 @@ const PurchaseOrderRM: React.FC = () => {
     const { data: party, isLoading: isPartiesLoading } = useGetPartiesQuery({});
     const { data: rowmaterials, isLoading: isRowMaterialsLoading } = useGetRowMaterialsQuery({});
 
+    const partyData = useMemo(() => {
+        return party?.data?.map((item: TParty) => {
+            if (item?.partyType === "SUPPLIER") {
+                return { key: item?.id, label: item?.name, value: item?.id };
+            }
+        }).filter(Boolean) || [];
+    }, [party]);
+
+    const addedRawIds = useMemo(() => {
+        return new Set(items.map((item: any) => item.rawId));
+    }, [items]);
+
+    const row_materials = useMemo(() => {
+        return rowmaterials?.data?.map((item: TRawMaterial) => ({
+            key: item?.id,
+            label: item?.name,
+            value: item?.id,
+            disabled: addedRawIds.has(item?.id),
+        })) || [];
+    }, [rowmaterials, addedRawIds]);
+
     if (isPartiesLoading || isRowMaterialsLoading) {
         return <Loading tip="Loading Purchase Voucher details..." />;
     }
-
-    const partyData = party?.data?.map((item: TParty) => {
-        if (item?.partyType === "SUPPLIER") {
-            return { key: item?.id, label: item?.name, value: item?.id };
-        }
-    }).filter(Boolean);
-
-    const row_materials = rowmaterials?.data?.map((item: TRawMaterial) => {
-        return { key: item?.id, label: item?.name, value: item?.id };
-    });
 
     const handleAddItem = () => {
         itemForm.validateFields().then((values) => {
@@ -110,7 +121,14 @@ const PurchaseOrderRM: React.FC = () => {
                     <Form component="div" form={itemForm} layout="vertical" className="mb-3">
                         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-6 gap-3">
                             <Form.Item name="rawId" label="Raw Material" rules={[{ required: true, message: "Required" }]}>
-                                <Select placeholder="Select Name" options={row_materials} />
+                                <Select
+                                    showSearch
+                                    placeholder="Select Name"
+                                    options={row_materials}
+                                    filterOption={(input, option) =>
+                                        (option?.label ?? "").toString().toLowerCase().includes(input.toLowerCase())
+                                    }
+                                />
                             </Form.Item>
                             <Form.Item name="quantity" label="Qty" initialValue={1}>
                                 <InputNumber style={{ width: "100%" }} min={1} />

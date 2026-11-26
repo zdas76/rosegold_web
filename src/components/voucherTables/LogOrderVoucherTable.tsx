@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { numberToWords } from "../../utils/numberToWords";
 
 const LogOrderVoucherTable = ({ data }: { data: any }) => {
@@ -10,7 +11,7 @@ const LogOrderVoucherTable = ({ data }: { data: any }) => {
     return (
         <div className="w-full">
             <div className='text-center mb-4'>
-                <h2 className='text-xl font-bold uppercase tracking-widest border-b-2 border-black inline-block px-4 pb-1'>
+                <h2 className="text-lg mt-1 font-bold uppercase tracking-widest border-b-2 border-black inline-block px-5 pb-1">
                     Log Order
                 </h2>
             </div>

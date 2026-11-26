@@ -44,6 +44,7 @@ import BalanceSheet from '../pages/reports/BalanceSheet/BalanceSheet';
 import VendorLedger from '../pages/reports/VendorLedger/VendorLedger';
 import EmployeeLedger from '../pages/reports/EmployeeLedger/EmployeeLedger';
 import { MaterialStockReport } from '../pages/inventory/rowMaterial/RawStockReport';
+import { PackingMaterialStockReport } from '../pages/inventory/packingMaterial/PackingMaterialStockReport';
 import Party from '../pages/sales/party/Party';
 import PurchaseReceiveVoucher from '../pages/purchase/purchaseReceivedVoucher/PurchaseReceiveVoucherP';
 import PurchaseReceiveVoucherRM from '../pages/purchase/purchaseReceivedVoucher/PurchaseReceiveVoucherRM';
@@ -57,6 +58,7 @@ import SalesVoucherView from '../pages/store FG/salesVoucherView/SalesVoucherVie
 import SalesReturn from '../pages/store FG/salesReturn/SalesReturn';
 import SRReceivedVoucher from '../pages/SR/receivedVoucher/SRReceivedVoucher';
 import SRPaymentVoucher from '../pages/SR/paymentVoucher/SRPaymentVoucher';
+import AllVoucher from '../pages/accounts/allVoucher/AllVoucher';
 import AccountsSalesVoucher from '../pages/accounts/salesVoucher/AccountsSalesVoucher';
 import AccountsReceivedVoucher from '../pages/accounts/receivedVoucher/AccountsReceivedVoucher';
 import AccountsPaymentVoucher from '../pages/accounts/paymentVoucher/AccountsPaymentVoucher';
@@ -71,6 +73,9 @@ import PurchaseOrderRM from '../pages/purchase/purchaseOrder/PurchaseOrderRMList
 import ProductIngredient from '../pages/inventory/productionIngredient/ProductIngredient';
 import PackingMaterial from '../pages/inventory/packingMaterial/PackingMaterial';
 import ProductionExpItem from '../pages/inventory/productionExpItem/ProductionExpItem';
+import ProductTransfer from '../pages/store RMPM/productTransfer/ProductTranser';
+import RequestRaw from '../pages/store RMPM/requestRaw/RequestRaw';
+import RawRequestAccept from '../pages/purchase/rawRequestAccept/RawRequestAccept';
 
 
 export const sideBarRoutes = [
@@ -99,6 +104,13 @@ export const sideBarRoutes = [
                 element: <ProductStockReport />,
                 icon: <MdRawOn />,
                 label: <Link to="/dashboard/product_stock_report">Product</Link>,
+            },
+            {
+                key: 'inventory_packing_material',
+                path: "/dashboard/packing_material_stock_report",
+                element: <PackingMaterialStockReport />,
+                icon: <BiPackage />,
+                label: <Link to="/dashboard/packing_material_stock_report">Packing Material</Link>,
             },
         ]
     },
@@ -157,6 +169,7 @@ export const sideBarRoutes = [
                 path: "/dashboard/purchase-rm",
                 label: <Link to={`/dashboard/purchase-rm`}>Requisition RMPM</Link>
             },
+
             {
                 key: 'purchase_p',
                 path: "/dashboard/purchase-receive-voucher",
@@ -185,6 +198,7 @@ export const sideBarRoutes = [
             //     icon: <UserAddOutlined />,
             //     label: <Link to="/dashboard/vendor">Vendor</Link>,
             // },
+
             {
                 key: 'purchase_supplier',
                 path: "/dashboard/supplier",
@@ -192,20 +206,26 @@ export const sideBarRoutes = [
                 icon: <UserAddOutlined />,
                 label: <Link to="/dashboard/supplier">Supplier</Link>,
             },
-
+            {
+                key: "raw_request",
+                icon: <MdRequestPage />,
+                element: <RawRequestAccept />,
+                path: "/dashboard/raw-request",
+                label: <Link to="/dashboard/raw-request">Raw Request</Link>
+            },
         ]
     },
     {
-        key: "store_rmpm",
+        key: "PRODUCTION",
         icon: <BiStore />,
-        label: "Store (RMPM)",
+        label: "PRODUCTION",
         children: [
             {
-                key: "store_rmpm_production",
-                path: "/dashboard/store_rmpm_production",
+                key: "PRODUCTION",
+                path: "/dashboard/production-creation",
                 icon: <MdOutlineProductionQuantityLimits />,
                 element: <ProductionCreationForm formTitle="Production Creation" />,
-                label: <Link to="/dashboard/store_rmpm_production">Production Creation</Link>,
+                label: <Link to="/dashboard/production-creation">Production Creation</Link>,
             },
             {
                 key: "store_rmpm_production_voucher",
@@ -214,28 +234,34 @@ export const sideBarRoutes = [
                 element: <ProductionVoucher />,
                 label: <Link to="/dashboard/production-voucher">Production Voucher</Link>,
             },
-
+            {
+                key: "store_rmpm_request_raw",
+                icon: <BsHr />,
+                element: <RequestRaw />,
+                path: "/dashboard/request-raw",
+                label: <Link to="/dashboard/request-raw">Make Raw Request</Link>
+            },
+            {
+                key: "store_rmpm_product_transfer",
+                path: "/dashboard/product_transfer",
+                icon: <BiPackage />,
+                element: <ProductTransfer />,
+                label: <Link to="/dashboard/product_transfer">Product Transfer</Link>,
+            },
             // {
-            //     key: "store_rmpm_packaging",
-            //     path: "/dashboard/store_rmpm_packaging",
-            //     icon: <BiPackage />,
-            //     element: <Packaging />,
-            //     label: <Link to="/dashboard/store_rmpm_packaging">Packaging</Link>,
+            //     key: "store_rmpm_request_sent_fg",
+            //     path: "/dashboard/store_rmpm_request_sent_fg",
+            //     icon: <MdRequestPage />,
+            //     element: <RequestSendFG />,
+            //     label: <Link to="/dashboard/store_rmpm_request_sent_fg">Request sent(FG)</Link>,
             // },
-            {
-                key: "store_rmpm_request_sent_fg",
-                path: "/dashboard/store_rmpm_request_sent_fg",
-                icon: <MdRequestPage />,
-                element: <RequestSendFG />,
-                label: <Link to="/dashboard/store_rmpm_request_sent_fg">Request sent(FG)</Link>,
-            },
-            {
-                key: "store_rmpm_requisition_slip",
-                path: "/dashboard/store_rmpm_requisition_slip",
-                icon: <MdRequestPage />,
-                element: <RequsitionSlip />,
-                label: <Link to="/dashboard/store_rmpm_requisition_slip">Requisition Slip</Link>,
-            },
+            // {
+            //     key: "store_rmpm_requisition_slip",
+            //     path: "/dashboard/store_rmpm_requisition_slip",
+            //     icon: <MdRequestPage />,
+            //     element: <RequsitionSlip />,
+            //     label: <Link to="/dashboard/store_rmpm_requisition_slip">Requisition Slip</Link>,
+            // },
         ]
     },
     {
@@ -299,6 +325,13 @@ export const sideBarRoutes = [
         icon: <MdAccountBalance />,
         label: "Accounts",
         children: [
+            {
+                key: "accounts_all_voucher",
+                path: "/dashboard/accounts_all_voucher",
+                icon: <FaList />,
+                element: <AllVoucher />,
+                label: <Link to="/dashboard/accounts_all_voucher">All Voucher</Link>,
+            },
             // {
             //     key: "accounts_order_received",
             //     path: "/dashboard/accounts_order_received",

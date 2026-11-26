@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { JournalEntry } from "../../types/voucherTypes";
 import { numberToWords } from "../../utils/numberToWords";
 
@@ -9,7 +10,7 @@ const ReceivedVoucherTable = ({ data }: { data: any }) => {
     return (
         <div className="w-full">
             <div className='text-center mb-3'>
-                <h2 className='text-xl font-bold uppercase tracking-widest border-b-2 border-black inline-block px-4 pb-1'>
+                <h2 className="text-lg mt-1 font-bold uppercase tracking-widest border-b-2 border-black inline-block px-5 pb-1">
                     Received
                 </h2>
             </div>

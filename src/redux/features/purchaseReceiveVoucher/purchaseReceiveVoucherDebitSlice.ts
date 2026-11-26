@@ -15,6 +15,7 @@ export type TReceiveVoucherDebitItem = {
     accountsItemId?: number;
     accountsItemName?: string;
     bankAccountId?: number;
+    integratedUnitPrice?: number;
 };
 
 type TReceiveVoucherDebitState = {
@@ -56,6 +57,14 @@ const receiveVoucherDebitSlice = createSlice({
                 item.amount = Number(((Number(item.qty) || 0) * unitPrice).toFixed(2));
             }
         },
+        updateAllIntegratedUnitPrice: (state, action: PayloadAction<number>) => {
+            const expenseTotal = Number(action.payload) || 0;
+            const totalQty = state.debitItems.reduce((sum, item) => sum + (Number(item.qty) || 0), 0);
+            const expPerUnit = totalQty > 0 ? expenseTotal / totalQty : 0;
+            state.debitItems.forEach((item) => {
+                item.integratedUnitPrice = Number((Number(item.unitPrice) + expPerUnit).toFixed(2));
+            });
+        },
         clearReceiveVoucherDebitItems: (state) => {
             state.debitItems = [];
         },
@@ -68,6 +77,7 @@ export const {
     removeReceiveVoucherDebitItem,
     updateReceiveVoucherDebitItem,
     updateReceiveVoucherDebitUnitPrice,
+    updateAllIntegratedUnitPrice,
     clearReceiveVoucherDebitItems,
 } = receiveVoucherDebitSlice.actions;
 

@@ -11,6 +11,13 @@ const journalApi = baseApi.injectEndpoints({
                 body: data,
             }),
         }),
+        purchasePackingMaterials: builder.mutation({
+            query: (data) => ({
+                url: '/journal/purchase-packing-material',
+                method: 'POST',
+                body: data,
+            }),
+        }),
         createSalesVoucher: builder.mutation({
             query: (data: any) => {
                 return {
@@ -106,4 +113,5 @@ export const {
     useGetPurchaseOrderByOrderNoQuery,
     useLazyGetPurchaseOrderByOrderNoQuery,
     useUpdatePurchaseOrderMutation,
+    usePurchasePackingMaterialsMutation
 } = journalApi;
