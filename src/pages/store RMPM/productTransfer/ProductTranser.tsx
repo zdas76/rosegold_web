@@ -86,7 +86,7 @@ const ProductTransfer: React.FC = () => {
   const [createProductTransferRequest, { isLoading: isSubmitting }] =
     useCreateProductTransferRequestMutation();
   const { data: internalTxRes, isLoading: isTxLoading } =
-    useGetRequestAllQuery(VoucherType.TRANSFER);
+    useGetRequestAllQuery(VoucherType.TRANSFER, { pollingInterval: 10000, skipPollingIfUnfocused: true });
 
   // Live stock hook for item selector in Add Modal
   const [triggerGetTotalQuantity] = useLazyGetTotalQuantityAndUnitPriceQuery();

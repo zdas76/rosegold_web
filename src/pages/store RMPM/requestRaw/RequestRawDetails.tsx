@@ -47,7 +47,7 @@ const RequestRawDetails: React.FC = () => {
     refetch,
   } = useGetRequestByIdQuery(
     { id: Number(id!), voucherType: VoucherType.REQUEST },
-    { skip: !id }
+    { skip: !id, pollingInterval: 10000, skipPollingIfUnfocused: true }
   );
 
   const detailData = detailsResponse?.data;

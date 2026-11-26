@@ -1,4 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit'
+import { setupListeners } from '@reduxjs/toolkit/query'
 import { baseApi } from './api/baseApi'
 import storage from "redux-persist/lib/storage";
 import persistReducer from 'redux-persist/es/persistReducer';
@@ -62,3 +63,6 @@ export type RootState = ReturnType<typeof store.getState>
 export type AppDispatch = typeof store.dispatch
 
 export const persistor = persistStore(store)
+
+// Enable listener behavior for refetchOnFocus and refetchOnReconnect
+setupListeners(store.dispatch)

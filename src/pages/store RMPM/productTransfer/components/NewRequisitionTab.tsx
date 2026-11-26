@@ -46,7 +46,7 @@ const NewRequisitionTab: React.FC<NewRequisitionTabProps> = ({ onSuccess }) => {
   const [requisitionNo, setRequisitionNo] = useState<string>(generateReqNo());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: tranreqVoucher } = useGetRequestAllQuery(VoucherType.TRANSFER)
+  const { data: tranreqVoucher } = useGetRequestAllQuery(VoucherType.TRANSFER, { pollingInterval: 10000, skipPollingIfUnfocused: true });
   console.log(tranreqVoucher, "transfer request voucher")
   const [createProductTransferRequest, { isLoading: isCreatingRequest }] =
     useCreateProductTransferRequestMutation();

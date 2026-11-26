@@ -134,7 +134,7 @@ const RequestRaw: React.FC = () => {
   const [createInternalTransaction, { isLoading: isSubmitting }] =
     useCreateRawRequestMutation();
   const { data: internalTxRes, isLoading: isTxLoading } =
-    useGetRequestAllQuery(VoucherType.REQUEST);
+    useGetRequestAllQuery(VoucherType.REQUEST, { pollingInterval: 10000, skipPollingIfUnfocused: true });
 
   // Live stock hook for item selector in Add Modal
   const [triggerGetTotalQuantity] = useLazyGetTotalQuantityAndUnitPriceQuery();

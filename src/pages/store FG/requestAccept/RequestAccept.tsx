@@ -51,7 +51,7 @@ const RequestAccept: React.FC = () => {
     isLoading: isTxLoading,
     isFetching: isTxFetching,
     refetch,
-  } = useGetRequestAllQuery(VoucherType.TRANSFER);
+  } = useGetRequestAllQuery(VoucherType.TRANSFER, { pollingInterval: 10000, skipPollingIfUnfocused: true });
 
   // Approve mutation
   const [approveProductRequest, { isLoading: isApproving }] = useApproveProductRequestMutation();
