@@ -47,7 +47,7 @@ const ProductTransferDetails: React.FC = () => {
     refetch,
   } = useGetRequestByIdQuery(
     { id: id!, voucherType: VoucherType.TRANSFER },
-    { skip: !id }
+    { skip: !id, pollingInterval: 10000, skipPollingIfUnfocused: true }
   );
 
   const detailData = detailsResponse?.data;

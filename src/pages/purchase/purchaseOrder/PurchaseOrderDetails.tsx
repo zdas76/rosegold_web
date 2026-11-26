@@ -9,7 +9,7 @@ import Loading from "../../../components/shared/Loading";
 const PurchaseOrderDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { data: orderResponse, isLoading } = useGetPurchaseOrderByIdQuery(Number(id));
+    const { data: orderResponse, isLoading } = useGetPurchaseOrderByIdQuery(Number(id), { pollingInterval: 10000, skipPollingIfUnfocused: true });
     const [updatePurchaseOrder, { isLoading: isUpdating }] = useUpdatePurchaseOrderMutation();
 
     const [isEditing, setIsEditing] = useState(false);

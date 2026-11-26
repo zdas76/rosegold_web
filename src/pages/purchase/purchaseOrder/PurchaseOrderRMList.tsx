@@ -10,7 +10,7 @@ import PurchaseOrderRMModal from "./PurchaseOrderRMModal";
 const PurchaseOrderRMList: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const navigate = useNavigate();
-    const { data: orders, isLoading } = useGetPurchaseOrdersQuery({ type: "RAW_MATERIAL" });
+    const { data: orders, isLoading } = useGetPurchaseOrdersQuery({ type: "RAW_MATERIAL" }, { pollingInterval: 10000, skipPollingIfUnfocused: true });
 
     if (isLoading) {
         return <Loading tip="Loading Purchase Orders..." />;

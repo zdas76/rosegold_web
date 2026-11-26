@@ -50,7 +50,7 @@ const RawRequestAccept: React.FC = () => {
     isLoading: isTxLoading,
     isFetching: isTxFetching,
     refetch,
-  } = useGetRequestAllQuery(VoucherType.REQUEST);
+  } = useGetRequestAllQuery(VoucherType.REQUEST, { pollingInterval: 10000, skipPollingIfUnfocused: true });
 
   // Approve mutation
   const [approveRawRequest, { isLoading: isApproving }] = useApproveRawRequestMutation();

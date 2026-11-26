@@ -10,7 +10,7 @@ import PurchaseOrderProductModal from "./PurchaseOrderProductModal";
 const PurchaseOrderProductList: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const navigate = useNavigate();
-    const { data: orders, isLoading } = useGetPurchaseOrdersQuery({ type: "PRODUCT" });
+    const { data: orders, isLoading } = useGetPurchaseOrdersQuery({ type: "PRODUCT" }, { pollingInterval: 10000, skipPollingIfUnfocused: true });
 
     if (isLoading) {
         return <Loading tip="Loading Purchase Orders..." />;
