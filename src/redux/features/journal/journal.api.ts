@@ -69,6 +69,7 @@ const journalApi = baseApi.injectEndpoints({
                 method: 'POST',
                 body: data,
             }),
+            invalidatesTags: ['requisiton']
         }),
         getPurchaseOrders: builder.query({
             query: (params: any) => ({
@@ -76,18 +77,21 @@ const journalApi = baseApi.injectEndpoints({
                 method: 'GET',
                 params,
             }),
+            providesTags: ["requisiton"]
         }),
         getPurchaseOrderById: builder.query({
             query: (id: number) => ({
                 url: `/purchase-order/${id}`,
                 method: 'GET',
             }),
+            providesTags: ["requisiton"]
         }),
         getPurchaseOrderByOrderNo: builder.query({
             query: (orderNo: string) => ({
                 url: `/purchase-order/requisition/${encodeURIComponent(orderNo)}`,
                 method: 'GET',
             }),
+            providesTags: ["requisiton"]
         }),
         // update purchase order
         updatePurchaseOrder: builder.mutation({

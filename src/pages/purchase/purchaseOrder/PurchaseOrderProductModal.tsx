@@ -125,15 +125,12 @@ const PurchaseOrderProductModal: React.FC<Props> = ({ open, onClose }) => {
                             date: dayjs(),
                         }}
                     >
-                        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
                             <Form.Item name="partyId" label="Select Supplier" rules={[{ required: true, message: "Please select a party" }]}>
                                 <Select style={{ width: "100%" }} placeholder="Select Name" options={partyData} />
                             </Form.Item>
                             <Form.Item label="Date" name="date" rules={[{ required: true, message: "Select a date" }]}>
                                 <DatePicker className="w-full" />
-                            </Form.Item>
-                            <Form.Item name="invoiceNo" label="Invoice No">
-                                <Input placeholder="Invoice Number" />
                             </Form.Item>
                         </div>
                         <div>
