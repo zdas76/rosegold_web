@@ -58,9 +58,9 @@ export const ProductStockReport = () => {
       key: "closingQuantity",
       align: "right",
       render: (_, record) => {
-        const opening = record?.product?.quantity ?? 0;
-        const add = record?.total?._sum?.quantityAdd ?? 0;
-        const less = record?.total?._sum?.quantityLess ?? 0;
+        const opening = Number(record?.product?.quantity ?? 0);
+        const add = Number(record?.total?._sum?.quantityAdd ?? 0);
+        const less = Number(record?.total?._sum?.quantityLess ?? 0);
         const closing = opening + add - less;
 
         return (
@@ -85,11 +85,10 @@ export const ProductStockReport = () => {
       key: "debitAmount",
       align: "right",
       render: (_, record) => {
-        const debitAmount = record?.total?._sum?.debitAmount ?? 0;
-
+        const debitAmount = Number(record?.total?._sum?.debitAmount ?? 0);
         return (
           <span className="font-semibold text-gray-900">
-            ৳ {debitAmount.toLocaleString()}
+            ৳ {debitAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         );
       },
@@ -99,10 +98,10 @@ export const ProductStockReport = () => {
       key: "creditAmount",
       align: "right",
       render: (_, record) => {
-        const creditAmount = record?.total?._sum?.creditAmount ?? 0;
+        const creditAmount = Number(record?.total?._sum?.creditAmount ?? 0);
         return (
           <span className="font-semibold text-gray-900">
-            ৳ {creditAmount.toLocaleString()}
+            ৳ {creditAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         );
       },
@@ -112,12 +111,12 @@ export const ProductStockReport = () => {
       key: "balanceAmount",
       align: "right",
       render: (_, record) => {
-        const debitAmount = record?.total?._sum?.debitAmount ?? 0;
-        const creditAmount = record?.total?._sum?.creditAmount ?? 0;
+        const debitAmount = Number(record?.total?._sum?.debitAmount ?? 0);
+        const creditAmount = Number(record?.total?._sum?.creditAmount ?? 0);
         const balanceAmount = debitAmount - creditAmount;
         return (
           <span className="font-semibold text-gray-900">
-            ৳ {balanceAmount.toLocaleString()}
+            ৳ {balanceAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         );
       },
@@ -162,7 +161,7 @@ export const ProductStockReport = () => {
         loading={isLoading || isFetching}
         columns={columns}
         dataSource={data?.data || []}
-        rowKey="id"
+        rowKey={(record) => record?.product?.id}
         pagination={{ pageSize: 10 }}
         className="rounded-lg overflow-hidden"
       />

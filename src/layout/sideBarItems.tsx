@@ -221,7 +221,7 @@ export const sideBarRoutes = [
         label: "PRODUCTION",
         children: [
             {
-                key: "PRODUCTION",
+                key: "store_rmpm_production_creation",
                 path: "/dashboard/production-creation",
                 icon: <MdOutlineProductionQuantityLimits />,
                 element: <ProductionCreationForm formTitle="Production Creation" />,
