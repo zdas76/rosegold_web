@@ -380,7 +380,7 @@ export default function ProductStockReportDetails() {
           dataSource={report}
           rowKey="id"
           pagination={{
-            pageSize: 10,
+            pageSize: 20,
             showSizeChanger: true,
             pageSizeOptions: ['10', '25', '50', '100'],
             showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} transactions`

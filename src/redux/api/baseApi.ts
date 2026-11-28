@@ -44,6 +44,7 @@ export const baseApi = createApi({
     "productionExpItem",
     "internalTransaction",
     "product-request",
+    "requisiton"
   ],
   endpoints: () => ({}),
 });

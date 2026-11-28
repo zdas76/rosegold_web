@@ -33,18 +33,18 @@ const RawMaterialsDetails = () => {
     const reports: any[] = Array.isArray(data?.data?.report) ? data.data.report : [];
 
     // Sort chronologically (oldest to newest) to calculate correct running balances
-    const sortedAsc = [...reports].sort((a: any, b: any) => {
-        const timeA = new Date(a.date || a.createdAt).getTime();
-        const timeB = new Date(b.date || b.createdAt).getTime();
-        if (timeA !== timeB) return timeA - timeB;
-        return Number(a.id) - Number(b.id);
-    });
+    // const sortedAsc = [...reports].sort((a: any, b: any) => {
+    //     const timeA = new Date(a.date || a.createdAt).getTime();
+    //     const timeB = new Date(b.date || b.createdAt).getTime();
+    //     if (timeA !== timeB) return timeA - timeB;
+    //     return Number(a.id) - Number(b.id);
+    // });
 
     // Start from 0 because all inventory additions/deductions (including opening entries) are recorded in the inventory transactions
     let runningBalance = 0;
     let qtyBalance = 0;
 
-    const chronologicalData: ReportItem[] = sortedAsc.map((item: any, idx) => {
+    const chronologicalData: ReportItem[] = reports.map((item: any, idx) => {
         const qAdd = Number(item.quantityAdd ?? 0);
         const qLess = Number(item.quantityLess ?? 0);
         const debit = Number(item.debitAmount ?? 0);

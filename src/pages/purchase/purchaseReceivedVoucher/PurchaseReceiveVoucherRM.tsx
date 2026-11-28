@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Form, Input, Button, DatePicker, Select, Divider, Table, message } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { toast } from "sonner";
@@ -67,7 +67,12 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
   const [searchRequisitionNo, setSearchRequisitionNo] = useState<string>("");
   const [editingKey, setEditingKey] = useState<number | null>(null);
   const dispatch = useAppDispatch();
-  const debitItems = useAppSelector((state) => state.receiveVoucherDebit.debitItems);
+  const allDebitItems = useAppSelector((state) => state.receiveVoucherDebit.debitItems);
+  const debitItems = useMemo(() => {
+    return allDebitItems.filter(
+      (item) => item.itemType === "RAW_MATERIAL" || (item.rawMaterialId != null && !item.productId)
+    );
+  }, [allDebitItems]);
   const creditItemsRedux = useAppSelector((state) => state.receiveVoucherCredit.creditItems);
 
 
@@ -124,7 +129,7 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
     });
 
     if (needsUpdate) {
-      dispatch(updateAllIntegratedUnitPrice(expenseTotal));
+      dispatch(updateAllIntegratedUnitPrice({ expenseTotal, itemType: "RAW_MATERIAL" }));
     }
   }, [expenseTotal, debitItems, dispatch]);
 
@@ -187,6 +192,7 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
 
       dispatch(addReceiveVoucherDebitItem({
         key: Date.now(),
+        itemType: "RAW_MATERIAL",
         rawMaterialId: values.rawMaterialId,
         rawMaterialName: selected?.label || "",
         qty,
@@ -261,7 +267,7 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
       form.resetFields();
       expenseForm.resetFields();
       setExpenseItems([]);
-      dispatch(clearReceiveVoucherDebitItems());
+      dispatch(clearReceiveVoucherDebitItems("RAW_MATERIAL"));
       dispatch(clearReceiveVoucherCreditItems());
     }
   };
@@ -270,7 +276,7 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
     form.resetFields();
     expenseForm.resetFields();
     setExpenseItems([]);
-    dispatch(clearReceiveVoucherDebitItems());
+    dispatch(clearReceiveVoucherDebitItems("RAW_MATERIAL"));
     dispatch(clearReceiveVoucherCreditItems());
     setIsModalOpen(false);
   };
@@ -409,6 +415,7 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
 
             return {
               key: item?.id ? Number(item.id) : Date.now() + index,
+              itemType: "RAW_MATERIAL" as const,
               rawMaterialId: resolvedRawMaterialId || null,
               rawMaterialName: rawMaterialName,
               qty,
@@ -418,7 +425,7 @@ const PurchaseReceiveVoucherRM: React.FC = () => {
               narration: item?.narration || "",
             };
           });
-          dispatch(setReceiveVoucherDebitItems(mappedDebitItems));
+          dispatch(setReceiveVoucherDebitItems({ items: mappedDebitItems, itemType: "RAW_MATERIAL" }));
         }
         toast.success(res.message || "Purchase Order retrieved successfully");
         message.success(res.message || "Purchase Order retrieved successfully");

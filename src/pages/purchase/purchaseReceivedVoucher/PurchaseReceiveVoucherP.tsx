@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Form, Input, Button, DatePicker, Select, Divider, Table, message } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { toast } from "sonner";
@@ -17,11 +17,13 @@ import { generateInvoiceNumber } from "../../../utils/generateRandomNumber";
 import { useGetBankQuery } from "../../../redux/features/bank/bank.api";
 import PostSubmitModal from "../../../components/shared/PostSubmitModal";
 import Loading from "../../../components/shared/Loading";
+import EditableInput from "../../../components/shared/EditableInput";
 import { useAppDispatch, useAppSelector } from "../../../redux/hooks";
 import {
   addReceiveVoucherDebitItem,
   setReceiveVoucherDebitItems,
   removeReceiveVoucherDebitItem,
+  updateReceiveVoucherDebitUnitPrice,
   updateAllIntegratedUnitPrice,
   clearReceiveVoucherDebitItems,
 } from "../../../redux/features/purchaseReceiveVoucher/purchaseReceiveVoucherDebitSlice";
@@ -62,8 +64,14 @@ const PurchaseReceiveVoucherP: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCreditLedgerName, setSelectedCreditLedgerName] = useState<string>("");
   const [searchRequisitionNo, setSearchRequisitionNo] = useState<string>("");
+  const [editingKey, setEditingKey] = useState<number | null>(null);
   const dispatch = useAppDispatch();
-  const debitItems = useAppSelector((state) => state.receiveVoucherDebit.debitItems);
+  const allDebitItems = useAppSelector((state) => state.receiveVoucherDebit.debitItems);
+  const debitItems = useMemo(() => {
+    return allDebitItems.filter(
+      (item) => item.itemType === "PRODUCT" || (item.productId != null && !item.rawMaterialId)
+    );
+  }, [allDebitItems]);
   const creditItemsRedux = useAppSelector((state) => state.receiveVoucherCredit.creditItems);
 
   const [triggerGetPurchaseOrder, { isFetching: isSearchingRequisition }] =
@@ -119,7 +127,7 @@ const PurchaseReceiveVoucherP: React.FC = () => {
     });
 
     if (needsUpdate) {
-      dispatch(updateAllIntegratedUnitPrice(expenseTotal));
+      dispatch(updateAllIntegratedUnitPrice({ expenseTotal, itemType: "PRODUCT" }));
     }
   }, [expenseTotal, debitItems, dispatch]);
 
@@ -191,6 +199,7 @@ const PurchaseReceiveVoucherP: React.FC = () => {
 
       dispatch(addReceiveVoucherDebitItem({
         key: Date.now(),
+        itemType: "PRODUCT",
         productId: values.productId,
         productName: selected?.label || "",
         qty,
@@ -259,6 +268,11 @@ const PurchaseReceiveVoucherP: React.FC = () => {
     const result = getResponse(res);
     if (result?.success) {
       setIsModalOpen(true);
+      form.resetFields();
+      expenseForm.resetFields();
+      setExpenseItems([]);
+      dispatch(clearReceiveVoucherDebitItems("PRODUCT"));
+      dispatch(clearReceiveVoucherCreditItems());
     }
   };
 
@@ -266,7 +280,7 @@ const PurchaseReceiveVoucherP: React.FC = () => {
     form.resetFields();
     expenseForm.resetFields();
     setExpenseItems([]);
-    dispatch(clearReceiveVoucherDebitItems());
+    dispatch(clearReceiveVoucherDebitItems("PRODUCT"));
     dispatch(clearReceiveVoucherCreditItems());
     setIsModalOpen(false);
   };
@@ -411,6 +425,7 @@ const PurchaseReceiveVoucherP: React.FC = () => {
 
             return {
               key: item?.id ? Number(item.id) : Date.now() + index,
+              itemType: "PRODUCT" as const,
               productId: productId || null,
               productName: productName,
               qty,
@@ -420,7 +435,7 @@ const PurchaseReceiveVoucherP: React.FC = () => {
               narration: item?.narration || "",
             };
           });
-          dispatch(setReceiveVoucherDebitItems(mappedDebitItems));
+          dispatch(setReceiveVoucherDebitItems({ items: mappedDebitItems, itemType: "PRODUCT" }));
         }
         toast.success(res.message || "Purchase Order retrieved successfully");
         message.success(res.message || "Purchase Order retrieved successfully");
@@ -570,7 +585,38 @@ const PurchaseReceiveVoucherP: React.FC = () => {
                 {
                   title: "Unit Price",
                   dataIndex: "unitPrice",
-                  render: (value: number) => value?.toFixed(2),
+                  render: (value: number, record: any) => {
+                    const isEditing = editingKey === record.key;
+                    if (isEditing) {
+                      return (
+                        <EditableInput
+                          type="number"
+                          initialValue={record.unitPrice}
+                          onSave={(newVal) => {
+                            const newPrice = Math.max(0, parseFloat(newVal) || 0);
+                            dispatch(
+                              updateReceiveVoucherDebitUnitPrice({
+                                key: record.key,
+                                unitPrice: newPrice,
+                              })
+                            );
+                            setEditingKey(null);
+                          }}
+                          onCancel={() => setEditingKey(null)}
+                        />
+                      );
+                    }
+                    return (
+                      <div
+                        onDoubleClick={() => {
+                          setEditingKey(record.key);
+                        }}
+                        className="cursor-pointer hover:bg-blue-50 px-2 py-0.5 rounded transition-colors inline-block select-none"
+                        title="Double-click to edit">
+                        {Number(value || 0).toFixed(2)}
+                      </div>
+                    );
+                  },
                 },
                 {
                   title: "Adjusted Unit R.",
@@ -702,7 +748,7 @@ const PurchaseReceiveVoucherP: React.FC = () => {
           </div>
         </div>
         {/*-------------------------- Credit Items --------------------------------------------- */}
-        <div className="mb-5 bg-white border border-slate-200/80 rounded-xl p-4 pt-1 shadow-[0_2px_12px_-3px_rgba(15,23,42,0.04)]">
+        {/* <div className="mb-5 bg-white border border-slate-200/80 rounded-xl p-4 pt-1 shadow-[0_2px_12px_-3px_rgba(15,23,42,0.04)]">
           <Divider orientation="left" style={{ paddingTop: "10px" }}>
             Credit Items
           </Divider>
@@ -796,9 +842,9 @@ const PurchaseReceiveVoucherP: React.FC = () => {
           <div className="text-right font-bold mt-2 text-base">
             Total Credit: {creditTotal}
           </div>
-        </div>
+        </div> */}
 
-        <div className="flex items-center justify-end gap-4">
+        {/* <div className="flex items-center justify-end gap-4">
           <div className="">
             {creditTotal !== totalDebit ? (
               <h3 className="font-bold text-sm text-slate-900">
@@ -814,6 +860,8 @@ const PurchaseReceiveVoucherP: React.FC = () => {
               </p>
             )}
           </div>
+        </div> */}
+        <div className="flex justify-end">
           <Button
             type="primary"
             size="middle"
